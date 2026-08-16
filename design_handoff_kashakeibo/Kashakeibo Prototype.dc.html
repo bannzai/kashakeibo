@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-dc1d89a9-d628-41b7-996e-f57cf805588b/styles.css">
+<script src="_ds/organic-dc1d89a9-d628-41b7-996e-f57cf805588b/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#efe6d4;font-family:"Figtree",system-ui,sans-serif}
+a{color:var(--color-accent)}a:hover{color:var(--color-accent-600)}
+::-webkit-scrollbar{display:none}
+@keyframes kk-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+@keyframes kk-shimmer{0%{background-position:150% 0}100%{background-position:-50% 0}}
+@keyframes kk-flash{0%{opacity:1}100%{opacity:0}}
+@keyframes kk-pop{0%{transform:translateY(14px);opacity:0}100%{transform:translateY(0);opacity:1}}
+</style>
+</helmet>
+<div style="display:flex;gap:36px;align-items:flex-start;justify-content:center;padding:36px 24px;flex-wrap:wrap">
+
+<div data-screen-label="カシャケイボ 試作" style="width:390px;height:844px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:44px;overflow:hidden;box-shadow:var(--shadow-lg);position:relative;display:flex;flex-direction:column;flex:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 26px 4px;font-size:13px;font-weight:600;flex:none">
+    <span>9:41</span>
+    <div style="display:flex;gap:5px;align-items:center">
+      <div style="width:16px;height:10px;border-radius:2px;background:var(--color-neutral-800)"></div>
+      <div style="width:20px;height:10px;border-radius:3px;border:1.5px solid var(--color-neutral-800)"></div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;overflow-y:auto;scrollbar-width:none">
+
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="ホーム">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px 2px">
+        <button style="width:34px;height:34px;border-radius:999px;border:1px solid var(--color-divider);background:transparent;color:var(--color-neutral-700);display:grid;place-items:center;cursor:pointer" style-hover="background:var(--color-neutral-200)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+        <div style="text-align:center">
+          <div style="font-weight:800;font-size:19px">2026年8月</div>
+          <div style="font-size:10.5px;color:var(--color-neutral-600);letter-spacing:.06em">AUGUST 2026</div>
+        </div>
+        <button style="width:34px;height:34px;border-radius:999px;border:1px solid var(--color-divider);background:transparent;color:var(--color-neutral-700);display:grid;place-items:center;cursor:pointer" style-hover="background:var(--color-neutral-200)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+      </div>
+      <div style="margin:12px 20px 0;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:14px 18px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:14px">
+        <div style="flex:1;min-width:0"><div style="font-size:10px;color:var(--color-neutral-600)">支出 Spending</div><div style="font-weight:800;font-size:21px;letter-spacing:-0.02em;font-feature-settings:'tnum'">¥{{ spentNum }}</div></div>
+        <div style="flex:none"><div style="font-size:10px;color:var(--color-neutral-600)">収入 Income</div><div style="font-weight:700;font-size:12px;font-feature-settings:'tnum'">¥310,000</div></div>
+        <div style="flex:none"><div style="font-size:10px;color:var(--color-neutral-600)">残り Balance</div><div style="font-weight:700;font-size:12px;color:var(--color-accent-2-700);font-feature-settings:'tnum'">{{ balance }}</div></div>
+        <span onClick="{{ goReport }}" style="flex:none;width:28px;height:28px;border-radius:999px;background:var(--color-accent-100);color:var(--color-accent-700);display:grid;place-items:center;cursor:pointer" style-hover="background:var(--color-accent-200)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      </div>
+      <sc-if value="{{ showDupBanner }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ openDup }}" style="margin:12px 20px 0;display:flex;align-items:center;gap:10px;background:var(--color-accent-2-100);border:1px solid var(--color-accent-2-300);border-radius:var(--radius-md);padding:11px 14px;cursor:pointer" style-hover="background:var(--color-accent-2-200)">
+        <div style="width:30px;height:30px;border-radius:999px;background:var(--color-accent-2-300);color:var(--color-accent-2-800);display:grid;place-items:center;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="3"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></div>
+        <div style="flex:1"><div style="font-weight:700;font-size:12.5px;color:var(--color-accent-2-800)">重複の可能性が1件あります</div><div style="font-size:10.5px;color:var(--color-accent-2-700)">Possible duplicate — tap to review</div></div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2-700)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </div>
+      </sc-if>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 22px 0">
+        <div style="font-weight:800;font-size:15px">とった記録 <span style="font-size:10.5px;color:var(--color-neutral-600);font-weight:400">Captures</span></div>
+        <span onClick="{{ openPaywall }}" style="font-size:10.5px;background:var(--color-accent-100);color:var(--color-accent-700);border-radius:999px;padding:4px 10px;font-weight:600;cursor:pointer" style-hover="background:var(--color-accent-200)">{{ quotaChip }}</span>
+      </div>
+      <div style="padding:8px 20px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px">
+        <sc-for list="{{ captures }}" as="item" hint-placeholder-count="6">
+          <div onClick="{{ item.open }}" style="cursor:pointer;opacity:{{ item.op }}">
+            <div style="aspect-ratio:3/4;border-radius:var(--radius-md);border:1px solid var(--color-divider);background:{{ item.thumbBg }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;overflow:hidden">
+              <sc-if value="{{ item.isReceipt }}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg></sc-if>
+              <sc-if value="{{ item.isShot }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2-700)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg></sc-if>
+              <sc-if value="{{ item.isManual }}" hint-placeholder-val="{{ false }}"><span style="font-weight:800;font-size:16px;color:var(--color-neutral-600)">¥</span></sc-if>
+              <span style="font-family:ui-monospace,monospace;font-size:8.5px;color:var(--color-neutral-600)">{{ item.thumbLabel }}</span>
+              <span style="position:absolute;left:6px;top:6px;font-size:9px;font-weight:700;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:999px;padding:2px 7px;color:var(--color-neutral-800)">{{ item.dShort }}</span>
+            </div>
+            <div style="margin-top:5px;font-weight:700;font-size:12px;font-feature-settings:'tnum'">{{ item.amtF }}</div>
+            <div style="font-size:9.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.name }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="明細一覧" style="padding:10px 20px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 2px 12px">
+        <div style="font-weight:800;font-size:19px">明細 <span style="font-size:11px;color:var(--color-neutral-600);font-weight:400">All transactions</span></div>
+        <button onClick="{{ openFilter }}" style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:8px 14px;border:1px solid var(--color-divider);cursor:pointer;font-family:var(--font-body);font-weight:700;font-size:11.5px;background:{{ filterBtnBg }};color:{{ filterBtnFg }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.5 10 19 14 21 14 12.5 22 3"></polygon></svg>絞り込み</button>
+      </div>
+      <sc-if value="{{ filterOn }}" hint-placeholder-val="{{ false }}">
+      <div style="margin:0 2px 10px;font-size:11px;color:var(--color-accent-700);font-weight:600">{{ filterActiveText }}<span onClick="{{ clearFilter }}" style="text-decoration:underline;cursor:pointer;color:var(--color-neutral-600);margin-left:8px">クリア Clear</span></div>
+      </sc-if>
+      <sc-for list="{{ listGroups }}" as="g" hint-placeholder-count="3">
+        <div style="font-size:10.5px;font-weight:600;color:var(--color-neutral-600);margin:10px 2px 4px">{{ g.label }}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <sc-for list="{{ g.items }}" as="item" hint-placeholder-count="2">
+            <div onClick="{{ item.open }}" style="display:flex;align-items:center;gap:12px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:11px 14px;cursor:pointer;opacity:{{ item.op }}" style-hover="background:var(--color-neutral-200)">
+              <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.name }}</div><div style="font-size:10.5px;color:var(--color-neutral-600)">{{ item.sub }}</div></div>
+              <div style="font-weight:700;font-size:14px;font-feature-settings:'tnum'">{{ item.amtF }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isReport }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="レポート" style="padding:10px 24px 20px">
+      <div style="font-weight:800;font-size:19px;margin:4px 0 2px">レポート <span style="font-family:var(--font-body);font-size:11px;color:var(--color-neutral-600)">Report</span></div>
+      <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:10px">2026年8月の支出 <span style="opacity:.75">Spent in August</span></div>
+      <div style="font-weight:800;font-size:34px;letter-spacing:-0.02em;font-feature-settings:'tnum'"><span style="font-size:20px;font-weight:600;color:var(--color-neutral-600)">¥</span>{{ spentNum }}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
+        <sc-for list="{{ cats }}" as="c" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:64px 1fr 66px;align-items:center;gap:10px;font-size:12px">
+            <span style="font-weight:600">{{ c.name }}</span>
+            <div style="height:16px;border-radius:999px;background:var(--color-neutral-200);overflow:hidden"><div style="width:{{ c.pct }}%;height:100%;border-radius:999px;background:{{ c.color }}"></div></div>
+            <span style="text-align:right;font-weight:700;font-feature-settings:'tnum'">{{ c.amtF }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top:22px;display:flex;align-items:center;gap:12px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:13px 16px;cursor:pointer" style-hover="background:var(--color-neutral-200)"><div style="flex:1"><div style="font-weight:700;font-size:13px">CSVで書き出す <span style="font-size:10.5px;color:var(--color-neutral-600);font-weight:400">Export CSV</span></div><div style="font-size:10.5px;color:var(--color-neutral-600)">確定申告・経費精算に。元画像もまとめて保存できます</div></div><span style="color:var(--color-neutral-500)">›</span></div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="設定" style="padding:10px 20px 20px">
+      <div style="font-weight:800;font-size:19px;margin:4px 2px 14px">設定 <span style="font-family:var(--font-body);font-size:11px;color:var(--color-neutral-600)">Settings</span></div>
+      <div style="background:var(--color-accent-2-100);border:1px solid var(--color-accent-2-300);border-radius:var(--radius-lg);padding:16px 18px">
+        <div style="display:flex;align-items:center;gap:8px"><div style="font-weight:700;font-size:14px;color:var(--color-accent-2-900)">バックアップ</div><span style="font-size:9.5px;font-weight:700;background:var(--color-accent-2-300);color:var(--color-accent-2-900);border-radius:999px;padding:3px 8px">未設定 Not set</span></div>
+        <div style="font-size:11.5px;color:var(--color-accent-2-800);margin-top:4px;line-height:1.6">アカウントをリンクすると、機種変更してもデータが引き継げます。<br><span style="opacity:.75">Link an account to keep your data safe.</span></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button style="flex:1;padding:10px 0;border-radius:999px;border:none;background:var(--color-neutral-900);color:var(--color-bg);font-weight:700;font-size:12px;cursor:pointer;font-family:var(--font-body)" style-hover="background:var(--color-neutral-800)"> Appleでリンク</button>
+          <button style="flex:1;padding:10px 0;border-radius:999px;border:1px solid var(--color-divider);background:var(--color-neutral-100);color:var(--color-text);font-weight:700;font-size:12px;cursor:pointer;font-family:var(--font-body)" style-hover="background:var(--color-neutral-200)">G Googleでリンク</button>
+        </div>
+      </div>
+      <div onClick="{{ openPaywall }}" style="margin-top:14px;display:flex;align-items:center;gap:12px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:14px 16px;cursor:pointer" style-hover="background:var(--color-neutral-200)">
+        <div style="flex:1"><div style="font-weight:700;font-size:13.5px">プラン <span style="font-size:10.5px;color:var(--color-neutral-600);font-weight:400">Plan</span></div><div style="font-size:11px;color:var(--color-neutral-600)">{{ planLabel }}</div></div>
+        <span style="font-size:11px;font-weight:700;color:var(--color-accent-700)">{{ planCta }}</span>
+      </div>
+      <div style="margin-top:14px;background:var(--color-neutral-100);border-radius:var(--radius-md);overflow:hidden">
+        <div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="font-weight:600">通知 <span style="font-size:10.5px;color:var(--color-neutral-600);font-weight:400">Notifications</span></span><span style="color:var(--color-neutral-600);font-size:12px">オン</span></div>
+        <div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="font-weight:600">言語 <span style="font-size:10.5px;color:var(--color-neutral-600);font-weight:400">Language</span></span><span style="color:var(--color-neutral-600);font-size:12px">日本語</span></div>
+        <div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--color-divider);font-size:13px;cursor:pointer" style-hover="background:var(--color-neutral-200)"><span style="font-weight:600">利用規約 <span style="font-size:10.5px;color:var(--color-neutral-600);font-weight:400">Terms</span></span><span style="color:var(--color-neutral-500)">›</span></div>
+        <div style="display:flex;justify-content:space-between;padding:13px 16px;font-size:13px;cursor:pointer" style-hover="background:var(--color-neutral-200)"><span style="font-weight:600">プライバシーポリシー <span style="font-size:10.5px;color:var(--color-neutral-600);font-weight:400">Privacy</span></span><span style="color:var(--color-neutral-500)">›</span></div>
+      </div>
+      <div style="margin-top:14px;text-align:center;padding:10px"><span style="font-size:12px;font-weight:600;color:var(--color-accent-800);cursor:pointer" style-hover="color:var(--color-accent-900)">アカウントを削除 · Delete account</span></div>
+    </div>
+    </sc-if>
+  </div>
+
+  <div style="flex:none;display:flex;align-items:flex-end;justify-content:space-around;border-top:1px solid var(--color-divider);background:var(--color-neutral-100);padding:8px 10px 18px">
+    <div onClick="{{ goHome }}" style="display:flex;flex-direction:column;align-items:center;gap:2px;width:60px;cursor:pointer;color:{{ homeC }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span style="font-size:9.5px;font-weight:700">ホーム</span></div>
+    <div onClick="{{ goList }}" style="display:flex;flex-direction:column;align-items:center;gap:2px;width:60px;cursor:pointer;color:{{ listC }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg><span style="font-size:9.5px;font-weight:700">明細</span></div>
+    <div style="width:60px;display:flex;justify-content:center"><button onClick="{{ openCapture }}" style="width:58px;height:58px;border-radius:999px;background:var(--color-accent);color:var(--color-bg);display:grid;place-items:center;margin-top:-34px;box-shadow:var(--shadow-md);border:4px solid var(--color-bg);cursor:pointer" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg></button></div>
+    <div onClick="{{ goReport }}" style="display:flex;flex-direction:column;align-items:center;gap:2px;width:60px;cursor:pointer;color:{{ reportC }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg><span style="font-size:9.5px;font-weight:700">レポート</span></div>
+    <div onClick="{{ goSettings }}" style="display:flex;flex-direction:column;align-items:center;gap:2px;width:60px;cursor:pointer;color:{{ settingsC }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"></line><line x1="10" y1="4" x2="3" y2="4"></line><line x1="21" y1="12" x2="12" y2="12"></line><line x1="8" y1="12" x2="3" y2="12"></line><line x1="21" y1="20" x2="16" y2="20"></line><line x1="12" y1="20" x2="3" y2="20"></line><line x1="14" y1="2" x2="14" y2="6"></line><line x1="8" y1="10" x2="8" y2="14"></line><line x1="16" y1="18" x2="16" y2="22"></line></svg><span style="font-size:9.5px;font-weight:700">設定</span></div>
+  </div>
+
+  <sc-if value="{{ showSheet }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="取込シート" style="position:absolute;inset:0;background:rgba(32,30,29,.4);display:flex;flex-direction:column;justify-content:flex-end;z-index:20">
+    <div onClick="{{ closeOverlay }}" style="flex:1"></div>
+    <div style="background:var(--color-bg);border-radius:28px 28px 0 0;padding:18px 20px 30px;animation:kk-pop .25s ease-out">
+      <div style="width:36px;height:4px;border-radius:99px;background:var(--color-neutral-300);margin:0 auto 14px"></div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:12px">記録する <span style="font-family:var(--font-body);font-size:11px;color:var(--color-neutral-600)">Add a record</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div onClick="{{ chooseCamera }}" style="display:flex;align-items:center;gap:14px;background:var(--color-accent-100);border:1px solid var(--color-accent-200);border-radius:var(--radius-md);padding:14px 16px;cursor:pointer" style-hover="background:var(--color-accent-200)">
+          <div style="width:42px;height:42px;border-radius:999px;background:var(--color-accent);color:var(--color-bg);display:grid;place-items:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg></div>
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">カメラで撮影</div><div style="font-size:11px;color:var(--color-neutral-600)">Snap a receipt · レシート向け</div></div>
+        </div>
+        <div onClick="{{ choosePhoto }}" style="display:flex;align-items:center;gap:14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:14px 16px;cursor:pointer" style-hover="background:var(--color-neutral-200)">
+          <div style="width:42px;height:42px;border-radius:999px;background:var(--color-accent-2-200);color:var(--color-accent-2-800);display:grid;place-items:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg></div>
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">写真・スクショから選ぶ</div><div style="font-size:11px;color:var(--color-neutral-600)">From photos · カード明細やEC履歴のスクショ</div></div>
+        </div>
+        <div onClick="{{ openManual }}" style="display:flex;align-items:center;gap:14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:14px 16px;cursor:pointer" style-hover="background:var(--color-neutral-200)">
+          <div style="width:42px;height:42px;border-radius:999px;background:var(--color-neutral-200);color:var(--color-neutral-700);display:grid;place-items:center;flex:none;font-weight:800;font-size:17px">¥</div>
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">手動で入力</div><div style="font-size:11px;color:var(--color-neutral-600)">Enter manually · 現金支出など</div></div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:10.5px;color:var(--color-neutral-600)">{{ quotaChip }}</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showCamera }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="カメラ" style="position:absolute;inset:0;background:var(--color-neutral-900);z-index:30;display:flex;flex-direction:column;color:var(--color-neutral-100)">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:52px 20px 10px">
+      <button onClick="{{ closeOverlay }}" style="width:34px;height:34px;border-radius:999px;border:none;background:rgba(249,244,237,.15);color:var(--color-neutral-100);cursor:pointer;font-size:16px;font-weight:700" style-hover="background:rgba(249,244,237,.28)">✕</button>
+      <span style="font-size:12px;font-weight:600;opacity:.85">レシートを撮影 · Snap receipt</span>
+      <div style="width:34px"></div>
+    </div>
+    <div style="flex:1;display:grid;place-items:center;padding:20px">
+      <div style="width:250px;height:420px;border:2.5px dashed var(--color-neutral-600);border-radius:var(--radius-md);display:grid;place-items:center">
+        <div style="text-align:center;color:var(--color-neutral-500);font-family:ui-monospace,monospace;font-size:11px;line-height:1.8">[ camera preview ]<br>レシートを枠内に</div>
+      </div>
+    </div>
+    <div style="font-size:11px;text-align:center;opacity:.7;padding-bottom:8px">枠内に収めると自動で読み取りやすくなります · Fit inside the frame</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:56px;padding:10px 0 46px">
+      <div onClick="{{ choosePhoto }}" style="width:44px;height:44px;border-radius:12px;border:1.5px solid var(--color-neutral-600);display:grid;place-items:center;cursor:pointer;color:var(--color-neutral-400)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg></div>
+      <button onClick="{{ snap }}" style="width:74px;height:74px;border-radius:999px;background:var(--color-neutral-100);border:5px solid var(--color-neutral-500);cursor:pointer" style-active="transform:scale(.92)"></button>
+      <div style="width:44px"></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showAnalyzing }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="AI解析中" style="position:absolute;inset:0;background:var(--color-bg);z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px">
+    <div style="width:96px;height:96px;border-radius:999px;background:var(--color-accent-200);display:grid;place-items:center;animation:kk-pulse 1.4s ease-in-out infinite">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-700)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8 5.8 1.9-5.8 1.9L12 18.4l-1.9-5.8-5.8-1.9 5.8-1.9z"></path></svg>
+    </div>
+    <div style="font-weight:800;font-size:17px;margin-top:22px">{{ anText }}</div>
+    <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:4px">{{ anTextEn }}</div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <div style="width:8px;height:8px;border-radius:99px;background:{{ d0 }}"></div>
+      <div style="width:8px;height:8px;border-radius:99px;background:{{ d1 }}"></div>
+      <div style="width:8px;height:8px;border-radius:99px;background:{{ d2 }}"></div>
+    </div>
+    <div style="width:100%;max-width:280px;margin-top:30px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div style="height:14px;border-radius:99px;width:55%;background:linear-gradient(90deg,var(--color-neutral-200),var(--color-neutral-100),var(--color-neutral-200));background-size:200% 100%;animation:kk-shimmer 1.2s linear infinite"></div>
+      <div style="height:14px;border-radius:99px;width:80%;background:linear-gradient(90deg,var(--color-neutral-200),var(--color-neutral-100),var(--color-neutral-200));background-size:200% 100%;animation:kk-shimmer 1.2s linear infinite"></div>
+      <div style="height:14px;border-radius:99px;width:40%;background:linear-gradient(90deg,var(--color-neutral-200),var(--color-neutral-100),var(--color-neutral-200));background-size:200% 100%;animation:kk-shimmer 1.2s linear infinite"></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showConfirm }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="読み取り確認" style="position:absolute;inset:0;background:var(--color-bg);z-index:30;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:10px;padding:56px 20px 8px">
+      <button onClick="{{ closeOverlay }}" style="width:34px;height:34px;border-radius:999px;border:1px solid var(--color-divider);background:transparent;cursor:pointer;color:var(--color-neutral-700);font-size:15px" style-hover="background:var(--color-neutral-200)">✕</button>
+      <div><div style="font-weight:800;font-size:16px">読み取り結果の確認</div><div style="font-size:10.5px;color:var(--color-neutral-600)">Check the AI reading — tap to fix</div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px 20px 20px">
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:92px;height:120px;flex:none;border-radius:var(--radius-md);background:repeating-linear-gradient(45deg,var(--color-neutral-200),var(--color-neutral-200) 8px,var(--color-neutral-100) 8px,var(--color-neutral-100) 16px);border:1px solid var(--color-divider);display:grid;place-items:center"><span style="font-family:ui-monospace,monospace;font-size:9px;color:var(--color-neutral-600);text-align:center;line-height:1.6">元画像<br>source image</span></div>
+        <div style="flex:1;background:var(--color-accent-2-100);border-radius:var(--radius-md);padding:12px 14px;font-size:11.5px;color:var(--color-accent-2-800);line-height:1.65">読み取りに使った元画像は、明細からいつでも見返せます。<br><span style="opacity:.75">The original image stays attached to this record.</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
+        <div><div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:4px">店名 Store</div><input value="{{ confName }}" onChange="{{ onConfName }}" style="width:100%;box-sizing:border-box;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:11px 14px;font:inherit;font-weight:600;font-size:14px;color:var(--color-text)"></div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1"><div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:4px">金額 Amount</div><input value="{{ confAmt }}" onChange="{{ onConfAmt }}" style="width:100%;box-sizing:border-box;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:11px 14px;font:inherit;font-weight:800;font-size:16px;color:var(--color-text);font-feature-settings:'tnum'"></div>
+          <div style="flex:1"><div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:4px">日付 Date</div><input value="{{ confDate }}" onChange="{{ onConfDate }}" style="width:100%;box-sizing:border-box;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:11px 14px;font:inherit;font-weight:600;font-size:13px;color:var(--color-text)"></div>
+        </div>
+        <div><div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:6px">カテゴリ Category</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{ confCats }}" as="c" hint-placeholder-count="6">
+              <span onClick="{{ c.pick }}" style="font-size:11.5px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;background:{{ c.bg }};color:{{ c.fg }};border:1px solid var(--color-divider)">{{ c.label }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <div><div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:6px">自動タグ Auto tags</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--color-accent-2-100);color:var(--color-accent-2-800);border:1px solid var(--color-accent-2-300)">三軒茶屋 · 位置情報</span>
+            <span style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--color-accent-2-100);color:var(--color-accent-2-800);border:1px solid var(--color-accent-2-300)">コンビニ</span>
+          </div>
+          <div style="font-size:10px;color:var(--color-neutral-600);margin-top:6px">写真の位置情報・店名・サービス名から自動で付きます · Auto-added from photo location &amp; store name</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 20px 34px;display:flex;flex-direction:column;gap:8px">
+      <button onClick="{{ register }}" style="width:100%;padding:14px 0;border-radius:999px;border:none;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-body);font-weight:700;font-size:14px;cursor:pointer" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)">登録する · Register</button>
+      <button onClick="{{ chooseCamera }}" style="width:100%;padding:10px 0;border-radius:999px;border:none;background:transparent;color:var(--color-accent-700);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font-body)" style-hover="background:var(--color-accent-100)">取り直す · Retake</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showDetail }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="明細詳細" style="position:absolute;inset:0;background:var(--color-bg);z-index:30;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:10px;padding:56px 20px 8px">
+      <button onClick="{{ closeOverlay }}" style="width:34px;height:34px;border-radius:999px;border:1px solid var(--color-divider);background:transparent;cursor:pointer;color:var(--color-neutral-700);display:grid;place-items:center" style-hover="background:var(--color-neutral-200)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+      <div style="font-weight:800;font-size:16px">明細詳細 <span style="font-family:var(--font-body);font-size:10.5px;color:var(--color-neutral-600)">Detail</span></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px 20px 20px">
+      <div style="text-align:center;padding:6px 0 2px">
+        <div style="font-weight:800;font-size:34px;letter-spacing:-0.02em;font-feature-settings:'tnum'"><span style="font-size:20px;font-weight:600;color:var(--color-neutral-600)">¥</span>{{ dAmtNum }}</div>
+        <div style="font-weight:700;font-size:15px;margin-top:2px">{{ dName }}</div>
+        <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">{{ dDate }} · {{ dCat }}</div>
+      </div>
+      <div style="margin-top:14px;height:170px;border-radius:var(--radius-lg);background:repeating-linear-gradient(45deg,var(--color-neutral-200),var(--color-neutral-200) 10px,var(--color-neutral-100) 10px,var(--color-neutral-100) 20px);border:1px solid var(--color-divider);display:grid;place-items:center;position:relative">
+        <span style="font-family:ui-monospace,monospace;font-size:10px;color:var(--color-neutral-600);text-align:center;line-height:1.8">{{ dImgLabel }}</span>
+        <sc-if value="{{ dHasImage }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;right:12px;bottom:12px;font-size:10.5px;font-weight:700;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:999px;padding:6px 12px;cursor:pointer;color:var(--color-accent-700)" style-hover="background:var(--color-accent-100)">拡大 · Zoom</span></sc-if>
+      </div>
+      <div style="margin-top:8px;font-size:10.5px;color:var(--color-neutral-600);text-align:center">元画像はいつでも確認できます · You can always check the original</div>
+      <div style="margin-top:14px;background:var(--color-neutral-100);border-radius:var(--radius-md);overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--color-divider)"><span style="font-size:12.5px;font-weight:600">出所 <span style="font-size:10px;color:var(--color-neutral-600);font-weight:400">Source</span></span><span style="font-size:10.5px;font-weight:700;background:var(--color-accent-100);color:var(--color-accent-700);border-radius:999px;padding:4px 10px">{{ dSrc }}</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--color-divider)"><span style="font-size:12.5px;font-weight:600">タグ <span style="font-size:10px;color:var(--color-neutral-600);font-weight:400">Tags</span></span><span style="font-size:11px;color:var(--color-neutral-700);font-weight:600">{{ dTags }}</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px">
+          <div><div style="font-size:12.5px;font-weight:600">計算対象から除外</div><div style="font-size:10px;color:var(--color-neutral-600)">Exclude from totals</div></div>
+          <div onClick="{{ toggleExclude }}" style="width:44px;height:26px;border-radius:999px;cursor:pointer;background:{{ exBg }};position:relative;transition:background .15s">
+            <div style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:99px;background:var(--color-neutral-100);box-shadow:var(--shadow-sm);transform:{{ exX }};transition:transform .15s"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 20px 34px;display:flex;gap:10px">
+      <button onClick="{{ saveDetail }}" style="flex:1;padding:13px 0;border-radius:999px;border:none;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-body);font-weight:700;font-size:13.5px;cursor:pointer" style-hover="background:var(--color-accent-600)">保存 · Save</button>
+      <button onClick="{{ deleteDetail }}" style="padding:13px 22px;border-radius:999px;border:1px solid var(--color-divider);background:transparent;color:var(--color-accent-800);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font-body)" style-hover="background:var(--color-accent-100)">削除</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showDup }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="重複候補の確認" style="position:absolute;inset:0;background:var(--color-bg);z-index:30;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:10px;padding:56px 20px 8px">
+      <button onClick="{{ closeOverlay }}" style="width:34px;height:34px;border-radius:999px;border:1px solid var(--color-divider);background:transparent;cursor:pointer;color:var(--color-neutral-700);display:grid;place-items:center" style-hover="background:var(--color-neutral-200)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+      <div><div style="font-weight:800;font-size:16px">重複候補の確認</div><div style="font-size:10.5px;color:var(--color-neutral-600)">Possible duplicate</div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:10px 20px">
+      <div style="font-size:12px;color:var(--color-neutral-700);line-height:1.7;margin-bottom:14px">同じ支出がレシートとカード明細の両方から登録された可能性があります。<br><span style="font-size:10.5px;color:var(--color-neutral-600)">The same expense may have been logged twice.</span></div>
+      <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:999px;background:var(--color-accent-200);color:var(--color-accent-700);display:grid;place-items:center;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg></div>
+          <div style="flex:1"><div style="font-weight:700;font-size:13.5px">鳥貴族 三軒茶屋店</div><div style="font-size:10.5px;color:var(--color-neutral-600)">8/10 · レシート Receipt</div></div>
+          <div style="font-weight:800;font-size:15px;font-feature-settings:'tnum'">¥4,230</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin:8px 0;font-size:11px;font-weight:700;color:var(--color-accent-2-700)">≒ 金額と日付が一致 · Same amount & date</div>
+      <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:999px;background:var(--color-accent-2-200);color:var(--color-accent-2-700);display:grid;place-items:center;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg></div>
+          <div style="flex:1"><div style="font-weight:700;font-size:13.5px">楽天カード明細 (トリキ)</div><div style="font-size:10.5px;color:var(--color-neutral-600)">8/10 · スクショ Screenshot</div></div>
+          <div style="font-weight:800;font-size:15px;font-feature-settings:'tnum'">¥4,230</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 20px 34px;display:flex;flex-direction:column;gap:8px">
+      <button onClick="{{ mergeDup }}" style="width:100%;padding:14px 0;border-radius:999px;border:none;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-body);font-weight:700;font-size:14px;cursor:pointer" style-hover="background:var(--color-accent-600)">1件にまとめる · Merge</button>
+      <button onClick="{{ keepBoth }}" style="width:100%;padding:11px 0;border-radius:999px;border:1px solid var(--color-divider);background:transparent;color:var(--color-text);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font-body)" style-hover="background:var(--color-neutral-200)">別々の支出として残す · Keep both</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showManual }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="手動入力" style="position:absolute;inset:0;background:var(--color-bg);z-index:30;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:10px;padding:56px 20px 8px">
+      <button onClick="{{ closeOverlay }}" style="width:34px;height:34px;border-radius:999px;border:1px solid var(--color-divider);background:transparent;cursor:pointer;color:var(--color-neutral-700);font-size:15px" style-hover="background:var(--color-neutral-200)">✕</button>
+      <div><div style="font-weight:800;font-size:16px">手動入力</div><div style="font-size:10.5px;color:var(--color-neutral-600)">Quick manual entry · 現金支出など</div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:14px 20px">
+      <div style="text-align:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:18px">
+        <div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:6px">金額 Amount</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+          <span style="font-size:22px;font-weight:600;color:var(--color-neutral-600)">¥</span>
+          <input value="{{ mAmt }}" onChange="{{ onMAmt }}" placeholder="0" inputMode="numeric" style="width:150px;background:transparent;border:none;outline:none;font:inherit;font-weight:800;font-size:36px;letter-spacing:-0.02em;color:var(--color-text);font-feature-settings:'tnum'">
+        </div>
+      </div>
+      <div style="margin-top:14px"><div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:4px">店名・メモ Store / memo</div><input value="{{ mName }}" onChange="{{ onMName }}" placeholder="例: コンビニ" style="width:100%;box-sizing:border-box;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:11px 14px;font:inherit;font-weight:600;font-size:14px;color:var(--color-text)"></div>
+      <div style="margin-top:14px"><div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:6px">カテゴリ Category</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <sc-for list="{{ mCats }}" as="c" hint-placeholder-count="6">
+            <span onClick="{{ c.pick }}" style="font-size:11.5px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;background:{{ c.bg }};color:{{ c.fg }};border:1px solid var(--color-divider)">{{ c.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:11px;color:var(--color-neutral-600)">日付 Date: 今日 (8/16) · Today</div>
+    </div>
+    <div style="padding:14px 20px 34px">
+      <button onClick="{{ registerManual }}" style="width:100%;padding:14px 0;border-radius:999px;border:none;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-body);font-weight:700;font-size:14px;cursor:pointer" style-hover="background:var(--color-accent-600)">登録する · Register</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showPaywall }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="ペイウォール" style="position:absolute;inset:0;background:var(--color-bg);z-index:40;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:flex-end;padding:52px 20px 0"><button onClick="{{ closeOverlay }}" style="width:34px;height:34px;border-radius:999px;border:1px solid var(--color-divider);background:transparent;cursor:pointer;color:var(--color-neutral-700);font-size:15px" style-hover="background:var(--color-neutral-200)">✕</button></div>
+    <div style="flex:1;overflow-y:auto;padding:4px 24px">
+      <div style="width:72px;height:72px;border-radius:999px;background:var(--color-accent-200);display:grid;place-items:center;margin:6px auto 0"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-700)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8 5.8 1.9-5.8 1.9L12 18.4l-1.9-5.8-5.8-1.9 5.8-1.9z"></path></svg></div>
+      <div style="text-align:center;margin-top:12px">
+        <div style="font-weight:800;font-size:22px;line-height:1.25;letter-spacing:-0.01em">スキャン、し放題に。</div>
+        <div style="font-size:12px;color:var(--color-neutral-600);margin-top:4px">Go unlimited with Premium</div>
+      </div>
+      <div style="margin-top:14px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:12px 16px">
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)"><span>今月の無料スキャン Free scans</span><span style="font-feature-settings:'tnum'">{{ quotaUsedText }}</span></div>
+        <div style="height:10px;border-radius:999px;background:var(--color-neutral-200);overflow:hidden;margin-top:8px"><div style="width:{{ quotaPct }}%;height:100%;border-radius:999px;background:var(--color-accent-500)"></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;font-size:12.5px">
+        <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;border-radius:99px;background:var(--color-accent-2-200);color:var(--color-accent-2-800);display:grid;place-items:center;font-size:12px;font-weight:800;flex:none">✓</span><span><strong>スキャン無制限</strong> · Unlimited scans</span></div>
+        <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;border-radius:99px;background:var(--color-accent-2-200);color:var(--color-accent-2-800);display:grid;place-items:center;font-size:12px;font-weight:800;flex:none">✓</span><span><strong>全期間の履歴</strong> · Full history access</span></div>
+        <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;border-radius:99px;background:var(--color-accent-2-200);color:var(--color-accent-2-800);display:grid;place-items:center;font-size:12px;font-weight:800;flex:none">✓</span><span><strong>今後の新機能</strong> · All future features</span></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <div style="flex:1;border:1.5px solid var(--color-divider);border-radius:var(--radius-md);padding:14px 12px;text-align:center;cursor:pointer" style-hover="background:var(--color-neutral-100)">
+          <div style="font-size:11px;font-weight:700;color:var(--color-neutral-600)">月額 Monthly</div>
+          <div style="font-weight:800;font-size:20px;margin-top:4px;font-feature-settings:'tnum'">¥480</div>
+          <div style="font-size:10px;color:var(--color-neutral-600)">/ 月</div>
+        </div>
+        <div style="flex:1;border:2px solid var(--color-accent);border-radius:var(--radius-md);padding:14px 12px;text-align:center;position:relative;cursor:pointer;background:var(--color-accent-100)">
+          <span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;background:var(--color-accent);color:var(--color-bg);border-radius:999px;padding:3px 10px;white-space:nowrap">2ヶ月分お得 · Save 34%</span>
+          <div style="font-size:11px;font-weight:700;color:var(--color-accent-700)">年額 Yearly</div>
+          <div style="font-weight:800;font-size:20px;margin-top:4px;font-feature-settings:'tnum'">¥3,800</div>
+          <div style="font-size:10px;color:var(--color-neutral-600)">/ 年 (¥317/月)</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 24px 34px">
+      <button onClick="{{ subscribe }}" style="width:100%;padding:15px 0;border-radius:999px;border:none;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-body);font-weight:700;font-size:15px;cursor:pointer" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)">プレミアムを始める · Start Premium</button>
+      <div style="text-align:center;margin-top:10px;font-size:10.5px;color:var(--color-neutral-600)">いつでも解約できます · Cancel anytime &nbsp;·&nbsp; <span style="text-decoration:underline;cursor:pointer">購入の復元 Restore</span></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showFilter }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="絞り込み" style="position:absolute;inset:0;background:rgba(32,30,29,.4);display:flex;flex-direction:column;justify-content:flex-end;z-index:25">
+    <div onClick="{{ closeOverlay }}" style="flex:1"></div>
+    <div style="background:var(--color-bg);border-radius:28px 28px 0 0;padding:18px 20px 30px;animation:kk-pop .25s ease-out;max-height:72%;overflow-y:auto">
+      <div style="width:36px;height:4px;border-radius:99px;background:var(--color-neutral-300);margin:0 auto 14px"></div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:12px">絞り込み <span style="font-size:11px;color:var(--color-neutral-600);font-weight:400">Filters</span></div>
+      <div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:6px">取込元 Source</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+        <sc-for list="{{ filterChips }}" as="chip" hint-placeholder-count="4">
+          <span onClick="{{ chip.pick }}" style="font-size:11.5px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;background:{{ chip.bg }};color:{{ chip.fg }};border:1px solid var(--color-divider)">{{ chip.label }}</span>
+        </sc-for>
+      </div>
+      <div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:6px">タグ Tags <span style="opacity:.7">· 位置情報・サービス名から自動付与</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px">
+        <sc-for list="{{ tagChips }}" as="chip" hint-placeholder-count="6">
+          <span onClick="{{ chip.pick }}" style="font-size:11.5px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;background:{{ chip.bg }};color:{{ chip.fg }};border:1px solid var(--color-divider)">{{ chip.label }}</span>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onClick="{{ clearFilter }}" style="flex:1;padding:12px 0;border-radius:999px;border:1px solid var(--color-divider);background:transparent;font-family:var(--font-body);font-weight:700;font-size:13px;color:var(--color-text);cursor:pointer" style-hover="background:var(--color-neutral-200)">クリア Clear</button>
+        <button onClick="{{ closeOverlay }}" style="flex:2;padding:12px 0;border-radius:999px;border:none;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer" style-hover="background:var(--color-accent-600)">完了 Done · {{ filteredCount }}件</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ flash }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;background:#fff;z-index:50;animation:kk-flash .24s ease-out forwards;pointer-events:none"></div>
+  </sc-if>
+
+  <sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:50%;bottom:100px;transform:translateX(-50%);z-index:60;background:var(--color-accent-2-700);color:var(--color-accent-2-100);border-radius:999px;padding:11px 22px;font-size:12.5px;font-weight:700;box-shadow:var(--shadow-md);white-space:nowrap;animation:kk-pop .25s ease-out">{{ toast }}</div>
+  </sc-if>
+</div>
+
+<div style="width:320px;display:flex;flex-direction:column;gap:12px;flex:none">
+  <div style="font-family:var(--font-heading);font-size:18px;margin:2px 0 0">演出・実装メモ <span style="font-family:var(--font-body);font-size:11px;color:var(--color-neutral-600)">Motion &amp; spec notes</span></div>
+  <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:14px 16px;font-size:12px;line-height:1.7">
+    <div style="font-weight:700;margin-bottom:4px">1. カシャ体験 (シャッター)</div>
+    タップで白フラッシュ約120ms + シャッター音 + 軽いハプティクス。試作ではフラッシュのみ再現。音はOS標準のシャッター音仕様に準拠 (日本のiOSは消音不可)。
+  </div>
+  <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:14px 16px;font-size:12px;line-height:1.7">
+    <div style="font-weight:700;margin-bottom:4px">2. AI解析の待ち時間</div>
+    3ステップの進行表示 + スケルトン。解析が2秒未満なら中間ステップをスキップして完了へ。失敗時は「手動で入力」への導線を出す。
+  </div>
+  <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:14px 16px;font-size:12px;line-height:1.7">
+    <div style="font-weight:700;margin-bottom:4px">3. 登録完了の気持ちよさ</div>
+    セージ色トースト + ホーム最上部に新明細がスライドイン。褒め文言は数種類をローテーション (説教はしない)。
+  </div>
+  <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:14px 16px;font-size:12px;line-height:1.7">
+    <div style="font-weight:700;margin-bottom:4px">4. Flutter (Material 3) マッピング</div>
+    primary = テラコッタ / secondary = セージ / surface = クリーム。見出しは Caprasimo 相当 (数字は本文書体の ExtraBold + tabular figures)。日英どちらも flex + gap でレイアウトし、文字数増でも破綻しない。
+  </div>
+  <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:14px 16px;font-size:12px;line-height:1.7">
+    <div style="font-weight:700;margin-bottom:4px">5. 自動タグ・確定申告対応</div>
+    取込時に店名・サービス名 (楽天カードなど)・写真の位置情報からタグを自動付与し、明細タブで絞り込み。CSV書き出し (元画像つき) で確定申告・経費精算にも使える。
+  </div>
+  <div style="background:var(--color-accent-2-100);border:1px solid var(--color-accent-2-300);border-radius:var(--radius-md);padding:14px 16px;font-size:12px;line-height:1.7;color:var(--color-accent-2-900)">
+    <div style="font-weight:700;margin-bottom:4px">試してみる (タップ遷移)</div>
+    中央のカメラボタン → 撮影 → 解析 → 確認 → 登録 / ホームの重複バナー → マージ / 明細タップ → 詳細と元画像 / 残量チップ → ペイウォール。右上のTweaksで残りスキャン数・プレミアム状態を変えられます。
+  </div>
+</div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 820, &quot;height&quot;: 940}, &quot;scansLeft&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 3, &quot;min&quot;: 0, &quot;max&quot;: 10, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;状態&quot;}, &quot;premium&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;状態&quot;}, &quot;showDupBanner&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;状態&quot;}}">
+class Component extends DCLogic {
+  state = {
+    tab: 'home', overlay: 'none', capStep: 'sheet', anStep: 0, flash: false,
+    detailId: null, toast: '', toastOn: false, premiumLocal: false, extraUsed: 0,
+    dupResolved: false, excluded: {}, filter: 'すべて', tagFilter: 'すべて', nextId: 100,
+    confName: 'ローソン', confAmt: '683', confDate: '2026/08/16', confCat: '食費',
+    mName: '', mAmt: '', mCat: '食費',
+    txs: [
+      { id: 1, d: '8月16日 (日) · Today', name: 'セブン-イレブン', cat: '食費', src: 'レシート', amt: 786, tags: ['三軒茶屋', 'コンビニ'] },
+      { id: 2, d: '8月16日 (日) · Today', name: 'スターバックス', cat: '外食', src: 'スクショ', amt: 590, tags: ['PayPay'] },
+      { id: 3, d: '8月15日 (土)', name: 'Amazon.co.jp', cat: '日用品', src: 'スクショ', amt: 2480, tags: ['Amazon'] },
+      { id: 4, d: '8月15日 (土)', name: 'ライフ 桜新町店', cat: '食費', src: 'レシート', amt: 3214, tags: ['桜新町', 'スーパー'] },
+      { id: 5, d: '8月14日 (金)', name: '楽天カード明細 (Netflix)', cat: 'サブスク', src: 'スクショ', amt: 1490, tags: ['楽天カード'] },
+      { id: 6, d: '8月13日 (木)', name: 'モバイルSuica チャージ', cat: '交通', src: 'スクショ', amt: 3000, tags: ['モバイルSuica'] },
+      { id: 7, d: '8月12日 (水)', name: 'マツモトキヨシ', cat: '日用品', src: 'レシート', amt: 1860, tags: ['三軒茶屋', 'ドラッグストア'] },
+      { id: 8, d: '8月10日 (月)', name: '鳥貴族 三軒茶屋店', cat: '外食', src: 'レシート', amt: 4230, tags: ['三軒茶屋'] },
+      { id: 9, d: '8月10日 (月)', name: '楽天カード明細 (トリキ)', cat: '外食', src: 'スクショ', amt: 4230, tags: ['楽天カード'] }
+    ]
+  };
+  componentWillUnmount() { clearInterval(this._iv); clearTimeout(this._to); clearTimeout(this._ft); }
+  _fmt(n) { return '¥' + n.toLocaleString('ja-JP'); }
+  _num(n) { return n.toLocaleString('ja-JP'); }
+  _toastMsg(msg) {
+    clearTimeout(this._to);
+    this.setState({ toast: msg, toastOn: true });
+    this._to = setTimeout(() => this.setState({ toastOn: false }), 2400);
+  }
+  _startAnalyze() {
+    clearInterval(this._iv);
+    this.setState({ overlay: 'capture', capStep: 'analyzing', anStep: 0, flash: false });
+    this._iv = setInterval(() => {
+      this.setState(s => {
+        if (s.anStep >= 2) {
+          clearInterval(this._iv);
+          return { capStep: 'confirm', confName: 'ローソン', confAmt: '683', confDate: '2026/08/16', confCat: '食費' };
+        }
+        return { anStep: s.anStep + 1 };
+      });
+    }, 950);
+  }
+  _rows(txs) {
+    const EN = { '食費': 'Food', '外食': 'Dining', '日用品': 'Daily', '交通': 'Transit', 'サブスク': 'Subs', 'その他': 'Other' };
+    return txs.map(t => ({
+      ...t,
+      sub: t.cat + ' ' + (EN[t.cat] || '') + ' · ' + t.src + ((t.tags || []).length ? ' · ' + t.tags.join(' · ') : ''),
+      amtF: this._fmt(t.amt),
+      op: this.state.excluded[t.id] ? 0.45 : 1,
+      isReceipt: t.src === 'レシート', isShot: t.src === 'スクショ', isManual: t.src === '手動',
+      dShort: (String(t.d).match(/(\d+)月(\d+)日/) || []).slice(1).join('/') || '',
+      thumbLabel: t.src === 'レシート' ? 'receipt' : t.src === 'スクショ' ? 'screenshot' : 'manual',
+      thumbBg: t.src === 'レシート' ? 'repeating-linear-gradient(45deg,var(--color-neutral-200),var(--color-neutral-200) 8px,var(--color-neutral-100) 8px,var(--color-neutral-100) 16px)' : t.src === 'スクショ' ? 'repeating-linear-gradient(45deg,var(--color-accent-2-200),var(--color-accent-2-200) 8px,var(--color-accent-2-100) 8px,var(--color-accent-2-100) 16px)' : 'var(--color-neutral-200)',
+      open: () => this.setState({ overlay: 'detail', detailId: t.id })
+    }));
+  }
+  _groups(rows) {
+    const out = [];
+    rows.forEach(r => {
+      let g = out.find(x => x.label === r.d);
+      if (!g) { g = { label: r.d, items: [] }; out.push(g); }
+      g.items.push(r);
+    });
+    return out;
+  }
+  _chips(list, selected, onPick) {
+    return list.map(l => ({
+      label: l,
+      bg: l === selected ? 'var(--color-neutral-900)' : 'var(--color-neutral-100)',
+      fg: l === selected ? 'var(--color-bg)' : 'var(--color-neutral-700)',
+      pick: () => onPick(l)
+    }));
+  }
+  renderVals() {
+    const s = this.state;
+    const CATS = ['食費', '外食', '日用品', '交通', 'サブスク', 'その他'];
+    const premium = (this.props.premium ?? false) || s.premiumLocal;
+    const quotaLeft = Math.max(0, (this.props.scansLeft ?? 3) - s.extraUsed);
+    const rows = this._rows(s.txs);
+    const spent = s.txs.filter(t => !s.excluded[t.id]).reduce((a, t) => a + t.amt, 0);
+    const cn = { '食費': 'var(--color-accent-500)', '外食': 'var(--color-accent-400)', '日用品': 'var(--color-accent-2-500)', '交通': 'var(--color-accent-2-400)', 'サブスク': 'var(--color-neutral-400)', 'その他': 'var(--color-neutral-300)' };
+    const sums = {};
+    s.txs.filter(t => !s.excluded[t.id]).forEach(t => { sums[t.cat] = (sums[t.cat] || 0) + t.amt; });
+    const catArr = Object.keys(sums).map(k => ({ name: k, amt: sums[k] })).sort((a, b) => b.amt - a.amt);
+    const maxCat = catArr.length ? catArr[0].amt : 1;
+    const dt = s.txs.find(t => t.id === s.detailId) || {};
+    const dEx = !!s.excluded[s.detailId];
+    let filtered = s.filter === 'すべて' ? rows : rows.filter(r => r.src === s.filter);
+    if (s.tagFilter !== 'すべて') filtered = filtered.filter(r => (r.tags || []).includes(s.tagFilter));
+    const noOverlay = s.overlay === 'none';
+    const anTexts = ['画像を読み込んでいます', '金額・日付を読み取っています', 'カテゴリを推定しています'];
+    const anTextsEn = ['Loading the image…', 'Reading amount & date…', 'Guessing the category…'];
+    const dot = i => s.anStep >= i ? 'var(--color-accent-500)' : 'var(--color-neutral-300)';
+    const tabC = t => s.tab === t ? 'var(--color-accent-700)' : 'var(--color-neutral-600)';
+    const praise = ['カシャッと記録!Logged ✓', 'えらい!今日も記録できました ✓', 'ナイス記録!Nice one ✓'];
+    return {
+      isHome: s.tab === 'home' && noOverlay, isList: s.tab === 'list' && (noOverlay || s.overlay === 'filter'),
+      isReport: s.tab === 'report' && noOverlay, isSettings: s.tab === 'settings' && noOverlay,
+      homeC: tabC('home'), listC: tabC('list'), reportC: tabC('report'), settingsC: tabC('settings'),
+      goHome: () => this.setState({ tab: 'home', overlay: 'none' }),
+      goList: () => this.setState({ tab: 'list', overlay: 'none' }),
+      goReport: () => this.setState({ tab: 'report', overlay: 'none' }),
+      goSettings: () => this.setState({ tab: 'settings', overlay: 'none' }),
+      spentNum: this._num(spent), balance: '+' + this._fmt(310000 - spent),
+      quotaChip: premium ? 'プレミアム · Unlimited' : 'スキャン残り' + quotaLeft + '回 · ' + quotaLeft + ' left',
+      quotaUsedText: (10 - quotaLeft) + ' / 10', quotaPct: (10 - quotaLeft) * 10,
+      planLabel: premium ? 'プレミアム (無制限)' : '無料プラン · 月10スキャンまで',
+      planCta: premium ? '管理 Manage' : 'アップグレード ›',
+      captures: rows, listGroups: this._groups(filtered),
+      showFilter: s.overlay === 'filter',
+      openFilter: () => this.setState({ overlay: 'filter' }),
+      clearFilter: () => this.setState({ filter: 'すべて', tagFilter: 'すべて' }),
+      filterOn: s.filter !== 'すべて' || s.tagFilter !== 'すべて',
+      filterActiveText: '絞り込み中: ' + [s.filter !== 'すべて' ? s.filter : null, s.tagFilter !== 'すべて' ? s.tagFilter : null].filter(Boolean).join(' · '),
+      filterBtnBg: (s.filter !== 'すべて' || s.tagFilter !== 'すべて') ? 'var(--color-accent-100)' : 'var(--color-neutral-100)',
+      filterBtnFg: (s.filter !== 'すべて' || s.tagFilter !== 'すべて') ? 'var(--color-accent-700)' : 'var(--color-neutral-700)',
+      filteredCount: filtered.length,
+      filterChips: this._chips(['すべて', 'レシート', 'スクショ', '手動'], s.filter, f => this.setState({ filter: f })),
+      tagChips: this._chips(['すべて'].concat(Array.from(new Set(s.txs.flatMap(t => t.tags || [])))), s.tagFilter, f => this.setState({ tagFilter: f })),
+      cats: catArr.map(c => ({ name: c.name, amtF: this._fmt(c.amt), pct: Math.round(c.amt / maxCat * 100), color: cn[c.name] || 'var(--color-neutral-300)' })),
+      showDupBanner: (this.props.showDupBanner ?? true) && !s.dupResolved,
+      openDup: () => this.setState({ overlay: 'dup' }),
+      mergeDup: () => { this.setState({ txs: s.txs.filter(t => t.id !== 9), dupResolved: true, overlay: 'none' }); this._toastMsg('1件にまとめました · Merged ✓'); },
+      keepBoth: () => { this.setState({ dupResolved: true, overlay: 'none' }); this._toastMsg('別々の支出として残しました ✓'); },
+      openCapture: () => {
+        if (!premium && quotaLeft <= 0) this.setState({ overlay: 'paywall' });
+        else this.setState({ overlay: 'capture', capStep: 'sheet' });
+      },
+      closeOverlay: () => { clearInterval(this._iv); this.setState({ overlay: 'none' }); },
+      showSheet: s.overlay === 'capture' && s.capStep === 'sheet',
+      showCamera: s.overlay === 'capture' && s.capStep === 'camera',
+      showAnalyzing: s.overlay === 'capture' && s.capStep === 'analyzing',
+      showConfirm: s.overlay === 'capture' && s.capStep === 'confirm',
+      chooseCamera: () => this.setState({ overlay: 'capture', capStep: 'camera' }),
+      choosePhoto: () => this._startAnalyze(),
+      snap: () => { this.setState({ flash: true }); clearTimeout(this._ft); this._ft = setTimeout(() => this._startAnalyze(), 240); },
+      flash: s.flash,
+      anText: anTexts[s.anStep], anTextEn: anTextsEn[s.anStep], d0: dot(0), d1: dot(1), d2: dot(2),
+      confName: s.confName, confAmt: s.confAmt, confDate: s.confDate,
+      onConfName: e => this.setState({ confName: e.target.value }),
+      onConfAmt: e => this.setState({ confAmt: e.target.value }),
+      onConfDate: e => this.setState({ confDate: e.target.value }),
+      confCats: this._chips(CATS, s.confCat, c => this.setState({ confCat: c })),
+      register: () => {
+        const amt = parseInt(String(s.confAmt).replace(/[^0-9]/g, ''), 10) || 0;
+        const tx = { id: s.nextId, d: '8月16日 (日) · Today', name: s.confName || '新しい支出', cat: s.confCat, src: 'レシート', amt, tags: ['三軒茶屋', 'コンビニ'] };
+        this.setState({ txs: [tx, ...s.txs], nextId: s.nextId + 1, extraUsed: s.extraUsed + 1, overlay: 'none', tab: 'home' });
+        this._toastMsg(praise[s.nextId % praise.length]);
+      },
+      showManual: s.overlay === 'manual',
+      openManual: () => this.setState({ overlay: 'manual', mName: '', mAmt: '', mCat: '食費' }),
+      mAmt: s.mAmt, mName: s.mName,
+      onMAmt: e => this.setState({ mAmt: e.target.value.replace(/[^0-9]/g, '') }),
+      onMName: e => this.setState({ mName: e.target.value }),
+      mCats: this._chips(CATS, s.mCat, c => this.setState({ mCat: c })),
+      registerManual: () => {
+        const amt = parseInt(s.mAmt || '0', 10) || 0;
+        if (!amt) { this._toastMsg('金額を入力してください · Enter an amount'); return; }
+        const tx = { id: s.nextId, d: '8月16日 (日) · Today', name: s.mName || '現金支出', cat: s.mCat, src: '手動', amt };
+        this.setState({ txs: [tx, ...s.txs], nextId: s.nextId + 1, overlay: 'none', tab: 'home' });
+        this._toastMsg('記録しました · Logged ✓');
+      },
+      showDetail: s.overlay === 'detail',
+      dName: dt.name || '', dCat: dt.cat || '', dDate: (dt.d || '').replace(' · Today', ''),
+      dAmtNum: this._num(dt.amt || 0),
+      dSrc: dt.src === '手動' ? '手動入力 Manual' : '自動取込 AI',
+      dHasImage: dt.src !== '手動',
+      dTags: (dt.tags || []).join(' · ') || '—',
+      dImgLabel: dt.src === '手動' ? 'no image · 手動入力のため元画像なし' : (dt.src === 'レシート' ? '元画像 · receipt photo' : '元画像 · カード明細・入出金画面などのスクショ'),
+      exBg: dEx ? 'var(--color-accent-2-500)' : 'var(--color-neutral-300)',
+      exX: dEx ? 'translateX(18px)' : 'translateX(0)',
+      toggleExclude: () => this.setState({ excluded: { ...s.excluded, [s.detailId]: !dEx } }),
+      saveDetail: () => { this.setState({ overlay: 'none' }); this._toastMsg('保存しました · Saved ✓'); },
+      deleteDetail: () => { this.setState({ txs: s.txs.filter(t => t.id !== s.detailId), overlay: 'none' }); this._toastMsg('削除しました · Deleted'); },
+      showPaywall: s.overlay === 'paywall',
+      openPaywall: () => this.setState({ overlay: 'paywall' }),
+      subscribe: () => { this.setState({ premiumLocal: true, overlay: 'none' }); this._toastMsg('プレミアムへようこそ!Welcome ✓'); },
+      showDup: s.overlay === 'dup',
+      toastOn: s.toastOn, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
