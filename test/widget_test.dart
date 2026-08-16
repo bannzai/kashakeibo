@@ -26,6 +26,12 @@ Transaction buildTransaction({
     category: category,
     title: title,
     transactionDate: DateTime(now.year, now.month, 1, 12),
+    transactionDateTimeZoneOffsetMinutes: DateTime(
+      now.year,
+      now.month,
+      1,
+      12,
+    ).timeZoneOffset.inMinutes,
     yearMonth: yearMonthFrom(dateTime: now),
     excludedFromAggregation: excludedFromAggregation,
   );

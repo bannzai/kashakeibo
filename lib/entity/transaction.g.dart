@@ -20,6 +20,8 @@ _Transaction _$TransactionFromJson(Map<String, dynamic> json) => _Transaction(
   transactionDate: const TimestampConverter().fromJson(
     json['transactionDate'] as Timestamp,
   ),
+  transactionDateTimeZoneOffsetMinutes:
+      (json['transactionDateTimeZoneOffsetMinutes'] as num?)?.toInt(),
   yearMonth: json['yearMonth'] as String,
   excludedFromAggregation: json['excludedFromAggregation'] as bool,
   serverCreatedDateTime: const ServerCreatedTimestamp().fromJson(
@@ -41,6 +43,8 @@ Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
       'transactionDate': const TimestampConverter().toJson(
         instance.transactionDate,
       ),
+      'transactionDateTimeZoneOffsetMinutes':
+          instance.transactionDateTimeZoneOffsetMinutes,
       'yearMonth': instance.yearMonth,
       'excludedFromAggregation': instance.excludedFromAggregation,
       'serverCreatedDateTime': const ServerCreatedTimestamp().toJson(

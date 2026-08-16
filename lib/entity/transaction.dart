@@ -81,6 +81,13 @@ abstract class Transaction with _$Transaction {
     /// 取引日時。
     @TimestampConverter() required DateTime transactionDate,
 
+    /// 登録時の端末タイムゾーンの UTC オフセット (分)。
+    /// 端末のタイムゾーンが後から変わっても、[yearMonth] の導出基準と
+    /// 表示・日付グループ化の基準 ([transactionLocalDate]) を登録時の
+    /// カレンダー日で一致させるために保持する。
+    /// フィールドが無い旧データは null (現在の端末タイムゾーンで表示する)。
+    required int? transactionDateTimeZoneOffsetMinutes,
+
     /// 取引月 ("2026-08" 形式)。月次一覧のクエリ用フィールド。
     /// [transactionDate] のローカルタイムから [yearMonthFrom] で導出し、両者は常に一致させる。
     required String yearMonth,
@@ -91,6 +98,16 @@ abstract class Transaction with _$Transaction {
     @ServerCreatedTimestamp() DateTime? serverCreatedDateTime,
     @ServerUpdatedTimestamp() DateTime? serverUpdatedDateTime,
   }) = _Transaction;
+
+  /// 登録時のタイムゾーン基準のローカル日時。表示・日付グループ化はこの値を使い、
+  /// [yearMonth] (登録時のローカル月) と月・日の見え方を一致させる。
+  /// オフセット未保存の旧データは現在の端末タイムゾーンで表示する (従来挙動)。
+  DateTime get transactionLocalDate =>
+      transactionDateTimeZoneOffsetMinutes == null
+      ? transactionDate.toLocal()
+      : transactionDate.toUtc().add(
+          Duration(minutes: transactionDateTimeZoneOffsetMinutes!),
+        );
 
   factory Transaction.fromJson(Map<String, dynamic> json) =>
       _$TransactionFromJson(json);

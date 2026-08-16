@@ -82,6 +82,12 @@ class AddTransaction {
         category: category,
         title: title,
         transactionDate: transactionDate,
+        // yearMonth の導出 (ローカルタイム基準) と後からの表示・グループ化を
+        // 同じカレンダー日に揃えるため、登録時のオフセットを保存する。
+        transactionDateTimeZoneOffsetMinutes: transactionDate
+            .toLocal()
+            .timeZoneOffset
+            .inMinutes,
         yearMonth: yearMonthFrom(dateTime: transactionDate),
         excludedFromAggregation: excludedFromAggregation,
       ),

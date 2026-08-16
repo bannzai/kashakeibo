@@ -16,6 +16,7 @@ Transaction buildTransaction({
   category: category,
   title: 'タイトル',
   transactionDate: DateTime(2026, 8, 16, 12),
+  transactionDateTimeZoneOffsetMinutes: null,
   yearMonth: '2026-08',
   excludedFromAggregation: excludedFromAggregation,
 );
@@ -65,6 +66,42 @@ void main() {
         'excludedFromAggregation': false,
       });
       expect(transaction.category, TransactionCategory.other);
+    });
+  });
+
+  group('transactionLocalDate', () {
+    test('登録時のオフセット基準の日時を返し、端末タイムゾーンに依存しない', () {
+      // JST (UTC+9, 540分) の 2026-09-01 08:30 に登録された取引。
+      // UTC では 2026-08-31 23:30 だが、表示は登録時のカレンダー日 9/1 になる。
+      final transaction =
+          buildTransaction(
+            type: TransactionType.expense,
+            amount: 1200,
+            category: TransactionCategory.food,
+            excludedFromAggregation: false,
+          ).copyWith(
+            transactionDate: DateTime.utc(2026, 8, 31, 23, 30),
+            transactionDateTimeZoneOffsetMinutes: 540,
+            yearMonth: '2026-09',
+          );
+      expect(transaction.transactionLocalDate.year, 2026);
+      expect(transaction.transactionLocalDate.month, 9);
+      expect(transaction.transactionLocalDate.day, 1);
+      expect(transaction.transactionLocalDate.hour, 8);
+      expect(transaction.transactionLocalDate.minute, 30);
+    });
+
+    test('オフセット未保存の旧データは端末ローカルで表示する (従来挙動)', () {
+      final transaction = buildTransaction(
+        type: TransactionType.expense,
+        amount: 1200,
+        category: TransactionCategory.food,
+        excludedFromAggregation: false,
+      );
+      expect(
+        transaction.transactionLocalDate,
+        transaction.transactionDate.toLocal(),
+      );
     });
   });
 

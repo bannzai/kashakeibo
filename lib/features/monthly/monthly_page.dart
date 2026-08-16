@@ -433,9 +433,11 @@ List<Widget> _groupedTransactionRows({
   DateTime? currentDate;
   for (final transaction in transactions) {
     final transactionDay = DateTime(
-      transaction.transactionDate.year,
-      transaction.transactionDate.month,
-      transaction.transactionDate.day,
+      // 表示・グループ化は登録時タイムゾーン基準の日付を使う
+      // (yearMonth と見え方を一致させる。entity の transactionLocalDate 参照)。
+      transaction.transactionLocalDate.year,
+      transaction.transactionLocalDate.month,
+      transaction.transactionLocalDate.day,
     );
     if (transactionDay != currentDate) {
       currentDate = transactionDay;
