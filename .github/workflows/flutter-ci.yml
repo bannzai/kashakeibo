@@ -13,7 +13,8 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.title, '[Skip CI]') }}
+    # [Skip CI] は信頼できる actor (owner/member/collaborator) の PR に限る。public repo では外部の PR 作者もタイトルを自由に変えられるため
+    if: ${{ !(contains(github.event.pull_request.title, '[Skip CI]') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)) }}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
@@ -26,7 +27,8 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.title, '[Skip CI]') }}
+    # [Skip CI] は信頼できる actor (owner/member/collaborator) の PR に限る。public repo では外部の PR 作者もタイトルを自由に変えられるため
+    if: ${{ !(contains(github.event.pull_request.title, '[Skip CI]') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)) }}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0

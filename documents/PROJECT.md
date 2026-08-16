@@ -40,7 +40,7 @@ Cal AI が実証した「スキャン数回でハードペイウォール」型�
 ## ストア表記
 
 - JP タイトル: `カシャケイボ - スクショを撮るだけAI家計簿`
-- US タイトル: `Kashakeibo: Snap & Track Budget`
+- US タイトル: `Kashakeibo: AI Budget Scanner` (ストア name は 30 文字上限。issue コメントの例 `Kashakeibo: Snap & Track Budget` は 31 文字で上限超過のため不採用)
 - 由来: カシャ (シャッター音・iPhone のスクショ音) + ケイボ (家計簿)。"kakeibo" は英語圏で書籍化されるほど認知のあるメソッド名で、US でもそのまま通じる
 - 衝突チェック: JP「カシャケイボ」・US「kashakeibo」とも該当なし (2026-08-16 iTunes Search API 実測)
 

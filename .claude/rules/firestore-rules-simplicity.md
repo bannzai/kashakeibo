@@ -16,7 +16,7 @@ Firestore Security Rules は **JWT (Firebase Auth) 本人認証 + リソース�
 
 ## 理由
 - Rules が複雑化すると `permission-denied` の根本原因切り分けに時間がかかり、E2E や手動検証のブロッカーになる
-- プレミアム機能制限（スキャン無料枠等）はクライアント UI 側のガードで制御する。Rules で二重に防ぐ必要はない
+- プレミアム機能制限（スキャン無料枠等）は、コストが発生する呼び出し経路であるサーバー側 (Cloudflare Worker の解析エンドポイント) で強制する（[ADR 0001](../../documents/adr/0001-tech-stack.md) の画像解析の項）。クライアント UI のガードは体験のためで、Firestore Rules で三重に防ぐ必要はない
 - データは `users/{userID}` 配下に閉じており、本人以外がアクセスできない構造で十分
 
 ## 参照
