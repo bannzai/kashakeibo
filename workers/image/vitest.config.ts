@@ -7,10 +7,14 @@ export default defineWorkersConfig({
   test: {
     poolOptions: {
       workers: {
+        main: "./src/index.ts",
         miniflare: {
           compatibilityDate: "2025-09-06",
           r2Buckets: ["IMAGE_BUCKET"],
           kvNamespaces: ["PUBLIC_JWK_CACHE_KV"],
+          durableObjects: {
+            DAILY_UPLOAD_COUNTER: "DailyUploadCounter",
+          },
           bindings: {
             FIREBASE_PROJECT_ID: "kashakeibo-test",
             PUBLIC_JWK_CACHE_KEY: "firebase-public-jwk-cache",

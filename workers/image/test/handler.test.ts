@@ -79,6 +79,18 @@ function buildGetRequest({
 
 const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
 
+// 指定カウンターだけを count 回まで加算する (他のカウンターの上限判定に影響を与えないよう単独条件で回す)
+async function seedUploadCount(counterKey: string, count: number): Promise<void> {
+  const dailyUploadCounter = env.DAILY_UPLOAD_COUNTER.get(
+    env.DAILY_UPLOAD_COUNTER.idFromName(new Date().toISOString().slice(0, 10)),
+  );
+  for (let seededCount = 0; seededCount < count; seededCount++) {
+    await dailyUploadCounter.incrementIfWithinLimits([
+      { counterKey, maxDailyUploadCount: Number.MAX_SAFE_INTEGER },
+    ]);
+  }
+}
+
 describe("認証", () => {
   it("Authorization ヘッダーなしの POST を 401 で拒否する", async () => {
     const response = await handleImageRequest(
@@ -156,10 +168,7 @@ describe("アップロード", () => {
   });
 
   it("uid の日次アップロード回数が上限に達している場合は 429 を返し、他の uid には影響しない", async () => {
-    await env.PUBLIC_JWK_CACHE_KV.put(
-      `upload-count:uid-a:${new Date().toISOString().slice(0, 10)}`,
-      String(maxDailyUploadCountPerUser),
-    );
+    await seedUploadCount(`uid:uid-a`, maxDailyUploadCountPerUser);
     const responseOfLimitedUser = await handleImageRequest(
       buildUploadRequest({
         authorizationHeader: "Bearer valid-token-uid-a",
@@ -227,10 +236,7 @@ describe("アップロード", () => {
 
   it("接続元 IP の日次アップロード回数が上限に達している場合は 429 を返す", async () => {
     // buildUploadRequest は CF-Connecting-IP を付けないため "unknown" バケットで数えられる
-    await env.PUBLIC_JWK_CACHE_KV.put(
-      `upload-count:ip:unknown:${new Date().toISOString().slice(0, 10)}`,
-      String(maxDailyUploadCountPerIpAddress),
-    );
+    await seedUploadCount(`ip:unknown`, maxDailyUploadCountPerIpAddress);
     const response = await handleImageRequest(
       buildUploadRequest({
         authorizationHeader: "Bearer valid-token-uid-a",
@@ -244,10 +250,7 @@ describe("アップロード", () => {
   });
 
   it("サービス全体の日次アップロード回数が上限に達している場合は 429 を返す", async () => {
-    await env.PUBLIC_JWK_CACHE_KV.put(
-      `upload-count:total:${new Date().toISOString().slice(0, 10)}`,
-      String(maxDailyUploadCountTotal),
-    );
+    await seedUploadCount("total", maxDailyUploadCountTotal);
     const response = await handleImageRequest(
       buildUploadRequest({
         authorizationHeader: "Bearer valid-token-uid-a",
@@ -258,6 +261,58 @@ describe("アップロード", () => {
       stubVerifyFirebaseIdToken,
     );
     expect(response.status).toBe(429);
+  });
+
+  it("保存済みキーへの再試行は上限に達していてもカウントを消費せず 201 を返す", async () => {
+    // 上限の1件手前で最初のアップロードが成功し (これで上限到達)、201 が消失したと想定する
+    await seedUploadCount("uid:uid-retry", maxDailyUploadCountPerUser - 1);
+    const firstResponse = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-retry",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(firstResponse.status).toBe(201);
+
+    // 同じ X-Upload-Id の再試行は上限到達後でも 429 にならず、保存済みキーを回収できる
+    const retryResponse = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-retry",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(retryResponse.status).toBe(201);
+    const { imageObjectKey: firstImageObjectKey } = (await firstResponse.json()) as { imageObjectKey: string };
+    const { imageObjectKey: retryImageObjectKey } = (await retryResponse.json()) as { imageObjectKey: string };
+    expect(retryImageObjectKey).toBe(firstImageObjectKey);
+  });
+
+  it("並行アップロードでも上限を超えて保存されない", async () => {
+    await seedUploadCount("uid:uid-parallel", maxDailyUploadCountPerUser - 1);
+    // 残り1枠に対して、異なる X-Upload-Id の並行リクエストを4本送る
+    const parallelResponses = await Promise.all(
+      ["aaaaaaaa-0000-4000-8000-000000000001", "aaaaaaaa-0000-4000-8000-000000000002", "aaaaaaaa-0000-4000-8000-000000000003", "aaaaaaaa-0000-4000-8000-000000000004"].map(
+        (parallelUploadId) =>
+          handleImageRequest(
+            buildUploadRequest({
+              authorizationHeader: "Bearer valid-token-uid-parallel",
+              fileContentType: "image/png",
+              fileBytes: pngBytes,
+              uploadId: parallelUploadId,
+            }),
+            env,
+            stubVerifyFirebaseIdToken,
+          ),
+      ),
+    );
+    expect(parallelResponses.filter((response) => response.status === 201)).toHaveLength(1);
+    expect(parallelResponses.filter((response) => response.status === 429)).toHaveLength(3);
   });
 
   it("file フィールドが無いリクエストを 400 で拒否する", async () => {
@@ -348,5 +403,63 @@ describe("取得", () => {
       stubVerifyFirebaseIdToken,
     );
     expect(response.status).toBe(404);
+  });
+});
+
+describe("アカウント削除時の全消去", () => {
+  function buildDeleteAllRequest(authorizationHeader: string): Request {
+    return new Request(`${workerBaseUrl}/images`, {
+      method: "DELETE",
+      headers: { Authorization: authorizationHeader },
+    });
+  }
+
+  async function uploadImageWithUploadId(uid: string, uploadId: string): Promise<void> {
+    await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: `Bearer valid-token-${uid}`,
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+        uploadId,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+  }
+
+  it("本人の uid 配下の全オブジェクトを削除し、他人のオブジェクトには影響しない", async () => {
+    await uploadImageWithUploadId("uid-delete-a", "bbbbbbbb-0000-4000-8000-000000000001");
+    await uploadImageWithUploadId("uid-delete-a", "bbbbbbbb-0000-4000-8000-000000000002");
+    await uploadImageWithUploadId("uid-delete-b", "bbbbbbbb-0000-4000-8000-000000000003");
+
+    const deleteResponse = await handleImageRequest(
+      buildDeleteAllRequest("Bearer valid-token-uid-delete-a"),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(deleteResponse.status).toBe(200);
+    expect(((await deleteResponse.json()) as { deletedImageCount: string }).deletedImageCount).toBe("2");
+    expect((await env.IMAGE_BUCKET.list({ prefix: "users/uid-delete-a/" })).objects).toHaveLength(0);
+    // 他人 (uid-delete-b) のオブジェクトは残る
+    expect((await env.IMAGE_BUCKET.list({ prefix: "users/uid-delete-b/" })).objects).toHaveLength(1);
+  });
+
+  it("削除対象が無い場合も 200 を返す (冪等)", async () => {
+    const deleteResponse = await handleImageRequest(
+      buildDeleteAllRequest("Bearer valid-token-uid-delete-empty"),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(deleteResponse.status).toBe(200);
+    expect(((await deleteResponse.json()) as { deletedImageCount: string }).deletedImageCount).toBe("0");
+  });
+
+  it("Authorization ヘッダーなしの DELETE を 401 で拒否する", async () => {
+    const deleteResponse = await handleImageRequest(
+      new Request(`${workerBaseUrl}/images`, { method: "DELETE" }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(deleteResponse.status).toBe(401);
   });
 });

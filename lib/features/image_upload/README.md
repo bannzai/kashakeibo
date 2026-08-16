@@ -15,6 +15,7 @@ Worker の API 仕様・認可設計 (uid 配下へのキー強制・未認証�
 2. `uploadImage` に画像バイト列・Content-Type・`uploadImageID`・ID token を渡すと、オブジェクトキー (`users/{uid}/{uploadImageID}.{拡張子}`) が返る
 3. 返ったキーを Firestore の明細ドキュメントに保存して画像と明細を紐づける (紐付けの実装は issue #9)
 4. 表示時は `fetchImage` にキーと ID token を渡してバイト列を取得し、`Image.memory` で表示する (Worker は Authorization ヘッダー必須のため `Image.network` は使えない)
+5. アカウント削除時は、Firebase Auth ユーザーを削除する前に `deleteAllImages` を呼んで本人の全画像を消去する (アカウント削除フローの実装は issue #11 のスコープ)
 
 ## データ形式
 

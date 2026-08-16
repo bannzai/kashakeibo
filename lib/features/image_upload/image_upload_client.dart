@@ -57,6 +57,28 @@ Future<String> uploadImage({
       as String;
 }
 
+/// アカウント削除時に、本人 (JWT の uid) の全画像を Worker 経由で削除する。
+/// docs/AccountDeletion.md の「撮影・アップロードした画像は削除操作と同時に削除される」を満たすため、
+/// Firebase Auth ユーザーを削除する前 (ID token が有効なうち) に呼ぶ。冪等 (対象が無くても成功する)。
+Future<void> deleteAllImages({
+  required String firebaseIdToken,
+  required http.Client httpClient,
+  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
+  String baseUrl = imageApiBaseUrl,
+}) async {
+  final deleteResponse = await httpClient.delete(
+    Uri.parse('$baseUrl/images'),
+    headers: {'Authorization': 'Bearer $firebaseIdToken'},
+  );
+  if (deleteResponse.statusCode != 200) {
+    // エラーメッセージは加工せずそのまま伝える (コーディング規約)
+    throw http.ClientException(
+      '画像の削除に失敗しました (status=${deleteResponse.statusCode}): ${deleteResponse.body}',
+      Uri.parse('$baseUrl/images'),
+    );
+  }
+}
+
 /// アップロード済み画像をオブジェクトキーで取得し、画像のバイト列を返す。
 /// Worker は Authorization ヘッダー必須のため、Image.network ではなくこの関数で取得して Image.memory で表示する。
 Future<Uint8List> fetchImage({

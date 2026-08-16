@@ -1,7 +1,9 @@
-// 画像アップロード (POST /images)・取得 (GET /images/{objectKey}) のリクエスト処理本体。
+// 画像アップロード (POST /images)・取得 (GET /images/{objectKey})・
+// アカウント削除時の全消去 (DELETE /images) のリクエスト処理本体。
 // Firebase ID token の検証手段を verifyFirebaseIdToken として注入する構造にし、
 // テストでは実際の Google JWK 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
 // (実際の検証器の組み立ては index.ts を参照)。
+import type { DailyUploadCounter } from "./upload_counter";
 
 /** Firebase ID token の検証を通ったユーザー。 */
 export interface VerifiedFirebaseUser {
@@ -16,8 +18,10 @@ export type VerifyFirebaseIdToken = (firebaseIdToken: string) => Promise<Verifie
 export interface ImageWorkerEnv {
   /** 画像の保存先 R2 バケット。 */
   IMAGE_BUCKET: R2Bucket;
-  /** JWK キャッシュと日次アップロードカウンターを保存する KV。 */
+  /** JWK キャッシュを保存する KV。 */
   PUBLIC_JWK_CACHE_KV: KVNamespace;
+  /** 日次アップロード回数カウンターの Durable Object (判定と加算の直列化)。 */
+  DAILY_UPLOAD_COUNTER: DurableObjectNamespace<DailyUploadCounter>;
   /** Firebase プロジェクト ID。 */
   FIREBASE_PROJECT_ID: string;
   /** JWK キャッシュの KV キー名。 */
@@ -55,9 +59,6 @@ export const maxDailyUploadCountPerIpAddress = 300;
 // 費用暴走防止を可用性より優先して受け入れる (恒久対策は App Check 検証 issue #24)
 export const maxDailyUploadCountTotal = 5000;
 
-// 日次カウンターは翌日以降不要になるため、2日で KV から自動削除してゴミを残さない
-const uploadCountExpirationSeconds = 60 * 60 * 24 * 2;
-
 const imageObjectPathPrefix = "/images/";
 
 // X-Upload-Id ヘッダーに要求する UUID 形式。オブジェクトキーの一部になるため、
@@ -92,6 +93,9 @@ export async function handleImageRequest(
   }
   if (request.method === "GET" && requestUrl.pathname.startsWith(imageObjectPathPrefix)) {
     return handleImageGet(requestUrl, env, verifiedFirebaseUser);
+  }
+  if (request.method === "DELETE" && requestUrl.pathname === "/images") {
+    return handleAllImagesDelete(env, verifiedFirebaseUser);
   }
   return jsonResponse(404, { error: "not found" });
 }
@@ -141,33 +145,35 @@ async function handleImageUpload(
     return jsonResponse(413, { error: `ファイルサイズ上限 (${maxImageBytes} bytes) を超えています` });
   }
 
-  // 日次アップロード回数制限を uid 別・接続元 IP 別・全体の3層で判定する。
-  // uid 別だけでは匿名認証の uid 作り直しで迂回できるため、uid を跨ぐ IP 別・全体上限を併用する。
-  // CF-Connecting-IP は Cloudflare が付与する接続元 IP で、本番では常に存在する
-  // (存在しない実行環境ではひとつのバケットにまとめて数える)
-  const uploadDateText = new Date().toISOString().slice(0, 10);
-  const clientIpAddress = request.headers.get("CF-Connecting-IP") ?? "unknown";
-  for (const { uploadCountKey, maxDailyUploadCount } of [
-    { uploadCountKey: `upload-count:${verifiedFirebaseUser.uid}:${uploadDateText}`, maxDailyUploadCount: maxDailyUploadCountPerUser },
-    { uploadCountKey: `upload-count:ip:${clientIpAddress}:${uploadDateText}`, maxDailyUploadCount: maxDailyUploadCountPerIpAddress },
-    { uploadCountKey: `upload-count:total:${uploadDateText}`, maxDailyUploadCount: maxDailyUploadCountTotal },
-  ]) {
-    // KV の get/put はアトミックでないため並行リクエストで上限を数件超え得るが、
-    // 費用増大攻撃の抑止が目的のため厳密な保証は不要。カウンターは JWK キャッシュと同じ
-    // KV namespace に "upload-count:" プレフィックスで同居させる (デプロイ時に作る namespace を増やさないため)
-    const todayUploadCount = Number((await env.PUBLIC_JWK_CACHE_KV.get(uploadCountKey)) ?? "0");
-    if (todayUploadCount >= maxDailyUploadCount) {
-      return jsonResponse(429, { error: "1日のアップロード回数の上限に達しました" });
-    }
-    await env.PUBLIC_JWK_CACHE_KV.put(uploadCountKey, String(todayUploadCount + 1), {
-      expirationTtl: uploadCountExpirationSeconds,
-    });
-  }
-
   // オブジェクトキーの uid プレフィックスは JWT の uid から Worker 側で強制する
   // (他人の uid 配下への書き込みを構造的に防ぐ)。ファイル名部分は UUID 形式に検証済みの
   // X-Upload-Id を使い、同じ論理アップロードの再試行が同じキーに収束するようにする
   const imageObjectKey = `users/${verifiedFirebaseUser.uid}/${uploadId.toLowerCase()}.${imageObjectExtension}`;
+
+  // 保存済みキーへの再試行 (201 レスポンスだけが消失したケース) は、回数制限より先に判定して
+  // カウントせずに成功を返す。制限は新規の X-Upload-Id だけを数えるため、
+  // 上限間際の再試行が 429 になって保存済みキーを回収できなくなることがない
+  if ((await env.IMAGE_BUCKET.head(imageObjectKey)) !== null) {
+    return jsonResponse(201, { imageObjectKey });
+  }
+
+  // 日次アップロード回数制限を uid 別・接続元 IP 別・全体の3層で判定する。
+  // uid 別だけでは匿名認証の uid 作り直しで迂回できるため、uid を跨ぐ IP 別・全体上限を併用する。
+  // 判定と加算は日次シングルトンの Durable Object で直列化し、並行リクエストが同じ旧値を読んで
+  // 上限判定をすり抜けることを防ぐ。CF-Connecting-IP は Cloudflare が付与する接続元 IP で、
+  // 本番では常に存在する (存在しない実行環境ではひとつのバケットにまとめて数える)
+  const uploadDateText = new Date().toISOString().slice(0, 10);
+  const clientIpAddress = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const withinUploadLimits = await env.DAILY_UPLOAD_COUNTER.get(
+    env.DAILY_UPLOAD_COUNTER.idFromName(uploadDateText),
+  ).incrementIfWithinLimits([
+    { counterKey: `uid:${verifiedFirebaseUser.uid}`, maxDailyUploadCount: maxDailyUploadCountPerUser },
+    { counterKey: `ip:${clientIpAddress}`, maxDailyUploadCount: maxDailyUploadCountPerIpAddress },
+    { counterKey: "total", maxDailyUploadCount: maxDailyUploadCountTotal },
+  ]);
+  if (!withinUploadLimits) {
+    return jsonResponse(429, { error: "1日のアップロード回数の上限に達しました" });
+  }
 
   await env.IMAGE_BUCKET.put(imageObjectKey, await uploadedFile.arrayBuffer(), {
     httpMetadata: { contentType: uploadedFile.type },
@@ -212,6 +218,29 @@ async function handleImageGet(
   // 認証付き私的コンテンツのため共有キャッシュに載せない
   imageResponseHeaders.set("Cache-Control", "private, max-age=0, must-revalidate");
   return new Response(imageObject.body, { status: 200, headers: imageResponseHeaders });
+}
+
+/**
+ * アカウント削除時の全画像消去。JWT の uid 配下 (`users/{uid}/`) のオブジェクトを全削除する。
+ * docs/AccountDeletion.md の「撮影・アップロードした画像は削除操作と同時に削除される」を満たすため、
+ * クライアントは Firebase Auth ユーザーを削除する前 (ID token が有効なうち) に呼ぶ。
+ * 冪等: 対象が既に無い場合も 200 を返す。
+ */
+async function handleAllImagesDelete(
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<Response> {
+  const userObjectKeyPrefix = `users/${verifiedFirebaseUser.uid}/`;
+  let deletedImageCount = 0;
+  // list は最大1000件ずつ返るため、無くなるまで削除を繰り返す
+  for (;;) {
+    const listedImageObjects = await env.IMAGE_BUCKET.list({ prefix: userObjectKeyPrefix });
+    if (listedImageObjects.objects.length === 0) {
+      return jsonResponse(200, { deletedImageCount: String(deletedImageCount) });
+    }
+    await env.IMAGE_BUCKET.delete(listedImageObjects.objects.map((imageObject) => imageObject.key));
+    deletedImageCount += listedImageObjects.objects.length;
+  }
 }
 
 /** エラー・結果を application/json で返すためのレスポンス組み立て。 */

@@ -87,6 +87,47 @@ void main() {
     });
   });
 
+  group('deleteAllImages', () {
+    test('DELETE /images に Bearer トークン付きで送信する', () async {
+      late http.Request capturedRequest;
+      await deleteAllImages(
+        firebaseIdToken: 'test-id-token',
+        httpClient: MockClient((request) async {
+          capturedRequest = request;
+          return http.Response('{"deletedImageCount":"2"}', 200);
+        }),
+        baseUrl: testBaseUrl,
+      );
+
+      expect(capturedRequest.method, 'DELETE');
+      expect(capturedRequest.url.toString(), '$testBaseUrl/images');
+      expect(capturedRequest.headers['Authorization'], 'Bearer test-id-token');
+    });
+
+    test('200 以外のレスポンスはボディを加工せず例外として伝える', () async {
+      expect(
+        () => deleteAllImages(
+          firebaseIdToken: 'expired-token',
+          httpClient: MockClient(
+            (request) async => http.Response(
+              '{"error":"Firebase ID token が無効です"}',
+              401,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            ),
+          ),
+          baseUrl: testBaseUrl,
+        ),
+        throwsA(
+          isA<http.ClientException>().having(
+            (clientException) => clientException.message,
+            'message',
+            contains('status=401'),
+          ),
+        ),
+      );
+    });
+  });
+
   group('fetchImage', () {
     test('GET /images/{オブジェクトキー} に Bearer トークン付きで送信し、バイト列を返す', () async {
       late http.Request capturedRequest;

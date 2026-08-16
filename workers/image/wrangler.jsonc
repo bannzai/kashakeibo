@@ -12,6 +12,21 @@
       "bucket_name": "kashakeibo-images"
     }
   ],
+  "durable_objects": {
+    "bindings": [
+      {
+        // 日次アップロード回数カウンター。判定と加算を直列化して並行リクエストの上限すり抜けを防ぐ
+        "name": "DAILY_UPLOAD_COUNTER",
+        "class_name": "DailyUploadCounter"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["DailyUploadCounter"]
+    }
+  ],
   "kv_namespaces": [
     {
       // Firebase の公開 JWK のキャッシュ先。
