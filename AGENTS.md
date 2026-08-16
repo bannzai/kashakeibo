@@ -4,7 +4,7 @@
 
 企画・要件・MVP スコープは @documents/PROJECT.md、技術スタックの決定と理由は @documents/adr/0001-tech-stack.md を参照してください。
 
-このアプリは Flutter 製で、バックエンドは Firebase (Firestore / Firebase AI Logic / Analytics / 匿名認証) を採用しています。画像ストレージは Cloudflare R2 で、Firebase Auth の ID token を検証する Cloudflare Worker 経由でアクセスします。MVP では Cloud Functions を持たず、サーバーコードはこの Worker のみです。課金は RevenueCat (purchases_flutter) です。
+このアプリは Flutter 製で、バックエンドは Firebase (Firestore / Analytics / 匿名認証) を採用しています。画像ストレージは Cloudflare R2 で、Firebase Auth の ID token を検証する Cloudflare Worker 経由でアクセスします。AI 画像解析 (Gemini) の呼び出しも、スキャン無料枠をサーバー側で強制するため同じ Worker 経由です。MVP では Cloud Functions を持たず、サーバーコードはこの Worker のみです。課金は RevenueCat (purchases_flutter) です。
 
 - Flutter のコード: @lib/
 - コーディング規約・ルール: @.claude/rules/ に配置する。プロジェクト仕様書・ADR 等のドキュメントは @documents/ に配置する

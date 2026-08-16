@@ -13,7 +13,7 @@
 | レイヤ | 決定 | 理由 |
 | --- | --- | --- |
 | フロントエンド | Flutter | Android 展開の要望に応えられる形にしておく (DB を Firestore にする動機と一貫)。shoppinglist で Flutter × Firebase × RevenueCat (purchases_flutter) × fastlane の構成が実証済みで、flutter-maestro / translate-app-arb など開発・検証・多言語化の手元資産をそのまま使える |
-| 画像解析 | Firebase AI Logic (旧 Vertex AI in Firebase) 経由の Gemini vision モデル | クライアント SDK から直接呼べて、API キー秘匿と不正利用対策は App Check が担う。自前バックエンド不要。解析はステートレスな呼び出しで、画像・結果とも解析側には永続化しない |
+| 画像解析 | Gemini vision モデル (Cloudflare Worker 経由で呼び出す) | 当初案の Firebase AI Logic クライアント直呼びでは、スキャン無料枠 (月10回) の回数判定をクライアント側にしか置けず、クライアント改変や SDK 直叩きで迂回できて LLM 原価の上限を強制できない (PR #2 レビュー指摘で変更)。画像アップロードと同じ Cloudflare Worker (Firebase Auth の ID token 検証済み) に解析エンドポイントを相乗りさせ、uid ごとの利用回数と entitlement をサーバー側で判定してから Gemini API を呼ぶ。API キーは Worker の secret に置きクライアントへ配布しない。解析はステートレスな呼び出しで、画像・結果とも解析側には永続化しない |
 | オンデバイス AI | Foundation Models は MVP では採用しない | ①画像入力を受けられず Vision OCR → テキストの2段構えになりレイアウト情報が落ちる ②Apple Intelligence 必須 = iPhone 15 Pro 以降の端末ゲートが家計簿ユーザー層と合わない ③解析精度が製品の核であり ~3B のオンデバイスモデルで妥協できない。v2 で「対応端末はオンデバイス解析でスキャン無料枠無制限」というコスト削減・差別化機能として導入する |
 | DB | Firestore | 端末を変えても・OS をまたいでもデータが残ることが価値の核 (カテゴリ最大の不満「データが消えた」への回答)。Flutter との組み合わせで iOS/Android 両対応が自然に成立する |
 | 集計 | サマリードキュメントは持たない。明細から都度計算 | 派生データの二重管理を避ける。詳細は `.claude/rules/firestore-aggregation-rules.md` を参照 |

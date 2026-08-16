@@ -33,13 +33,15 @@ Plan mode で .plans/ にプランファイルを作成する際、以下のチ�
 - [ ] ref使い分け: Providerはbuild内で`ref.watch`しローカル変数にキャプチャ、コールバック内で新たに`ref.read`/`ref.watch`を呼んでいない
 - [ ] サブコレクションEntityに親ドキュメントIDフィールドあり（該当する場合）
 
-### Firebase（firebase/ に変更がある場合）
-- [ ] Lint: `npm run lint` パス（firebase/functions/functions/ で実行）
-- [ ] ビルド: `npm run build` 成功
-- [ ] テスト: `npm test` 全件パス
-- [ ] クライアント呼び出し関数はGenKitで定義
-- [ ] onDocumentCreated/onDocumentUpdated トリガーを使っていない
+### Cloudflare Worker（workers/ に変更がある場合）
+- [ ] ビルド・型チェック: worker ディレクトリで `npm run build`（または `tsc --noEmit`）成功
+- [ ] テスト: worker のテスト（vitest 等）全件パス
+- [ ] 認証: Firebase Auth の ID token 検証を経由しないエンドポイントを追加していない
 - [ ] 新規・変更機能に対するテストが存在する（なければ新規作成）
+
+### Firestore 設定（firestore.rules / インデックスに変更がある場合）
+- [ ] セキュリティルールが `.claude/rules/firestore-rules-simplicity.md` の判定パターン内に収まっている
+- [ ] クエリ用フィールドの複合インデックスが定義されている（`.claude/rules/firestore-aggregation-rules.md`）
 
 ### 共通
 - [ ] エラーメッセージはそのまま表示（加工・プレフィックス除去なし）

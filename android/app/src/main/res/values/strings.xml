@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ランチャーに表示されるアプリ名 (既定: 英語) -->
+    <string name="app_name">Kashakeibo</string>
+</resources>
