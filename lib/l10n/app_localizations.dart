@@ -103,6 +103,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Kashakeibo'**
   String get appName;
+
+  /// Label for the monthly income total
+  ///
+  /// In en, this message translates to:
+  /// **'Income'**
+  String get monthlyIncome;
+
+  /// Label for the monthly spending total
+  ///
+  /// In en, this message translates to:
+  /// **'Spending'**
+  String get monthlyExpense;
+
+  /// Label for the monthly balance (income - spending)
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get monthlyBalance;
+
+  /// Section title for the spending breakdown by category
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get categoryBreakdown;
+
+  /// Placeholder shown when the month has no transactions
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions this month'**
+  String get monthlyTransactionsEmpty;
+
+  /// Note on a transaction excluded from aggregation totals
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded'**
+  String get excludedFromAggregation;
+
+  /// Tooltip for the previous month button
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get previousMonth;
+
+  /// Tooltip for the next month button
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get nextMonth;
+
+  /// Transaction category: food (groceries)
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get categoryFood;
+
+  /// Transaction category: eating out
+  ///
+  /// In en, this message translates to:
+  /// **'Eating out'**
+  String get categoryEatingOut;
+
+  /// Transaction category: daily goods
+  ///
+  /// In en, this message translates to:
+  /// **'Daily goods'**
+  String get categoryDailyGoods;
+
+  /// Transaction category: transportation
+  ///
+  /// In en, this message translates to:
+  /// **'Transport'**
+  String get categoryTransportation;
+
+  /// Transaction category: subscriptions
+  ///
+  /// In en, this message translates to:
+  /// **'Subscriptions'**
+  String get categorySubscription;
+
+  /// Transaction category: salary (income)
+  ///
+  /// In en, this message translates to:
+  /// **'Salary'**
+  String get categorySalary;
+
+  /// Transaction category: other
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get categoryOther;
 }
 
 class _AppLocalizationsDelegate

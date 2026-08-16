@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// 設計方針:
+// JWT (Firebase Auth) の本人認証 + リソース所有判定のみを行い、データ内容に踏み込んだ
+// ガード (プレミアム判定・期間判定・フィールド diff 等) は実装しない。詳細は
+// `.claude/rules/firestore-rules-simplicity.md` を参照。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isUserAuth(id) {
+      return request.auth != null && request.auth.uid == id;
+    }
+
+    // データはすべて users/{userID} 配下に閉じ、本人のみ read/write を許可する。
+    // transactions などのサブコレクションも再帰ワイルドカードでまとめて本人限定にする。
+    match /users/{userID} {
+      allow read, write: if isUserAuth(userID);
+
+      match /{document=**} {
+        allow read, write: if isUserAuth(userID);
+      }
+    }
+  }
+}

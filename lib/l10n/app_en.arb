@@ -3,5 +3,65 @@
   "appName": "Kashakeibo",
   "@appName": {
     "description": "The application name shown in the app bar and store listings"
+  },
+  "monthlyIncome": "Income",
+  "@monthlyIncome": {
+    "description": "Label for the monthly income total"
+  },
+  "monthlyExpense": "Spending",
+  "@monthlyExpense": {
+    "description": "Label for the monthly spending total"
+  },
+  "monthlyBalance": "Balance",
+  "@monthlyBalance": {
+    "description": "Label for the monthly balance (income - spending)"
+  },
+  "categoryBreakdown": "Categories",
+  "@categoryBreakdown": {
+    "description": "Section title for the spending breakdown by category"
+  },
+  "monthlyTransactionsEmpty": "No transactions this month",
+  "@monthlyTransactionsEmpty": {
+    "description": "Placeholder shown when the month has no transactions"
+  },
+  "excludedFromAggregation": "Excluded",
+  "@excludedFromAggregation": {
+    "description": "Note on a transaction excluded from aggregation totals"
+  },
+  "previousMonth": "Previous month",
+  "@previousMonth": {
+    "description": "Tooltip for the previous month button"
+  },
+  "nextMonth": "Next month",
+  "@nextMonth": {
+    "description": "Tooltip for the next month button"
+  },
+  "categoryFood": "Food",
+  "@categoryFood": {
+    "description": "Transaction category: food (groceries)"
+  },
+  "categoryEatingOut": "Eating out",
+  "@categoryEatingOut": {
+    "description": "Transaction category: eating out"
+  },
+  "categoryDailyGoods": "Daily goods",
+  "@categoryDailyGoods": {
+    "description": "Transaction category: daily goods"
+  },
+  "categoryTransportation": "Transport",
+  "@categoryTransportation": {
+    "description": "Transaction category: transportation"
+  },
+  "categorySubscription": "Subscriptions",
+  "@categorySubscription": {
+    "description": "Transaction category: subscriptions"
+  },
+  "categorySalary": "Salary",
+  "@categorySalary": {
+    "description": "Transaction category: salary (income)"
+  },
+  "categoryOther": "Other",
+  "@categoryOther": {
+    "description": "Transaction category: other"
   }
 }
