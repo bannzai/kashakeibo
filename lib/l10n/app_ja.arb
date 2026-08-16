@@ -1,4 +1,24 @@
 {
   "@@locale": "ja",
-  "appName": "カシャケイボ"
+  "appName": "カシャケイボ",
+  "monthlyIncome": "収入",
+  "monthlyExpense": "支出",
+  "monthlyBalance": "収支",
+  "categoryBreakdown": "カテゴリ内訳",
+  "monthlyTransactionsEmpty": "今月の明細はまだありません",
+  "excludedFromAggregation": "計算対象外",
+  "previousMonth": "前の月",
+  "nextMonth": "次の月",
+  "categoryFood": "食費",
+  "categoryDailyGoods": "日用品",
+  "categoryTransportation": "交通費",
+  "categoryUtilities": "水道・光熱費",
+  "categoryCommunication": "通信費",
+  "categoryHousing": "住居費",
+  "categoryMedical": "医療費",
+  "categoryEntertainment": "娯楽費",
+  "categoryClothing": "衣服・美容",
+  "categoryEducation": "教育費",
+  "categorySalary": "給与",
+  "categoryOther": "その他"
 }

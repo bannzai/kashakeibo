@@ -1,30 +1,119 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/features/monthly/monthly_page.dart';
+import 'package:kashakeibo/l10n/app_localizations.dart';
+import 'package:kashakeibo/l10n/app_localizations_en.dart';
+import 'package:kashakeibo/provider/transaction.dart';
 
-import 'package:kashakeibo/main.dart';
+/// テスト用の明細を組み立てる。
+Transaction buildTransaction({
+  required String id,
+  required TransactionType type,
+  required int amount,
+  required TransactionCategory category,
+  required String title,
+  required bool excludedFromAggregation,
+}) {
+  // MonthlyPage は現在月を初期表示するため、現在月の明細としてデータを作る。
+  final now = DateTime.now();
+  return Transaction(
+    id: id,
+    userID: 'user-id',
+    type: type,
+    amount: amount,
+    category: category,
+    title: title,
+    transactionDate: DateTime(now.year, now.month, 1, 12),
+    yearMonth: yearMonthFrom(dateTime: now),
+    excludedFromAggregation: excludedFromAggregation,
+  );
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('月次一覧: サマリー・カテゴリ内訳・明細リストがクライアント集計で表示される', (tester) async {
+    final transactions = [
+      buildTransaction(
+        id: 'income-1',
+        type: TransactionType.income,
+        amount: 280000,
+        category: TransactionCategory.salary,
+        title: '給与',
+        excludedFromAggregation: false,
+      ),
+      buildTransaction(
+        id: 'expense-1',
+        type: TransactionType.expense,
+        amount: 1200,
+        category: TransactionCategory.food,
+        title: 'スーパーマーケット',
+        excludedFromAggregation: false,
+      ),
+      buildTransaction(
+        id: 'expense-2',
+        type: TransactionType.expense,
+        amount: 5000,
+        category: TransactionCategory.entertainment,
+        title: '計算対象外の明細',
+        excludedFromAggregation: true,
+      ),
+    ];
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(transactions)),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(),
+        ),
+      ),
+    );
+    // Stream の初回イベントが AsyncValue.data に反映されるまで進める。
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // サマリー: 収入 280,000 / 支出 1,200 (計算対象外の 5,000 は含めない) / 収支 278,800
+    expect(find.text('¥280,000'), findsOneWidget);
+    expect(find.text('¥278,800'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // カテゴリ内訳: 支出のみが対象 (Food のチップが出る)
+    expect(find.textContaining('¥1,200'), findsWidgets);
+
+    // 明細リスト: 3 件の明細が表示され、計算対象外の明細にはラベルが付く
+    expect(find.text('給与'), findsOneWidget);
+    expect(find.text('スーパーマーケット'), findsOneWidget);
+    expect(find.text('計算対象外の明細'), findsOneWidget);
+    expect(
+      find.text(AppLocalizationsEn().excludedFromAggregation),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('月次一覧: 明細が無い月は空メッセージを表示する', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(const [])),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppLocalizationsEn().monthlyTransactionsEmpty),
+      findsOneWidget,
+    );
   });
 }
