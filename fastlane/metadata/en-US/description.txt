@@ -1,0 +1,21 @@
+Kashakeibo is an AI-powered budget app inspired by the Japanese kakeibo method. Just snap a photo or take a screenshot, and your expenses are recorded.
+
+Snap a paper receipt. Screenshot your credit card statement or online shopping history. AI reads the amount, date, and store name, and turns them into budget entries.
+
+■ No bank linking. Nothing to break, nothing to worry about.
+Kashakeibo does not connect to your bank accounts. No broken integrations, no credentials to hand over. If you can see it on your screen, you can capture it — card statements, QR payment history, anything.
+
+■ Features
+- Receipt scanning: snap a paper receipt and AI creates the entry
+- Screenshot import: turn card statements and purchase histories into entries
+- Manual entry: quickly log cash spending
+- Duplicate detection: catches double counting between receipts and card statements
+- Linked source images: jump back to the original image anytime to verify or fix AI results
+- Exclude from totals: keep entries out of your calculations individually
+- Monthly summary: income, spending, and category breakdown at a glance
+
+■ Premium
+The free plan includes a monthly allowance of AI scans. Premium unlocks unlimited scans and full history.
+
+Terms of Service: https://bannzai.github.io/kashakeibo/Terms
+Privacy Policy: https://bannzai.github.io/kashakeibo/PrivacyPolicy

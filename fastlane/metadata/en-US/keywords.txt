@@ -1,0 +1,1 @@
+budget,kakeibo,receipt,scanner,expense,tracker,AI,screenshot,money,finance
