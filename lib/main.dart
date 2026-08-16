@@ -35,7 +35,9 @@ class App extends StatelessWidget {
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+      ),
       home: const SignInResolver(child: MonthlyPage()),
     );
   }

@@ -78,7 +78,10 @@ void main() {
       ).toJson();
       expect(json['type'], 'income');
       expect(json['category'], 'salary');
-      expect(json['transactionDate'], Timestamp.fromDate(DateTime(2026, 8, 16, 12)));
+      expect(
+        json['transactionDate'],
+        Timestamp.fromDate(DateTime(2026, 8, 16, 12)),
+      );
       expect(json['yearMonth'], '2026-08');
       // サーバータイムスタンプは書き込みのたびに FieldValue で付与される
       // (.claude/rules/firestore-timestamp-rules.md)。
