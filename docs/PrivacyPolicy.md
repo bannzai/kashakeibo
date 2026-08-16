@@ -32,7 +32,8 @@ bannzai（以下「提供者」といいます。）は、提供者の提供す�
 ## 外部サービスの利用
 本サービスは、サービスの提供にあたり以下の外部サービスを利用します。各サービスに送信された情報は、各社のプライバシーポリシーに基づき管理されます。
 
-- **Firebase (Google LLC)**: 認証、データベース（明細情報の保存）、画像の保存、利用状況の分析（Google Analytics for Firebase）に利用します。 https://policies.google.com/privacy?hl=ja
+- **Firebase (Google LLC)**: 認証、データベース（明細情報の保存）、利用状況の分析（Google Analytics for Firebase）に利用します。 https://policies.google.com/privacy?hl=ja
+- **Cloudflare (Cloudflare, Inc.)**: ユーザーが撮影・アップロードした画像の保存・配信に利用します。画像へのアクセスは認証されたユーザー本人に限定されます。 https://www.cloudflare.com/privacypolicy/
 - **AI による画像解析 (Google LLC / Gemini API)**: ユーザーが撮影・アップロードした画像は、明細情報の抽出のために Google 社の AI 解析サービスへ送信されます。解析はその都度行われ、解析サービス側に画像・解析結果を永続的に保存しません。
 - **RevenueCat, Inc.**: 有料サービスの購入状態の管理に利用します。 https://www.revenuecat.com/privacy
 
