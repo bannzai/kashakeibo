@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-dc1d89a9-d628-41b7-996e-f57cf805588b/styles.css">
+<script src="_ds/organic-dc1d89a9-d628-41b7-996e-f57cf805588b/_ds_bundle.js"></script>
+<script src="doc-page.js"></script>
+<style>
+doc-page:not(:defined){visibility:hidden}
+a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
+</style>
+</helmet>
+<doc-page margin="0.75in">
+<h1 style="font-size:30px">カシャケイボ デザイン引き継ぎ書</h1>
+<p style="color:var(--color-neutral-600);font-size:12.5px;margin-top:-6px">2026-08-16 · 対象: Flutter (Material 3) 実装 · 成果物: <strong>Kashakeibo Prototype.dc.html</strong> (タップ遷移試作) / Design Options.dc.html (検討経緯)</p>
+
+<h2 style="font-size:20px;margin-top:28px">1. プロダクトとデザイン原則</h2>
+<p style="font-size:13.5px;line-height:1.7">スクショ・写真を撮ると AI (Gemini vision) が明細を自動作成する家計簿。口座連携をしないことが売りで、<strong>明細は必ず元画像と紐づく</strong>ことが信頼の核。デザイン原則は次の4点。</p>
+<ul style="font-size:13.5px;line-height:1.8">
+<li><strong>撮るだけ</strong> — 中央のカメラボタンが常に最短経路。取込はカメラ / 写真・スクショ / 手動の3択に集約</li>
+<li><strong>元画像にいつでも戻れる</strong> — ホームの一等地は「とった記録」(元画像グリッド)。明細詳細でも元画像を大きく表示</li>
+<li><strong>褒める・説教しない</strong> — 完了トーストで軽く褒める。節約アドバイスや評価コメントは出さない</li>
+<li><strong>記録ツールとして誠実</strong> — 数字は等幅・太字で読みやすく。確定申告・経費精算ユーザーも視野 (タグ + CSV書き出し)</li>
+</ul>
+
+<h2 style="font-size:20px;margin-top:28px">2. ビジュアル仕様 (デザインシステム: Organic)</h2>
+<p style="font-size:13.5px;line-height:1.7">クリーム地 + テラコッタ / セージの2アクセント。角丸強め (16px、ボタン・チップは999px)。アイコンは Lucide、stroke-width 2.75。</p>
+<table class="table" style="font-size:12px;width:100%">
+<thead><tr><th>Material 3 ロール</th><th>値</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td>primary</td><td>#c67139 (terracotta)</td><td>カメラFAB・主要CTA・アクティブタブ</td></tr>
+<tr><td>onPrimary</td><td>#f5ead8</td><td>CTA上の文字</td></tr>
+<tr><td>secondary</td><td>#7a8a5e (sage)</td><td>プラス収支・完了トースト・スクショ系・自動タグ</td></tr>
+<tr><td>surface / background</td><td>#f5ead8 / #f9f4ed</td><td>地 / カード</td></tr>
+<tr><td>onSurface</td><td>#201e1d</td><td>本文</td></tr>
+<tr><td>outline</td><td>#201e1d 16%</td><td>境界線 (ヘアラインのみは禁止、角丸と併用)</td></tr>
+</tbody>
+</table>
+<p style="font-size:13.5px;line-height:1.7;margin-top:10px"><strong>タイポグラフィ:</strong> アプリ内は Figtree 一本 (和文は Noto Sans JP 等の丸みのないゴシックにフォールバック)。装飾書体 Caprasimo は検討の結果<strong>アプリUIでは不採用</strong> (レビューで「鼻につく」)。金額は <strong>ExtraBold (w800) + tabular figures</strong>、¥記号は一段小さく淡く。見出しは w800、本文 w400–600。最小フォント: 本文13px相当、補助10px相当。タップ領域は44px以上。</p>
+
+<h2 style="font-size:20px;margin-top:28px">3. 画面仕様</h2>
+<table class="table" style="font-size:12px;width:100%">
+<thead><tr><th style="width:22%">画面</th><th>要点</th></tr></thead>
+<tbody>
+<tr><td>ホーム「とった記録」</td><td>元画像サムネイルの3列グリッドが主役 (日付バッジ・金額・店名)。上部に月切替 + 収支1行カード (支出を主、収入/残り/内訳リンクを従)。重複候補バナー、スキャン残量チップ (タップでペイウォール)</td></tr>
+<tr><td>取込フロー</td><td>FAB → ボトムシート3択 → カメラ (枠ガイド) → 解析中 (3ステップ表示 + スケルトン) → 確認・修正 (店名/金額/日付/カテゴリ/自動タグ、元画像サムネ常設) → 登録。共有Extensionも確認画面に合流。残量0なら FAB がペイウォールへ</td></tr>
+<tr><td>明細詳細</td><td>金額 → 店名 → 元画像 (拡大可) の順。出所 (自動取込AI / 手動)、タグ、計算対象除外トグル、保存/削除。除外は一覧で45%不透明</td></tr>
+<tr><td>重複候補</td><td>レシート vs カード明細を縦に並べ「金額と日付が一致」を明示。主ボタン=1件にまとめる、副=別々に残す</td></tr>
+<tr><td>手動入力</td><td>金額を最大表示のクイック入力。店名/メモ・カテゴリ・日付 (デフォルト今日)。スキャン残量を消費しない</td></tr>
+<tr><td>明細タブ</td><td>日付グループのリスト。フィルタはインラインではなく「絞り込み」ボタン → ボトムシート (取込元 + タグ、該当件数つき完了)。絞り込み中は状態表示 + クリア</td></tr>
+<tr><td>レポート</td><td>月合計 + カテゴリ横棒 (額降順)。CSV書き出し (元画像つき、確定申告・経費精算向け)。アドバイス文言は置かない</td></tr>
+<tr><td>ペイウォール</td><td>無料枠の使用状況バー (n/10) → 特典3点 → 月額¥480 / 年額¥3,800 (年額を推奨枠 + 「2ヶ月分お得」)。解約可否と復元リンクを明記</td></tr>
+<tr><td>設定</td><td>最上部にバックアップカード (未設定バッジ + Apple/Googleリンク)。プラン、通知、言語、規約/プライバシー、最下部にアカウント削除</td></tr>
+</tbody>
+</table>
+
+<h2 style="font-size:20px;margin-top:28px">4. データ・タグ仕様</h2>
+<ul style="font-size:13.5px;line-height:1.8">
+<li>明細: id / 日付 / 店名 / カテゴリ (食費・外食・日用品・交通・サブスク・その他) / 出所 (レシート・スクショ・手動) / 金額 / <strong>tags[]</strong> / 元画像参照 / 除外フラグ</li>
+<li><strong>自動タグ</strong>: 取込時に付与 — サービス名 (楽天カード、PayPay、Amazon…はスクショのUIから推定)、店種 (コンビニ等)、<strong>位置情報</strong> (写真EXIFから地名: 三軒茶屋など)。確認画面で提示、詳細で表示、明細タブの絞り込みに使用</li>
+<li><strong>重複検知</strong>: 金額 + 日付 (±数日) の一致でレシート×カード明細の候補を提示。マージ時は元画像を両方保持</li>
+</ul>
+
+<h2 style="font-size:20px;margin-top:28px">5. モーション・音 (「カシャ」体験)</h2>
+<ul style="font-size:13.5px;line-height:1.8">
+<li>シャッター: 白フラッシュ約120ms + シャッター音 + 軽ハプティクス。押下時にボタン scale 0.96 (日本のiOSはシャッター音消音不可仕様に準拠)</li>
+<li>解析中: 3ステップ (読み込み → 金額・日付 → カテゴリ) + スケルトン。2秒未満なら中間スキップ。失敗時は手動入力へ誘導</li>
+<li>登録完了: セージのトースト (褒め文言を数種ローテーション) + グリッド先頭に新サムネイルがスライドイン</li>
+<li>画面遷移・シートは 200–250ms ease-out。過剰な演出はカシャ周りに限定する</li>
+</ul>
+
+<h2 style="font-size:20px;margin-top:28px">6. 多言語・その他の制約</h2>
+<ul style="font-size:13.5px;line-height:1.8">
+<li>試作は日英併記だが、実装は locale 切替 (日本語 / 英語)。英語で1.5倍程度伸びても壊れないよう、行レイアウトは Flex + gap、金額は右寄せ固定、ラベルは折返し許容</li>
+<li>「レシート画像」に限定しない語彙: 元画像 / source image (カード明細・入出金画面のスクショも対象)</li>
+<li>ダークモード対応前提 — トーンランプ (100–900) の反転利用で設計。別途配色確認が必要 (未着手)</li>
+</ul>
+
+<h2 style="font-size:20px;margin-top:28px">7. 経緯と未決事項</h2>
+<ul style="font-size:13.5px;line-height:1.8">
+<li>方向決定: 3案比較 → 1a「きちんと整う」を採用、数字書体を 2a (ExtraBold + tnum) に修正。キャラ案 (1b カシャちゃん) は不採用だが、褒めトーストに軽さとして残存</li>
+<li>未決: ダークモード配色 / 英語のみ表示の検証 / CSV書き出しのカラム定義 / タグの編集UI (手動追加・削除) / オンボーディングと共有Extensionの説明画面 / 実画像でのグリッド見え方</li>
+</ul>
+</doc-page>
+
+</x-dc>
+</body>
+</html>
