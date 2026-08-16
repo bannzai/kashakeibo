@@ -1,4 +1,19 @@
 {
   "@@locale": "ja",
-  "appName": "カシャケイボ"
+  "appName": "カシャケイボ",
+  "monthlyIncome": "収入",
+  "monthlyExpense": "支出",
+  "monthlyBalance": "残り",
+  "categoryBreakdown": "カテゴリ内訳",
+  "monthlyTransactionsEmpty": "今月の明細はまだありません",
+  "excludedFromAggregation": "計算対象外",
+  "previousMonth": "前の月",
+  "nextMonth": "次の月",
+  "categoryFood": "食費",
+  "categoryEatingOut": "外食",
+  "categoryDailyGoods": "日用品",
+  "categoryTransportation": "交通",
+  "categorySubscription": "サブスク",
+  "categorySalary": "給与",
+  "categoryOther": "その他"
 }

@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "kashakeibo-dev",
+    "dev": "kashakeibo-dev",
+    "prod": "kashakeibo-prod"
+  }
+}
