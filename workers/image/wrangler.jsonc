@@ -1,0 +1,29 @@
+{
+  // カシャケイボの画像アップロード・取得 Worker。
+  // R2 への読み書きはこの Worker に一本化し、Firebase Auth の ID token 検証を通ったリクエストだけを許可する。
+  // レシート・明細スクショは機微情報のため、R2 の公開バケット配信は使わない (documents/adr/0001-tech-stack.md)。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kashakeibo-image-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-06",
+  "r2_buckets": [
+    {
+      "binding": "IMAGE_BUCKET",
+      "bucket_name": "kashakeibo-images"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      // Firebase の公開 JWK のキャッシュ先。
+      // デプロイ前に `wrangler kv namespace create PUBLIC_JWK_CACHE_KV` で作成した ID に置き換える (README.md 参照)。
+      "binding": "PUBLIC_JWK_CACHE_KV",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ],
+  "vars": {
+    // Firebase プロジェクト ID。dev/prod の切り替えは wrangler の environment で行う (README.md 参照)。
+    "FIREBASE_PROJECT_ID": "REPLACE_WITH_FIREBASE_PROJECT_ID",
+    // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
+    "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache"
+  }
+}
