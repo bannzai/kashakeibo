@@ -1,0 +1,7 @@
+{
+  "@@locale": "en",
+  "appName": "Kashakeibo",
+  "@appName": {
+    "description": "The application name shown in the app bar and store listings"
+  }
+}
