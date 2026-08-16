@@ -11,8 +11,8 @@ Worker の API 仕様・認可設計 (uid 配下へのキー強制・未認証�
 
 ## フロー
 
-1. 呼び出し側が Firebase Auth (issue #3) から ID token を取得する
-2. `uploadImage` に画像バイト列・Content-Type・ID token を渡すと、Worker が採番したオブジェクトキー (`users/{uid}/{UUID}.{拡張子}`) が返る
+1. 呼び出し側が Firebase Auth (issue #3) から ID token を取得し、論理アップロードごとに一意な UUID (`uploadImageID`) を生成する。通信エラー等の再試行では同じ UUID を使う (Worker が同じキーに上書きするため孤児画像が残らない)
+2. `uploadImage` に画像バイト列・Content-Type・`uploadImageID`・ID token を渡すと、オブジェクトキー (`users/{uid}/{uploadImageID}.{拡張子}`) が返る
 3. 返ったキーを Firestore の明細ドキュメントに保存して画像と明細を紐づける (紐付けの実装は issue #9)
 4. 表示時は `fetchImage` にキーと ID token を渡してバイト列を取得し、`Image.memory` で表示する (Worker は Authorization ヘッダー必須のため `Image.network` は使えない)
 

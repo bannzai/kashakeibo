@@ -21,6 +21,7 @@ void main() {
         final uploadedImageObjectKey = await uploadImage(
           imageBytes: testImageBytes,
           imageContentType: 'image/png',
+          uploadImageID: '11111111-2222-4333-8444-555555555555',
           firebaseIdToken: 'test-id-token',
           httpClient: MockClient((request) async {
             capturedRequest = request;
@@ -38,6 +39,10 @@ void main() {
         expect(
           capturedRequest.headers['Authorization'],
           'Bearer test-id-token',
+        );
+        expect(
+          capturedRequest.headers['X-Upload-Id'],
+          '11111111-2222-4333-8444-555555555555',
         );
         expect(
           capturedRequest.headers['content-type'],
@@ -60,6 +65,7 @@ void main() {
         () => uploadImage(
           imageBytes: testImageBytes,
           imageContentType: 'image/png',
+          uploadImageID: '11111111-2222-4333-8444-555555555555',
           firebaseIdToken: 'expired-token',
           httpClient: MockClient(
             (request) async => http.Response(

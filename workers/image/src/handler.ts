@@ -43,10 +43,26 @@ const maxImageBytes = 20 * 1024 * 1024;
 // 匿名 token を使った大量アップロードによるストレージ費用の増大を抑止できる値にしている
 export const maxDailyUploadCountPerUser = 100;
 
+// 接続元 IP あたり1日のアップロード回数上限。匿名認証では uid を作り直して uid 別上限を迂回できるため、
+// uid のローテーションを跨ぐ制限として併用する。キャリア CGNAT では複数の正規ユーザーが
+// 同一 IP を共有するため、uid 別上限の3倍に緩めて誤制限を避けている
+export const maxDailyUploadCountPerIpAddress = 300;
+
+// サービス全体の1日のアップロード回数上限。IP を分散させる攻撃への最後の砦として、
+// 最悪ケースのストレージ増加を 5000回 × 20MB = 100GB/日 に固定する。
+// MVP のユーザー規模 (無料枠 月10スキャン × リリース直後のユーザー数) では正規利用が到達しない値。
+// 攻撃で上限に達すると正規ユーザーも 429 になるトレードオフは、機微画像ストレージの
+// 費用暴走防止を可用性より優先して受け入れる (恒久対策は App Check 検証 issue #24)
+export const maxDailyUploadCountTotal = 5000;
+
 // 日次カウンターは翌日以降不要になるため、2日で KV から自動削除してゴミを残さない
 const uploadCountExpirationSeconds = 60 * 60 * 24 * 2;
 
 const imageObjectPathPrefix = "/images/";
+
+// X-Upload-Id ヘッダーに要求する UUID 形式。オブジェクトキーの一部になるため、
+// パス区切りや ".." を構造的に含められない形式だけを受け付ける
+const uploadIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** 全エンドポイント共通の入口。Firebase ID token の検証を通してからルーティングする。 */
 export async function handleImageRequest(
@@ -80,14 +96,21 @@ export async function handleImageRequest(
   return jsonResponse(404, { error: "not found" });
 }
 
-// 冪等ではない: 同じ画像を2回 POST すると別のオブジェクトキーで2つ保存される。
-// キーをクライアント申告やコンテンツハッシュにせずサーバー生成の UUID にするのは、
-// 他ユーザーのキーの推測・上書きを構造的に不可能にするため (重複画像の整理は明細との紐付け側 issue #9 で扱う)
+// 冪等: 同じ X-Upload-Id (クライアントが論理アップロードごとに生成する UUID) での再試行は
+// 同じオブジェクトキーへの上書きになる。201 レスポンスの消失後にクライアントが再試行しても、
+// どこからも参照されない孤児オブジェクトが残らない。
+// uploadId はキーの uid プレフィックスを Worker が JWT から強制し UUID 形式に検証するため、
+// 他ユーザーのキーの推測・上書きは構造的に不可能 (重複画像の整理は明細との紐付け側 issue #9 で扱う)
 async function handleImageUpload(
   request: Request,
   env: ImageWorkerEnv,
   verifiedFirebaseUser: VerifiedFirebaseUser,
 ): Promise<Response> {
+  const uploadId = request.headers.get("X-Upload-Id");
+  if (uploadId === null || !uploadIdPattern.test(uploadId)) {
+    return jsonResponse(400, { error: "X-Upload-Id ヘッダーに UUID が必要です" });
+  }
+
   let requestFormData: FormData;
   try {
     requestFormData = await request.formData();
@@ -118,22 +141,33 @@ async function handleImageUpload(
     return jsonResponse(413, { error: `ファイルサイズ上限 (${maxImageBytes} bytes) を超えています` });
   }
 
-  // uid 別の日次アップロード回数制限。カウンターは JWK キャッシュと同じ KV namespace に
-  // "upload-count:" プレフィックスで同居させる (キー空間が重ならず、デプロイ時に作る namespace を増やさないため)。
-  // KV の get/put はアトミックでないため並行リクエストで上限を数件超え得るが、
-  // 費用増大攻撃の抑止が目的のため厳密な保証は不要
-  const uploadCountKey = `upload-count:${verifiedFirebaseUser.uid}:${new Date().toISOString().slice(0, 10)}`;
-  const todayUploadCount = Number((await env.PUBLIC_JWK_CACHE_KV.get(uploadCountKey)) ?? "0");
-  if (todayUploadCount >= maxDailyUploadCountPerUser) {
-    return jsonResponse(429, { error: "1日のアップロード回数の上限に達しました" });
+  // 日次アップロード回数制限を uid 別・接続元 IP 別・全体の3層で判定する。
+  // uid 別だけでは匿名認証の uid 作り直しで迂回できるため、uid を跨ぐ IP 別・全体上限を併用する。
+  // CF-Connecting-IP は Cloudflare が付与する接続元 IP で、本番では常に存在する
+  // (存在しない実行環境ではひとつのバケットにまとめて数える)
+  const uploadDateText = new Date().toISOString().slice(0, 10);
+  const clientIpAddress = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  for (const { uploadCountKey, maxDailyUploadCount } of [
+    { uploadCountKey: `upload-count:${verifiedFirebaseUser.uid}:${uploadDateText}`, maxDailyUploadCount: maxDailyUploadCountPerUser },
+    { uploadCountKey: `upload-count:ip:${clientIpAddress}:${uploadDateText}`, maxDailyUploadCount: maxDailyUploadCountPerIpAddress },
+    { uploadCountKey: `upload-count:total:${uploadDateText}`, maxDailyUploadCount: maxDailyUploadCountTotal },
+  ]) {
+    // KV の get/put はアトミックでないため並行リクエストで上限を数件超え得るが、
+    // 費用増大攻撃の抑止が目的のため厳密な保証は不要。カウンターは JWK キャッシュと同じ
+    // KV namespace に "upload-count:" プレフィックスで同居させる (デプロイ時に作る namespace を増やさないため)
+    const todayUploadCount = Number((await env.PUBLIC_JWK_CACHE_KV.get(uploadCountKey)) ?? "0");
+    if (todayUploadCount >= maxDailyUploadCount) {
+      return jsonResponse(429, { error: "1日のアップロード回数の上限に達しました" });
+    }
+    await env.PUBLIC_JWK_CACHE_KV.put(uploadCountKey, String(todayUploadCount + 1), {
+      expirationTtl: uploadCountExpirationSeconds,
+    });
   }
-  await env.PUBLIC_JWK_CACHE_KV.put(uploadCountKey, String(todayUploadCount + 1), {
-    expirationTtl: uploadCountExpirationSeconds,
-  });
 
-  // オブジェクトキーは JWT の uid から Worker 側で強制する。
-  // クライアントが申告したパス・ファイル名は一切キーに使わない (他人の uid 配下への書き込みを構造的に防ぐ)
-  const imageObjectKey = `users/${verifiedFirebaseUser.uid}/${crypto.randomUUID()}.${imageObjectExtension}`;
+  // オブジェクトキーの uid プレフィックスは JWT の uid から Worker 側で強制する
+  // (他人の uid 配下への書き込みを構造的に防ぐ)。ファイル名部分は UUID 形式に検証済みの
+  // X-Upload-Id を使い、同じ論理アップロードの再試行が同じキーに収束するようにする
+  const imageObjectKey = `users/${verifiedFirebaseUser.uid}/${uploadId.toLowerCase()}.${imageObjectExtension}`;
 
   await env.IMAGE_BUCKET.put(imageObjectKey, await uploadedFile.arrayBuffer(), {
     httpMetadata: { contentType: uploadedFile.type },

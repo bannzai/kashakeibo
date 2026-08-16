@@ -5,7 +5,12 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import type { ImageWorkerEnv, VerifyFirebaseIdToken } from "../src/handler";
-import { handleImageRequest, maxDailyUploadCountPerUser } from "../src/handler";
+import {
+  handleImageRequest,
+  maxDailyUploadCountPerIpAddress,
+  maxDailyUploadCountPerUser,
+  maxDailyUploadCountTotal,
+} from "../src/handler";
 
 declare module "cloudflare:test" {
   interface ProvidedEnv extends ImageWorkerEnv {}
@@ -22,14 +27,18 @@ const stubVerifyFirebaseIdToken: VerifyFirebaseIdToken = async (firebaseIdToken)
 
 const workerBaseUrl = "https://image-worker.test";
 
+const testUploadId = "11111111-2222-4333-8444-555555555555";
+
 function buildUploadRequest({
   authorizationHeader,
   fileContentType,
   fileBytes,
+  uploadId = testUploadId,
 }: {
   authorizationHeader: string | null;
   fileContentType: string;
   fileBytes: Uint8Array;
+  uploadId?: string | null;
 }): Request {
   const uploadFormData = new FormData();
   uploadFormData.append(
@@ -40,6 +49,9 @@ function buildUploadRequest({
   const requestHeaders = new Headers();
   if (authorizationHeader !== null) {
     requestHeaders.set("Authorization", authorizationHeader);
+  }
+  if (uploadId !== null) {
+    requestHeaders.set("X-Upload-Id", uploadId);
   }
   return new Request(`${workerBaseUrl}/images`, {
     method: "POST",
@@ -113,8 +125,8 @@ describe("アップロード", () => {
     );
     expect(response.status).toBe(201);
     const { imageObjectKey } = (await response.json()) as { imageObjectKey: string };
-    // ファイル名 "../../users/other-uid/evil.png" はキーに現れず、uid + UUID + 拡張子のみで構成される
-    expect(imageObjectKey).toMatch(/^users\/uid-a\/[0-9a-f-]{36}\.png$/);
+    // ファイル名 "../../users/other-uid/evil.png" はキーに現れず、uid + X-Upload-Id + 拡張子のみで構成される
+    expect(imageObjectKey).toBe(`users/uid-a/${testUploadId}.png`);
   });
 
   it("対応形式外の Content-Type を 415 で拒否する", async () => {
@@ -171,12 +183,89 @@ describe("アップロード", () => {
     expect(responseOfOtherUser.status).toBe(201);
   });
 
+  it("X-Upload-Id ヘッダーが無い・UUID 形式でないリクエストを 400 で拒否する", async () => {
+    for (const invalidUploadId of [null, "../../users/uid-b/evil", "not-a-uuid"]) {
+      const response = await handleImageRequest(
+        buildUploadRequest({
+          authorizationHeader: "Bearer valid-token-uid-a",
+          fileContentType: "image/png",
+          fileBytes: pngBytes,
+          uploadId: invalidUploadId,
+        }),
+        env,
+        stubVerifyFirebaseIdToken,
+      );
+      expect(response.status, `uploadId=${invalidUploadId}`).toBe(400);
+    }
+  });
+
+  it("同じ X-Upload-Id での再試行は同じオブジェクトキーに上書きされ、孤児オブジェクトを作らない", async () => {
+    const firstResponse = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    const retryResponse = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    const { imageObjectKey: firstImageObjectKey } = (await firstResponse.json()) as { imageObjectKey: string };
+    const { imageObjectKey: retryImageObjectKey } = (await retryResponse.json()) as { imageObjectKey: string };
+    expect(retryResponse.status).toBe(201);
+    expect(retryImageObjectKey).toBe(firstImageObjectKey);
+    expect((await env.IMAGE_BUCKET.list({ prefix: "users/uid-a/" })).objects).toHaveLength(1);
+  });
+
+  it("接続元 IP の日次アップロード回数が上限に達している場合は 429 を返す", async () => {
+    // buildUploadRequest は CF-Connecting-IP を付けないため "unknown" バケットで数えられる
+    await env.PUBLIC_JWK_CACHE_KV.put(
+      `upload-count:ip:unknown:${new Date().toISOString().slice(0, 10)}`,
+      String(maxDailyUploadCountPerIpAddress),
+    );
+    const response = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(response.status).toBe(429);
+  });
+
+  it("サービス全体の日次アップロード回数が上限に達している場合は 429 を返す", async () => {
+    await env.PUBLIC_JWK_CACHE_KV.put(
+      `upload-count:total:${new Date().toISOString().slice(0, 10)}`,
+      String(maxDailyUploadCountTotal),
+    );
+    const response = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(response.status).toBe(429);
+  });
+
   it("file フィールドが無いリクエストを 400 で拒否する", async () => {
     const emptyFormData = new FormData();
     const response = await handleImageRequest(
       new Request(`${workerBaseUrl}/images`, {
         method: "POST",
-        headers: { Authorization: "Bearer valid-token-uid-a" },
+        headers: { Authorization: "Bearer valid-token-uid-a", "X-Upload-Id": testUploadId },
         body: emptyFormData,
       }),
       env,

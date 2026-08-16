@@ -13,11 +13,12 @@ AI 画像解析 (Gemini) の呼び出しも、スキャン無料枠 (uid ごと�
 
 ### POST /images
 
-multipart/form-data の `file` フィールドで画像をアップロードする。
+multipart/form-data の `file` フィールドで画像をアップロードする。`X-Upload-Id` ヘッダーに、クライアントが論理アップロードごとに生成する UUID が必須 (欠落・UUID 形式外は 400)。
 
-- オブジェクトキーは JWT の uid から `users/{uid}/{UUID}.{拡張子}` を Worker 側で生成する。クライアント申告のパス・ファイル名は使わない
-- 対応 Content-Type・上限サイズ・uid あたりの日次アップロード回数上限 (超過は 429) は `src/handler.ts` の `imageContentTypeExtensions` / `maxImageBytes` / `maxDailyUploadCountPerUser` を参照。空ファイルは 400
-- レスポンス: `201 {"imageObjectKey": "users/{uid}/{UUID}.{拡張子}"}`。Firestore の明細にはこのキーを保存する (配信ドメインはデプロイ時に決まるため URL ではなくキーを保存する)
+- オブジェクトキーは `users/{JWTのuid}/{X-Upload-Id}.{拡張子}` を Worker 側で組み立てる。uid プレフィックスは JWT から強制し、クライアント申告のパス・ファイル名は使わない
+- 同じ `X-Upload-Id` での再試行は同じキーへの上書きになる (冪等)。レスポンスが届かなかった再試行でも孤児オブジェクトが残らない
+- 対応 Content-Type・上限サイズ・日次アップロード回数上限 (uid 別・接続元 IP 別・全体の3層。超過は 429) は `src/handler.ts` の `imageContentTypeExtensions` / `maxImageBytes` / `maxDailyUploadCount*` を参照。空ファイルは 400
+- レスポンス: `201 {"imageObjectKey": "users/{uid}/{X-Upload-Id}.{拡張子}"}`。Firestore の明細にはこのキーを保存する (配信ドメインはデプロイ時に決まるため URL ではなくキーを保存する)
 
 ### GET /images/{imageObjectKey}
 

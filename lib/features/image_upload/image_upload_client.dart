@@ -14,13 +14,15 @@ import 'package:http_parser/http_parser.dart';
 const imageApiBaseUrl = String.fromEnvironment('IMAGE_API_BASE_URL');
 
 /// 画像を multipart/form-data で Worker にアップロードし、
-/// R2 のオブジェクトキー (`users/{uid}/{UUID}.{拡張子}`) を返す。
+/// R2 のオブジェクトキー (`users/{uid}/{uploadImageID}.{拡張子}`) を返す。
 /// 返されたキーを Firestore の明細に保存することで画像と明細を紐づけられる (紐付け自体は issue #9)。
-/// 冪等ではない: 同じ画像を2回アップロードすると Worker が別のオブジェクトキーを採番して2つ保存される
-/// (キーの採番を Worker 側の UUID に一任する設計のため。重複画像の整理は明細との紐付け側で扱う)。
+/// 冪等: [uploadImageID] は呼び出し側が論理アップロードごとに一意な UUID を生成して渡し、
+/// 通信エラー等の再試行では同じ値を使う。Worker が同じオブジェクトキーに上書きするため、
+/// レスポンスが届かなかった再試行でも孤児オブジェクトが残らない。
 Future<String> uploadImage({
   required Uint8List imageBytes,
   required String imageContentType,
+  required String uploadImageID,
   required String firebaseIdToken,
   required http.Client httpClient,
   // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
@@ -29,11 +31,12 @@ Future<String> uploadImage({
   final uploadRequest =
       http.MultipartRequest('POST', Uri.parse('$baseUrl/images'))
         ..headers['Authorization'] = 'Bearer $firebaseIdToken'
+        ..headers['X-Upload-Id'] = uploadImageID
         ..files.add(
           http.MultipartFile.fromBytes(
             'file',
             imageBytes,
-            // Worker はキー生成にファイル名を使わない (uid + UUID で採番する) ため固定名でよい
+            // Worker はキー生成にファイル名を使わない (JWT の uid + X-Upload-Id で決まる) ため固定名でよい
             filename: 'image',
             contentType: MediaType.parse(imageContentType),
           ),
