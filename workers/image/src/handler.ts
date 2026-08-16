@@ -115,7 +115,13 @@ async function handleImageGet(
   env: ImageWorkerEnv,
   verifiedFirebaseUser: VerifiedFirebaseUser,
 ): Promise<Response> {
-  const imageObjectKey = decodeURIComponent(requestUrl.pathname.slice(imageObjectPathPrefix.length));
+  let imageObjectKey: string;
+  try {
+    imageObjectKey = decodeURIComponent(requestUrl.pathname.slice(imageObjectPathPrefix.length));
+  } catch (error) {
+    // 不正な percent-encoding ("%GG" 等) は URIError になるため 500 にせず 400 で返す
+    return jsonResponse(400, { error: "不正なオブジェクトキーです" });
+  }
 
   // URL クラスが正規化しない percent-encoding 経由の ".." もここで拒否する
   if (imageObjectKey.includes("..")) {

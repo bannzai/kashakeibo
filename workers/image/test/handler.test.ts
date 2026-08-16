@@ -196,6 +196,18 @@ describe("取得", () => {
     expect(response.status).toBe(403);
   });
 
+  it("不正な percent-encoding を含むキーを 400 で拒否する", async () => {
+    const response = await handleImageRequest(
+      buildGetRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        imageObjectKey: "users/uid-a/%GG.png",
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(response.status).toBe(400);
+  });
+
   it("存在しないオブジェクトキーは 404 を返す", async () => {
     const response = await handleImageRequest(
       buildGetRequest({
