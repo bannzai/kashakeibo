@@ -1,1 +1,1 @@
-カシャケイボ・kasyakeibo
+カシャケイボ・kashakeibo
