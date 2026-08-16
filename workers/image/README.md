@@ -5,6 +5,8 @@ Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github
 
 設計の決定は `documents/adr/0001-tech-stack.md` の「画像ストレージ」を参照。
 
+AI 画像解析 (Gemini) の呼び出しも、スキャン無料枠 (uid ごとの回数・entitlement 判定) をサーバー側で強制するため本 Worker に解析エンドポイントとして相乗りする設計 (同 ADR の「画像解析」の項)。解析エンドポイントの実装は issue #7 のスコープで、本 Worker は現時点でアップロード・取得のみを提供する。
+
 ## API
 
 すべてのエンドポイントで `Authorization: Bearer <Firebase ID token>` が必須。未認証・検証失敗は 401。

@@ -3,17 +3,24 @@
 // テストでは実際の Google JWK 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
 // (実際の検証器の組み立ては index.ts を参照)。
 
+/** Firebase ID token の検証を通ったユーザー。 */
 export interface VerifiedFirebaseUser {
+  /** Firebase Auth のユーザー ID。オブジェクトキーの `users/{uid}/` プレフィックスの強制に使う。 */
   uid: string;
 }
 
 // 検証失敗 (署名不正・期限切れ等) は例外を throw する契約
 export type VerifyFirebaseIdToken = (firebaseIdToken: string) => Promise<VerifiedFirebaseUser>;
 
+/** Worker の binding (wrangler.jsonc で定義。各項目の説明もそちらを参照)。 */
 export interface ImageWorkerEnv {
+  /** 画像の保存先 R2 バケット。 */
   IMAGE_BUCKET: R2Bucket;
+  /** JWK キャッシュと日次アップロードカウンターを保存する KV。 */
   PUBLIC_JWK_CACHE_KV: KVNamespace;
+  /** Firebase プロジェクト ID。 */
   FIREBASE_PROJECT_ID: string;
+  /** JWK キャッシュの KV キー名。 */
   PUBLIC_JWK_CACHE_KEY: string;
 }
 
@@ -41,6 +48,7 @@ const uploadCountExpirationSeconds = 60 * 60 * 24 * 2;
 
 const imageObjectPathPrefix = "/images/";
 
+/** 全エンドポイント共通の入口。Firebase ID token の検証を通してからルーティングする。 */
 export async function handleImageRequest(
   request: Request,
   env: ImageWorkerEnv,
@@ -136,6 +144,7 @@ async function handleImageUpload(
   return jsonResponse(201, { imageObjectKey });
 }
 
+/** アップロード済み画像の取得。本人の uid 配下のオブジェクトキーだけを許可する。 */
 async function handleImageGet(
   requestUrl: URL,
   env: ImageWorkerEnv,
