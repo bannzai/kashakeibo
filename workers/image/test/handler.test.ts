@@ -5,7 +5,7 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import type { ImageWorkerEnv, VerifyFirebaseIdToken } from "../src/handler";
-import { handleImageRequest } from "../src/handler";
+import { handleImageRequest, maxDailyUploadCountPerUser } from "../src/handler";
 
 declare module "cloudflare:test" {
   interface ProvidedEnv extends ImageWorkerEnv {}
@@ -128,6 +128,47 @@ describe("アップロード", () => {
       stubVerifyFirebaseIdToken,
     );
     expect(response.status).toBe(415);
+  });
+
+  it("空のファイルを 400 で拒否する", async () => {
+    const response = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        fileContentType: "image/png",
+        fileBytes: new Uint8Array(0),
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("uid の日次アップロード回数が上限に達している場合は 429 を返し、他の uid には影響しない", async () => {
+    await env.PUBLIC_JWK_CACHE_KV.put(
+      `upload-count:uid-a:${new Date().toISOString().slice(0, 10)}`,
+      String(maxDailyUploadCountPerUser),
+    );
+    const responseOfLimitedUser = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(responseOfLimitedUser.status).toBe(429);
+
+    const responseOfOtherUser = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-b",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    expect(responseOfOtherUser.status).toBe(201);
   });
 
   it("file フィールドが無いリクエストを 400 で拒否する", async () => {

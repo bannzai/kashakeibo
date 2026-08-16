@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 画像アップロード基盤 (workers/image) への HTTP 通信・Firebase 通信に必要。
+         debug/profile 用 manifest にしか無いとリリース APK でネットワークが全面的に使えない -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="kashakeibo"
         android:name="${applicationName}"

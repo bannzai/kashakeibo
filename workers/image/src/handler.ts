@@ -31,6 +31,14 @@ const imageContentTypeExtensions: Record<string, string> = {
 // 余裕を持たせつつ R2 への無制限アップロードを防ぐ値にしている
 const maxImageBytes = 20 * 1024 * 1024;
 
+// uid あたり1日のアップロード回数上限。正規の利用は無料枠が月10スキャン (documents/PROJECT.md の課金設計)、
+// プレミアムでも1日数十枚が現実的な上限のため、正規ユーザーに影響せず
+// 匿名 token を使った大量アップロードによるストレージ費用の増大を抑止できる値にしている
+export const maxDailyUploadCountPerUser = 100;
+
+// 日次カウンターは翌日以降不要になるため、2日で KV から自動削除してゴミを残さない
+const uploadCountExpirationSeconds = 60 * 60 * 24 * 2;
+
 const imageObjectPathPrefix = "/images/";
 
 export async function handleImageRequest(
@@ -93,9 +101,27 @@ async function handleImageUpload(
     });
   }
 
+  if (uploadedFile.size === 0) {
+    // 空ファイルを保存すると明細に紐づけた後の Gemini 解析・表示で初めて失敗する壊れた画像が残るため、ここで拒否する
+    return jsonResponse(400, { error: "空のファイルはアップロードできません" });
+  }
+
   if (uploadedFile.size > maxImageBytes) {
     return jsonResponse(413, { error: `ファイルサイズ上限 (${maxImageBytes} bytes) を超えています` });
   }
+
+  // uid 別の日次アップロード回数制限。カウンターは JWK キャッシュと同じ KV namespace に
+  // "upload-count:" プレフィックスで同居させる (キー空間が重ならず、デプロイ時に作る namespace を増やさないため)。
+  // KV の get/put はアトミックでないため並行リクエストで上限を数件超え得るが、
+  // 費用増大攻撃の抑止が目的のため厳密な保証は不要
+  const uploadCountKey = `upload-count:${verifiedFirebaseUser.uid}:${new Date().toISOString().slice(0, 10)}`;
+  const todayUploadCount = Number((await env.PUBLIC_JWK_CACHE_KV.get(uploadCountKey)) ?? "0");
+  if (todayUploadCount >= maxDailyUploadCountPerUser) {
+    return jsonResponse(429, { error: "1日のアップロード回数の上限に達しました" });
+  }
+  await env.PUBLIC_JWK_CACHE_KV.put(uploadCountKey, String(todayUploadCount + 1), {
+    expirationTtl: uploadCountExpirationSeconds,
+  });
 
   // オブジェクトキーは JWT の uid から Worker 側で強制する。
   // クライアントが申告したパス・ファイル名は一切キーに使わない (他人の uid 配下への書き込みを構造的に防ぐ)

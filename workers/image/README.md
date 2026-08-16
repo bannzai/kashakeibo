@@ -14,7 +14,7 @@ Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github
 multipart/form-data の `file` フィールドで画像をアップロードする。
 
 - オブジェクトキーは JWT の uid から `users/{uid}/{UUID}.{拡張子}` を Worker 側で生成する。クライアント申告のパス・ファイル名は使わない
-- 対応 Content-Type と上限サイズは `src/handler.ts` の `imageContentTypeExtensions` / `maxImageBytes` を参照
+- 対応 Content-Type・上限サイズ・uid あたりの日次アップロード回数上限 (超過は 429) は `src/handler.ts` の `imageContentTypeExtensions` / `maxImageBytes` / `maxDailyUploadCountPerUser` を参照。空ファイルは 400
 - レスポンス: `201 {"imageObjectKey": "users/{uid}/{UUID}.{拡張子}"}`。Firestore の明細にはこのキーを保存する (配信ドメインはデプロイ時に決まるため URL ではなくキーを保存する)
 
 ### GET /images/{imageObjectKey}
