@@ -113,7 +113,7 @@ void main() {
       buildTransaction(
         type: TransactionType.expense,
         amount: 5000,
-        category: TransactionCategory.entertainment,
+        category: TransactionCategory.subscription,
         excludedFromAggregation: true,
       ),
     ];
@@ -148,13 +148,13 @@ void main() {
         buildTransaction(
           type: TransactionType.expense,
           amount: 9800,
-          category: TransactionCategory.housing,
+          category: TransactionCategory.eatingOut,
           excludedFromAggregation: false,
         ),
         buildTransaction(
           type: TransactionType.expense,
           amount: 100000,
-          category: TransactionCategory.entertainment,
+          category: TransactionCategory.subscription,
           excludedFromAggregation: true,
         ),
         buildTransaction(
@@ -169,10 +169,10 @@ void main() {
         type: TransactionType.expense,
       );
       expect(totals.keys.toList(), [
-        TransactionCategory.housing,
+        TransactionCategory.eatingOut,
         TransactionCategory.food,
       ]);
-      expect(totals[TransactionCategory.housing], 9800);
+      expect(totals[TransactionCategory.eatingOut], 9800);
       expect(totals[TransactionCategory.food], 4200);
     });
   });

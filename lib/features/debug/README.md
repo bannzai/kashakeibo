@@ -2,20 +2,20 @@
 
 ## 概要
 
-DEBUG ビルド限定の開発者メニュー。到達困難な状態の作り込みと外部サービスの疎通確認を
-アプリ内メニューから行う (~/.claude/rules/debug-menu-first-for-hard-to-reach-states.md のパターン)。
+DEBUG ビルド限定の開発者メニュー。到達困難な状態の作り込みをアプリ内メニューから行う
+(~/.claude/rules/debug-menu-first-for-hard-to-reach-states.md のパターン)。
 release ビルドには入口ごと含まれない (`kDebugMode` ガード)。
 
 ## 画面
 
-- `DebugSheet`: MonthlyPage の AppBar 右のバグアイコンから開くボトムシート
+- `DebugSheet`: MonthlyPage の月ラベルを**長押し**すると開くボトムシート
+  (デザインに存在しない入口を画面に足さないための隠し操作)
   - サンプル明細を追加: 今月の明細 5 件 (計算対象外 1 件を含む) を Firestore へ書き込む
-  - Gemini 疎通確認: Firebase AI Logic (`FirebaseAI.googleAI()`) 経由で `generateContent` を呼び、レスポンスまたはエラーをそのまま表示する
 
 ## フロー
 
-1. debug ビルドで MonthlyPage 右上のバグアイコンをタップ
-2. メニュー項目をタップ → 実行結果がダイアログまたは一覧への反映で確認できる
+1. debug ビルドで MonthlyPage 中央の月ラベル (「2026年8月」) を長押し
+2. メニュー項目をタップ → 実行結果が一覧への反映で確認できる
 
 ## 制約
 

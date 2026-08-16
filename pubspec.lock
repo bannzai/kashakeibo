@@ -249,14 +249,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
-  firebase_ai:
-    dependency: "direct main"
-    description:
-      name: firebase_ai
-      sha256: ac2105dc4fd48f4978006cf7b99477e51b36b4d53a84bce588a5817550368e43
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.15.0"
   firebase_app_check:
     dependency: "direct main"
     description:

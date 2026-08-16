@@ -15,13 +15,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get monthlyIncome => 'Income';
 
   @override
-  String get monthlyExpense => 'Expense';
+  String get monthlyExpense => 'Spending';
 
   @override
   String get monthlyBalance => 'Balance';
 
   @override
-  String get categoryBreakdown => 'Category breakdown';
+  String get categoryBreakdown => 'Categories';
 
   @override
   String get monthlyTransactionsEmpty => 'No transactions this month';
@@ -39,31 +39,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryFood => 'Food';
 
   @override
+  String get categoryEatingOut => 'Eating out';
+
+  @override
   String get categoryDailyGoods => 'Daily goods';
 
   @override
-  String get categoryTransportation => 'Transportation';
+  String get categoryTransportation => 'Transport';
 
   @override
-  String get categoryUtilities => 'Utilities';
-
-  @override
-  String get categoryCommunication => 'Communication';
-
-  @override
-  String get categoryHousing => 'Housing';
-
-  @override
-  String get categoryMedical => 'Medical';
-
-  @override
-  String get categoryEntertainment => 'Entertainment';
-
-  @override
-  String get categoryClothing => 'Clothing & beauty';
-
-  @override
-  String get categoryEducation => 'Education';
+  String get categorySubscription => 'Subscriptions';
 
   @override
   String get categorySalary => 'Salary';

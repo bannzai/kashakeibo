@@ -43,7 +43,6 @@ dependencies:
   firebase_auth: ^6.5.7
   cloud_firestore: ^6.8.0
   firebase_app_check: ^0.4.6
-  firebase_ai: ^3.15.0
 
   hooks_riverpod: ^2.6.1
   riverpod_annotation: ^2.6.1
@@ -88,6 +87,20 @@ flutter:
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
+
+  # デザイン指定の書体 (design_handoff_kashakeibo/README.md の Assets)。
+  # 和文はフォールバックのシステムゴシックで表示する。
+  fonts:
+    - family: Figtree
+      fonts:
+        - asset: assets/fonts/Figtree-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Figtree-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Figtree-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Figtree-ExtraBold.ttf
+          weight: 800
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

@@ -7,10 +7,14 @@ import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/provider/transaction.dart';
+import 'package:kashakeibo/style/tokens.dart';
 
-/// 月次一覧画面。収入・支出・カテゴリ内訳のサマリーと当月の明細リストを表示する。
+/// 月次一覧画面。月切替ヘッダー・収支サマリー・カテゴリ内訳・明細リストを表示する。
 ///
-/// サマリーはサマリードキュメントを持たず、購読中の当月明細からクライアント集計する
+/// レイアウト・数値の書式は design_handoff_kashakeibo/README.md
+/// (ホームの月切替ヘッダー・収支サマリーカード、レポートのカテゴリ横棒、
+/// 明細タブの日付グループ行) に合わせる。
+/// 集計はサマリードキュメントを持たず、購読中の当月明細からクライアント集計する
 /// (`.claude/rules/firestore-aggregation-rules.md`)。
 class MonthlyPage extends HookConsumerWidget {
   const MonthlyPage({super.key});
@@ -29,74 +33,62 @@ class MonthlyPage extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        centerTitle: true,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
+      body: SafeArea(
+        child: Column(
           children: [
-            IconButton(
-              tooltip: l10n.previousMonth,
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () {
+            _MonthHeader(
+              displayMonth: displayMonth.value,
+              onPreviousMonth: () {
                 displayMonth.value = DateTime(
                   displayMonth.value.year,
                   displayMonth.value.month - 1,
                 );
               },
-            ),
-            Text(
-              DateFormat.yMMMM(
-                Localizations.localeOf(context).toString(),
-              ).format(displayMonth.value),
-            ),
-            IconButton(
-              tooltip: l10n.nextMonth,
-              icon: const Icon(Icons.chevron_right),
-              onPressed: () {
+              onNextMonth: () {
                 displayMonth.value = DateTime(
                   displayMonth.value.year,
                   displayMonth.value.month + 1,
                 );
               },
             ),
-          ],
-        ),
-        actions: [
-          if (kDebugMode)
-            IconButton(
-              icon: const Icon(Icons.bug_report),
-              onPressed: () {
-                showModalBottomSheet<void>(
-                  context: context,
-                  builder: (context) => const DebugSheet(),
-                );
-              },
-            ),
-        ],
-      ),
-      body: transactionsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        // エラーメッセージは加工せずそのまま表示する (.claude/rules/coding-conventions.md)。
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(error.toString()),
-          ),
-        ),
-        data: (transactions) => ListView(
-          children: [
-            _MonthlySummarySection(transactions: transactions),
-            _CategoryBreakdownSection(transactions: transactions),
-            if (transactions.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(child: Text(l10n.monthlyTransactionsEmpty)),
-              )
-            else
-              ...transactions.map(
-                (transaction) => _TransactionListTile(transaction: transaction),
+            Expanded(
+              child: transactionsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                // エラーメッセージは加工せずそのまま表示する (.claude/rules/coding-conventions.md)。
+                error: (error, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(error.toString()),
+                  ),
+                ),
+                data: (transactions) => ListView(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  children: [
+                    _MonthlySummaryCard(transactions: transactions),
+                    _CategoryBreakdownSection(transactions: transactions),
+                    if (transactions.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Center(
+                          child: Text(
+                            l10n.monthlyTransactionsEmpty,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.neutral600,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ..._groupedTransactionRows(
+                        context: context,
+                        transactions: transactions,
+                      ),
+                  ],
+                ),
               ),
+            ),
           ],
         ),
       ),
@@ -104,12 +96,129 @@ class MonthlyPage extends HookConsumerWidget {
   }
 }
 
-/// 収入・支出・収支の月次サマリー。
-class _MonthlySummarySection extends StatelessWidget {
+/// 月切替ヘッダー。左右の円形ゴーストボタンと中央の月ラベル
+/// (「2026年8月」+ 英語表記の副題)。
+///
+/// DEBUG ビルドでは月ラベルの長押しで開発者メニュー (DebugSheet) を開く。
+/// デザインに存在しない入口を画面に足さないための隠し操作 (features/debug/README.md)。
+class _MonthHeader extends StatelessWidget {
+  /// 表示中の月 (月初日)。
+  final DateTime displayMonth;
+
+  /// 前の月ボタンのコールバック。
+  final VoidCallback onPreviousMonth;
+
+  /// 次の月ボタンのコールバック。
+  final VoidCallback onNextMonth;
+
+  const _MonthHeader({
+    required this.displayMonth,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+      child: Row(
+        children: [
+          _CircleGhostButton(
+            icon: Icons.chevron_left,
+            tooltip: l10n.previousMonth,
+            onPressed: onPreviousMonth,
+          ),
+          Expanded(
+            child: GestureDetector(
+              onLongPress: kDebugMode
+                  ? () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        builder: (context) => const DebugSheet(),
+                      );
+                    }
+                  : null,
+              child: Column(
+                children: [
+                  Text(
+                    DateFormat.yMMMM(
+                      Localizations.localeOf(context).toString(),
+                    ).format(displayMonth),
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    DateFormat(
+                      'MMMM yyyy',
+                      'en_US',
+                    ).format(displayMonth).toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      color: AppColors.neutral600,
+                      letterSpacing: 0.63,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _CircleGhostButton(
+            icon: Icons.chevron_right,
+            tooltip: l10n.nextMonth,
+            onPressed: onNextMonth,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 34px の円形ゴーストボタン (枠線 divider・背景透明)。
+class _CircleGhostButton extends StatelessWidget {
+  /// 表示するアイコン。
+  final IconData icon;
+
+  /// アクセシビリティ用のツールチップ。
+  final String tooltip;
+
+  /// タップ時のコールバック。
+  final VoidCallback onPressed;
+
+  const _CircleGhostButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        iconSize: 20,
+        tooltip: tooltip,
+        style: IconButton.styleFrom(
+          foregroundColor: AppColors.neutral700,
+          side: const BorderSide(color: AppColors.divider),
+        ),
+        onPressed: onPressed,
+        icon: Icon(icon),
+      ),
+    );
+  }
+}
+
+/// 収支サマリーカード。支出を主表示、右に収入と残り (収入 - 支出) を添える。
+class _MonthlySummaryCard extends StatelessWidget {
   /// 表示中の月の明細一覧。
   final List<Transaction> transactions;
 
-  const _MonthlySummarySection({required this.transactions});
+  const _MonthlySummaryCard({required this.transactions});
 
   @override
   Widget build(BuildContext context) {
@@ -122,63 +231,64 @@ class _MonthlySummarySection extends StatelessWidget {
       type: TransactionType.expense,
     );
     final l10n = AppLocalizations.of(context);
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Row(
-          children: [
-            _SummaryItem(
-              label: l10n.monthlyIncome,
-              amount: incomeTotal,
-              color: Colors.green,
-            ),
-            _SummaryItem(
-              label: l10n.monthlyExpense,
-              amount: expenseTotal,
-              color: Colors.red,
-            ),
-            _SummaryItem(
-              label: l10n.monthlyBalance,
-              amount: incomeTotal - expenseTotal,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ],
-        ),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+      decoration: BoxDecoration(
+        color: AppColors.neutral100,
+        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: appShadowSm,
       ),
-    );
-  }
-}
-
-/// サマリーの 1 項目 (ラベルと金額)。
-class _SummaryItem extends StatelessWidget {
-  /// 項目名 (収入・支出・収支)。
-  final String label;
-
-  /// 表示する金額 (日本円)。
-  final int amount;
-
-  /// 金額の文字色。
-  final Color color;
-
-  const _SummaryItem({
-    required this.label,
-    required this.amount,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
+      child: Row(
         children: [
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
-          const SizedBox(height: 4),
-          Text(
-            formatAmount(amount: amount),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: color),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SummaryLabel(text: l10n.monthlyExpense),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: '¥',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.neutral600,
+                        ),
+                      ),
+                      TextSpan(text: formatAmountNumber(amount: expenseTotal)),
+                    ],
+                  ),
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.42,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SummaryLabel(text: l10n.monthlyIncome),
+              _SummarySubAmount(amount: incomeTotal),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SummaryLabel(text: l10n.monthlyBalance),
+              _SummarySubAmount(
+                amount: incomeTotal - expenseTotal,
+                color: AppColors.sage700,
+              ),
+            ],
           ),
         ],
       ),
@@ -186,7 +296,47 @@ class _SummaryItem extends StatelessWidget {
   }
 }
 
-/// 支出のカテゴリ内訳 (金額の大きい順)。
+/// サマリーカードの項目ラベル (10px, neutral-600)。
+class _SummaryLabel extends StatelessWidget {
+  /// ラベル文言。
+  final String text;
+
+  const _SummaryLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(fontSize: 10, color: AppColors.neutral600),
+    );
+  }
+}
+
+/// サマリーカードの副金額 (収入・残り。12px w700 tnum)。
+class _SummarySubAmount extends StatelessWidget {
+  /// 表示する金額 (日本円)。
+  final int amount;
+
+  /// 金額の文字色。
+  final Color? color;
+
+  const _SummarySubAmount({required this.amount, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '¥${formatAmountNumber(amount: amount)}',
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: color,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+  }
+}
+
+/// 支出のカテゴリ内訳 (金額の大きい順の横棒)。支出が無い月は非表示。
 class _CategoryBreakdownSection extends StatelessWidget {
   /// 表示中の月の明細一覧。
   final List<Transaction> transactions;
@@ -202,91 +352,195 @@ class _CategoryBreakdownSection extends StatelessWidget {
     if (expenseCategoryTotals.isEmpty) {
       return const SizedBox.shrink();
     }
+    // 棒の長さは最大カテゴリとの比率 (レポート画面の pct と同じ計算)。
+    final maxCategoryAmount = expenseCategoryTotals.values.first;
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             l10n.categoryBreakdown,
-            style: Theme.of(context).textTheme.titleSmall,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final entry in expenseCategoryTotals.entries)
-                Chip(
-                  label: Text(
-                    '${categoryLabel(category: entry.key, l10n: l10n)} '
-                    '${formatAmount(amount: entry.value)}',
+          const SizedBox(height: 10),
+          for (final entry in expenseCategoryTotals.entries)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      categoryLabel(category: entry.key, l10n: l10n),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: AppColors.neutral200,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: entry.value / maxCategoryAmount,
+                        child: Container(
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: categoryColor(category: entry.key),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 66,
+                    child: Text(
+                      '¥${formatAmountNumber(amount: entry.value)}',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-/// 明細リストの 1 行。
-class _TransactionListTile extends StatelessWidget {
+/// 明細を日付ごとにグループ化し、日付見出しと明細行の Widget 列を返す。
+/// [transactions] は取引日時の降順で渡される前提 (クエリの orderBy と一致)。
+List<Widget> _groupedTransactionRows({
+  required BuildContext context,
+  required List<Transaction> transactions,
+}) {
+  final rows = <Widget>[const SizedBox(height: 8)];
+  DateTime? currentDate;
+  for (final transaction in transactions) {
+    final transactionDay = DateTime(
+      transaction.transactionDate.year,
+      transaction.transactionDate.month,
+      transaction.transactionDate.day,
+    );
+    if (transactionDay != currentDate) {
+      currentDate = transactionDay;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 10, 22, 4),
+          child: Text(
+            DateFormat.MMMEd(
+              Localizations.localeOf(context).toString(),
+            ).format(transactionDay),
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.neutral600,
+            ),
+          ),
+        ),
+      );
+    }
+    rows.add(
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+        child: _TransactionRow(transaction: transaction),
+      ),
+    );
+  }
+  return rows;
+}
+
+/// 明細リストの 1 行 (明細タブの行デザイン)。計算対象外の明細は opacity 0.45。
+class _TransactionRow extends StatelessWidget {
   /// 表示する明細。
   final Transaction transaction;
 
-  const _TransactionListTile({required this.transaction});
+  const _TransactionRow({required this.transaction});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final signedAmount = switch (transaction.type) {
-      TransactionType.income => '+${formatAmount(amount: transaction.amount)}',
-      TransactionType.expense => '-${formatAmount(amount: transaction.amount)}',
-    };
-    return ListTile(
-      title: Text(transaction.title),
-      subtitle: Row(
-        children: [
-          Text(categoryLabel(category: transaction.category, l10n: l10n)),
-          const SizedBox(width: 8),
-          Text(
-            DateFormat.Md(
-              Localizations.localeOf(context).toString(),
-            ).format(transaction.transactionDate),
-          ),
-          if (transaction.excludedFromAggregation) ...[
-            const SizedBox(width: 8),
+    final subTexts = [
+      categoryLabel(category: transaction.category, l10n: l10n),
+      if (transaction.excludedFromAggregation) l10n.excludedFromAggregation,
+    ];
+    return Opacity(
+      opacity: transaction.excludedFromAggregation ? 0.45 : 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+        decoration: BoxDecoration(
+          color: AppColors.neutral100,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subTexts.join(' · '),
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      color: AppColors.neutral600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
             Text(
-              l10n.excludedFromAggregation,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
+              switch (transaction.type) {
+                TransactionType.income =>
+                  '+¥${formatAmountNumber(amount: transaction.amount)}',
+                TransactionType.expense =>
+                  '-¥${formatAmountNumber(amount: transaction.amount)}',
+              },
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                // 赤は使わない (デザイントークンに赤が存在しない)。収入のみセージで強調する。
+                color: switch (transaction.type) {
+                  TransactionType.income => AppColors.sage700,
+                  TransactionType.expense => AppColors.onSurface,
+                },
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ],
-        ],
-      ),
-      trailing: Text(
-        signedAmount,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: transaction.excludedFromAggregation
-              ? Theme.of(context).colorScheme.outline
-              : switch (transaction.type) {
-                  TransactionType.income => Colors.green,
-                  TransactionType.expense => Colors.red,
-                },
         ),
       ),
     );
   }
 }
 
-/// 金額を "¥1,234" 形式で整形する。
-String formatAmount({required int amount}) =>
-    '¥${NumberFormat.decimalPattern().format(amount)}';
+/// 金額を桁区切り数字 ("1,234") に整形する。¥ 記号は表示側でスタイルを分けて付ける。
+String formatAmountNumber({required int amount}) =>
+    NumberFormat.decimalPattern().format(amount);
 
 /// カテゴリの表示名を返す。
 String categoryLabel({
@@ -294,15 +548,23 @@ String categoryLabel({
   required AppLocalizations l10n,
 }) => switch (category) {
   TransactionCategory.food => l10n.categoryFood,
+  TransactionCategory.eatingOut => l10n.categoryEatingOut,
   TransactionCategory.dailyGoods => l10n.categoryDailyGoods,
   TransactionCategory.transportation => l10n.categoryTransportation,
-  TransactionCategory.utilities => l10n.categoryUtilities,
-  TransactionCategory.communication => l10n.categoryCommunication,
-  TransactionCategory.housing => l10n.categoryHousing,
-  TransactionCategory.medical => l10n.categoryMedical,
-  TransactionCategory.entertainment => l10n.categoryEntertainment,
-  TransactionCategory.clothing => l10n.categoryClothing,
-  TransactionCategory.education => l10n.categoryEducation,
+  TransactionCategory.subscription => l10n.categorySubscription,
   TransactionCategory.salary => l10n.categorySalary,
   TransactionCategory.other => l10n.categoryOther,
 };
+
+/// カテゴリ横棒の色 (design_handoff_kashakeibo/README.md のレポート画面の割当)。
+Color categoryColor({required TransactionCategory category}) =>
+    switch (category) {
+      TransactionCategory.food => AppColors.accent500,
+      TransactionCategory.eatingOut => AppColors.accent400,
+      TransactionCategory.dailyGoods => AppColors.sage500,
+      TransactionCategory.transportation => AppColors.sage400,
+      TransactionCategory.subscription => AppColors.neutral400,
+      // 給与は支出の内訳には現れないが、色は sage 系に寄せておく。
+      TransactionCategory.salary => AppColors.sage500,
+      TransactionCategory.other => AppColors.neutral300,
+    };

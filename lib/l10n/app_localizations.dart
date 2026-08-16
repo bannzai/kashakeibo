@@ -110,22 +110,22 @@ abstract class AppLocalizations {
   /// **'Income'**
   String get monthlyIncome;
 
-  /// Label for the monthly expense total
+  /// Label for the monthly spending total
   ///
   /// In en, this message translates to:
-  /// **'Expense'**
+  /// **'Spending'**
   String get monthlyExpense;
 
-  /// Label for the monthly balance (income - expense)
+  /// Label for the monthly balance (income - spending)
   ///
   /// In en, this message translates to:
   /// **'Balance'**
   String get monthlyBalance;
 
-  /// Section title for the expense breakdown by category
+  /// Section title for the spending breakdown by category
   ///
   /// In en, this message translates to:
-  /// **'Category breakdown'**
+  /// **'Categories'**
   String get categoryBreakdown;
 
   /// Placeholder shown when the month has no transactions
@@ -134,7 +134,7 @@ abstract class AppLocalizations {
   /// **'No transactions this month'**
   String get monthlyTransactionsEmpty;
 
-  /// Badge on a transaction excluded from aggregation totals
+  /// Note on a transaction excluded from aggregation totals
   ///
   /// In en, this message translates to:
   /// **'Excluded'**
@@ -152,11 +152,17 @@ abstract class AppLocalizations {
   /// **'Next month'**
   String get nextMonth;
 
-  /// Transaction category: food
+  /// Transaction category: food (groceries)
   ///
   /// In en, this message translates to:
   /// **'Food'**
   String get categoryFood;
+
+  /// Transaction category: eating out
+  ///
+  /// In en, this message translates to:
+  /// **'Eating out'**
+  String get categoryEatingOut;
 
   /// Transaction category: daily goods
   ///
@@ -167,50 +173,14 @@ abstract class AppLocalizations {
   /// Transaction category: transportation
   ///
   /// In en, this message translates to:
-  /// **'Transportation'**
+  /// **'Transport'**
   String get categoryTransportation;
 
-  /// Transaction category: utilities
+  /// Transaction category: subscriptions
   ///
   /// In en, this message translates to:
-  /// **'Utilities'**
-  String get categoryUtilities;
-
-  /// Transaction category: communication
-  ///
-  /// In en, this message translates to:
-  /// **'Communication'**
-  String get categoryCommunication;
-
-  /// Transaction category: housing
-  ///
-  /// In en, this message translates to:
-  /// **'Housing'**
-  String get categoryHousing;
-
-  /// Transaction category: medical
-  ///
-  /// In en, this message translates to:
-  /// **'Medical'**
-  String get categoryMedical;
-
-  /// Transaction category: entertainment
-  ///
-  /// In en, this message translates to:
-  /// **'Entertainment'**
-  String get categoryEntertainment;
-
-  /// Transaction category: clothing and beauty
-  ///
-  /// In en, this message translates to:
-  /// **'Clothing & beauty'**
-  String get categoryClothing;
-
-  /// Transaction category: education
-  ///
-  /// In en, this message translates to:
-  /// **'Education'**
-  String get categoryEducation;
+  /// **'Subscriptions'**
+  String get categorySubscription;
 
   /// Transaction category: salary (income)
   ///

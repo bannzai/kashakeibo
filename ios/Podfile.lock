@@ -1212,8 +1212,6 @@ PODS:
   - Firebase/Firestore (12.17.0):
     - Firebase/CoreOnly
     - FirebaseFirestore (~> 12.17.0)
-  - firebase_ai (3.15.0):
-    - Flutter
   - firebase_app_check (0.4.6):
     - Firebase/CoreOnly (~> 12.17.0)
     - firebase_core
@@ -1403,7 +1401,6 @@ PODS:
 
 DEPENDENCIES:
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
-  - firebase_ai (from `.symlinks/plugins/firebase_ai/ios`)
   - firebase_app_check (from `.symlinks/plugins/firebase_app_check/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
@@ -1438,8 +1435,6 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   cloud_firestore:
     :path: ".symlinks/plugins/cloud_firestore/ios"
-  firebase_ai:
-    :path: ".symlinks/plugins/firebase_ai/ios"
   firebase_app_check:
     :path: ".symlinks/plugins/firebase_app_check/ios"
   firebase_auth:
@@ -1455,7 +1450,6 @@ SPEC CHECKSUMS:
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
   cloud_firestore: 511375ce1aea4e819e2df382fb1a141015cb8c60
   Firebase: e8400c058702940d53f31fc0653e4e7a06332326
-  firebase_ai: c34eded5e538a2924401afab022d1cd5e3ba8453
   firebase_app_check: 5da86a4ec92047b87f16009122e2c0e23864516e
   firebase_auth: 3e82fa3e632856cd5a8e2bedf458d682740c8168
   firebase_core: c94f9efeed0ded590b7eecaf6110a374eb865d7a

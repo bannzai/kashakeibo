@@ -1,4 +1,3 @@
-import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
@@ -6,9 +5,8 @@ import 'package:kashakeibo/provider/transaction.dart';
 
 /// DEBUG ビルド限定の開発者メニュー。
 ///
-/// 到達困難な状態 (明細データの投入・外部サービスの疎通確認) を、
-/// 起動引数ではなくアプリ内メニューから作れるようにする
-/// (~/.claude/rules/debug-menu-first-for-hard-to-reach-states.md のパターン)。
+/// 到達困難な状態 (明細データの投入) を、起動引数ではなくアプリ内メニューから
+/// 作れるようにする (~/.claude/rules/debug-menu-first-for-hard-to-reach-states.md のパターン)。
 /// DEBUG 限定のため文言は日本語固定で l10n の対象外とする。
 class DebugSheet extends ConsumerWidget {
   const DebugSheet({super.key});
@@ -35,37 +33,22 @@ class DebugSheet extends ConsumerWidget {
                 if (!context.mounted) {
                   return;
                 }
-                await _showResultDialog(
+                // エラーメッセージは加工せずそのまま表示する (.claude/rules/coding-conventions.md)。
+                await showDialog<void>(
                   context: context,
-                  message: error.toString(),
+                  builder: (context) => AlertDialog(
+                    content: SingleChildScrollView(
+                      child: Text(error.toString()),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
                 );
               }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.smart_toy),
-            title: const Text('Gemini 疎通確認'),
-            subtitle: const Text('Firebase AI Logic 経由で generateContent を呼ぶ'),
-            onTap: () async {
-              String message;
-              try {
-                // Gemini Developer API (googleAI backend) を使う。App Check の
-                // トークンは SDK が自動で添付する (documents/adr/0001-tech-stack.md)。
-                // モデルは 2026-08 時点の推奨デフォルト gemini-3.7-flash
-                // (https://firebase.google.com/docs/ai-logic/models 。2.5 系は 2026-10 に停止)。
-                final response = await FirebaseAI.googleAI()
-                    .generativeModel(model: 'gemini-3.7-flash')
-                    .generateContent([
-                      Content.text('「疎通確認OK」と日本語で短く返答してください。'),
-                    ]);
-                message = response.text ?? '(空のレスポンス)';
-              } catch (error) {
-                message = error.toString();
-              }
-              if (!context.mounted) {
-                return;
-              }
-              await _showResultDialog(context: context, message: message);
             },
           ),
         ],
@@ -111,11 +94,12 @@ Future<void> _addSampleTransactions({
       title: '電車',
       excludedFromAggregation: false,
     ),
+    // デザインの重複候補の例 (鳥貴族 ¥4,230) に合わせた計算対象外サンプル。
     (
       type: TransactionType.expense,
-      amount: 12800,
-      category: TransactionCategory.entertainment,
-      title: '重複疑いの明細 (計算対象外)',
+      amount: 4230,
+      category: TransactionCategory.eatingOut,
+      title: '鳥貴族 三軒茶屋店 (重複疑い)',
       excludedFromAggregation: true,
     ),
   ];
@@ -137,20 +121,3 @@ Future<void> _addSampleTransactions({
     );
   }
 }
-
-/// 実行結果 (成功レスポンス・エラー) をそのまま表示するダイアログ。
-Future<void> _showResultDialog({
-  required BuildContext context,
-  required String message,
-}) => showDialog<void>(
-  context: context,
-  builder: (context) => AlertDialog(
-    content: SingleChildScrollView(child: Text(message)),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('OK'),
-      ),
-    ],
-  ),
-);

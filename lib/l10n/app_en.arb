@@ -8,17 +8,17 @@
   "@monthlyIncome": {
     "description": "Label for the monthly income total"
   },
-  "monthlyExpense": "Expense",
+  "monthlyExpense": "Spending",
   "@monthlyExpense": {
-    "description": "Label for the monthly expense total"
+    "description": "Label for the monthly spending total"
   },
   "monthlyBalance": "Balance",
   "@monthlyBalance": {
-    "description": "Label for the monthly balance (income - expense)"
+    "description": "Label for the monthly balance (income - spending)"
   },
-  "categoryBreakdown": "Category breakdown",
+  "categoryBreakdown": "Categories",
   "@categoryBreakdown": {
-    "description": "Section title for the expense breakdown by category"
+    "description": "Section title for the spending breakdown by category"
   },
   "monthlyTransactionsEmpty": "No transactions this month",
   "@monthlyTransactionsEmpty": {
@@ -26,7 +26,7 @@
   },
   "excludedFromAggregation": "Excluded",
   "@excludedFromAggregation": {
-    "description": "Badge on a transaction excluded from aggregation totals"
+    "description": "Note on a transaction excluded from aggregation totals"
   },
   "previousMonth": "Previous month",
   "@previousMonth": {
@@ -38,43 +38,23 @@
   },
   "categoryFood": "Food",
   "@categoryFood": {
-    "description": "Transaction category: food"
+    "description": "Transaction category: food (groceries)"
+  },
+  "categoryEatingOut": "Eating out",
+  "@categoryEatingOut": {
+    "description": "Transaction category: eating out"
   },
   "categoryDailyGoods": "Daily goods",
   "@categoryDailyGoods": {
     "description": "Transaction category: daily goods"
   },
-  "categoryTransportation": "Transportation",
+  "categoryTransportation": "Transport",
   "@categoryTransportation": {
     "description": "Transaction category: transportation"
   },
-  "categoryUtilities": "Utilities",
-  "@categoryUtilities": {
-    "description": "Transaction category: utilities"
-  },
-  "categoryCommunication": "Communication",
-  "@categoryCommunication": {
-    "description": "Transaction category: communication"
-  },
-  "categoryHousing": "Housing",
-  "@categoryHousing": {
-    "description": "Transaction category: housing"
-  },
-  "categoryMedical": "Medical",
-  "@categoryMedical": {
-    "description": "Transaction category: medical"
-  },
-  "categoryEntertainment": "Entertainment",
-  "@categoryEntertainment": {
-    "description": "Transaction category: entertainment"
-  },
-  "categoryClothing": "Clothing & beauty",
-  "@categoryClothing": {
-    "description": "Transaction category: clothing and beauty"
-  },
-  "categoryEducation": "Education",
-  "@categoryEducation": {
-    "description": "Transaction category: education"
+  "categorySubscription": "Subscriptions",
+  "@categorySubscription": {
+    "description": "Transaction category: subscriptions"
   },
   "categorySalary": "Salary",
   "@categorySalary": {

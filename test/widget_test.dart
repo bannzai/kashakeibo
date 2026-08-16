@@ -54,7 +54,7 @@ void main() {
         id: 'expense-2',
         type: TransactionType.expense,
         amount: 5000,
-        category: TransactionCategory.entertainment,
+        category: TransactionCategory.eatingOut,
         title: '計算対象外の明細',
         excludedFromAggregation: true,
       ),
@@ -77,20 +77,21 @@ void main() {
     // Stream の初回イベントが AsyncValue.data に反映されるまで進める。
     await tester.pumpAndSettle();
 
-    // サマリー: 収入 280,000 / 支出 1,200 (計算対象外の 5,000 は含めない) / 収支 278,800
+    // サマリー: 収入 280,000 / 支出 1,200 (計算対象外の 5,000 は含めない) / 残り 278,800
     expect(find.text('¥280,000'), findsOneWidget);
     expect(find.text('¥278,800'), findsOneWidget);
+    expect(find.text('¥1,200'), findsWidgets);
 
-    // カテゴリ内訳: 支出のみが対象 (Food のチップが出る)
-    expect(find.textContaining('¥1,200'), findsWidgets);
-
-    // 明細リスト: 3 件の明細が表示され、計算対象外の明細にはラベルが付く
+    // 明細リスト: 3 件の明細が表示され、行の金額は +/- 付き。
+    // 計算対象外の明細にはサブ行に注記が付く
     expect(find.text('給与'), findsOneWidget);
+    expect(find.text('+¥280,000'), findsOneWidget);
     expect(find.text('スーパーマーケット'), findsOneWidget);
+    expect(find.text('-¥1,200'), findsOneWidget);
     expect(find.text('計算対象外の明細'), findsOneWidget);
     expect(
-      find.text(AppLocalizationsEn().excludedFromAggregation),
-      findsOneWidget,
+      find.textContaining(AppLocalizationsEn().excludedFromAggregation),
+      findsWidgets,
     );
   });
 

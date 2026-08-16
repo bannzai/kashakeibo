@@ -17,6 +17,9 @@ enum TransactionType {
 
 /// 明細のカテゴリ。
 ///
+/// 支出カテゴリの体系はデザイン (design_handoff_kashakeibo/README.md の
+/// 読み取り確認画面: 食費・外食・日用品・交通・サブスク・その他) に合わせる。
+/// 収入側はデザインに定義が無いため給与のみ定義する。
 /// Firestore には enum 名の文字列で保存される。将来カテゴリを追加した時に
 /// 旧バージョンのクライアントがデコードに失敗しないよう、未知の値は
 /// [TransactionCategory.other] として読む (Transaction.category の unknownEnumValue)。
@@ -24,32 +27,17 @@ enum TransactionCategory {
   /// 食費。
   food,
 
+  /// 外食。
+  eatingOut,
+
   /// 日用品。
   dailyGoods,
 
-  /// 交通費。
+  /// 交通。
   transportation,
 
-  /// 水道・光熱費。
-  utilities,
-
-  /// 通信費。
-  communication,
-
-  /// 住居費。
-  housing,
-
-  /// 医療費。
-  medical,
-
-  /// 娯楽費。
-  entertainment,
-
-  /// 衣服・美容費。
-  clothing,
-
-  /// 教育費。
-  education,
+  /// サブスク。
+  subscription,
 
   /// 給与 (収入)。
   salary,

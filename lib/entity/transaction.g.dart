@@ -58,15 +58,10 @@ const _$TransactionTypeEnumMap = {
 
 const _$TransactionCategoryEnumMap = {
   TransactionCategory.food: 'food',
+  TransactionCategory.eatingOut: 'eatingOut',
   TransactionCategory.dailyGoods: 'dailyGoods',
   TransactionCategory.transportation: 'transportation',
-  TransactionCategory.utilities: 'utilities',
-  TransactionCategory.communication: 'communication',
-  TransactionCategory.housing: 'housing',
-  TransactionCategory.medical: 'medical',
-  TransactionCategory.entertainment: 'entertainment',
-  TransactionCategory.clothing: 'clothing',
-  TransactionCategory.education: 'education',
+  TransactionCategory.subscription: 'subscription',
   TransactionCategory.salary: 'salary',
   TransactionCategory.other: 'other',
 };

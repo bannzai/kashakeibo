@@ -18,7 +18,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get monthlyExpense => '支出';
 
   @override
-  String get monthlyBalance => '収支';
+  String get monthlyBalance => '残り';
 
   @override
   String get categoryBreakdown => 'カテゴリ内訳';
@@ -39,31 +39,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get categoryFood => '食費';
 
   @override
+  String get categoryEatingOut => '外食';
+
+  @override
   String get categoryDailyGoods => '日用品';
 
   @override
-  String get categoryTransportation => '交通費';
+  String get categoryTransportation => '交通';
 
   @override
-  String get categoryUtilities => '水道・光熱費';
-
-  @override
-  String get categoryCommunication => '通信費';
-
-  @override
-  String get categoryHousing => '住居費';
-
-  @override
-  String get categoryMedical => '医療費';
-
-  @override
-  String get categoryEntertainment => '娯楽費';
-
-  @override
-  String get categoryClothing => '衣服・美容';
-
-  @override
-  String get categoryEducation => '教育費';
+  String get categorySubscription => 'サブスク';
 
   @override
   String get categorySalary => '給与';
