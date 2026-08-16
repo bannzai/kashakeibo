@@ -83,19 +83,26 @@ for lang in "${LANGUAGES[@]}"; do
   LANG_DIR="$METADATA_DIR/$lang"
 
   if [[ ! -d "$LANG_DIR" ]]; then
-    echo "警告: 言語ディレクトリが存在しません: $lang" >&2
+    # 明示指定された言語の欠落はタイプミス・メタデータ未整備の可能性が高いためエラーにする
+    echo "エラー: 言語ディレクトリが存在しません: $lang" >&2
+    HAS_ERROR=1
+    ERROR_COUNT=$((ERROR_COUNT + 1))
     continue
   fi
 
   echo "📁 $lang"
 
-  # name.txt (30文字)
+  # name.txt (30文字)。ストア掲載に必須のため、欠落もエラーにする
   if [[ -f "$LANG_DIR/name.txt" ]]; then
     if ! "$CHECK_LENGTH" "$LANG_DIR/name.txt" 30; then
       HAS_ERROR=1
       ERROR_COUNT=$((ERROR_COUNT + 1))
     fi
     CHECKED_COUNT=$((CHECKED_COUNT + 1))
+  else
+    echo "エラー: 必須ファイルが存在しません: $lang/name.txt" >&2
+    HAS_ERROR=1
+    ERROR_COUNT=$((ERROR_COUNT + 1))
   fi
 
   # subtitle.txt (30文字)

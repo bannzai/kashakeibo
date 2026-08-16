@@ -19,10 +19,17 @@ Firestore のドキュメントを更新する際は、サーバー側のタイ�
 - サーバータイムスタンプにより、正確な時系列の把握が可能になる
 
 ### 実装例（Flutter / Dart）
+
+更新方式は `.claude/rules/firestore-fieldvalue-rules.md` の「`set` + `SetOptions(merge: true)` に統一する」に従う。
+
 ```dart
-// 更新時
-await docRef.update({
-  'updatedDateTime': FieldValue.serverTimestamp(),
-  'serverUpdatedDateTime': FieldValue.serverTimestamp(),
-});
+// 更新時: entity の変更と同じ set に serverTimestamp を含める
+await docRef.set(
+  {
+    ...entity.toJson(),
+    'updatedDateTime': FieldValue.serverTimestamp(),
+    'serverUpdatedDateTime': FieldValue.serverTimestamp(),
+  },
+  SetOptions(merge: true),
+);
 ```
