@@ -14,19 +14,25 @@ while getopts ':l:h' option; do
   case "$option" in
     l) requested_language="$OPTARG" ;;
     h)
-      printf 'Usage: %s [-l ja|en-US]\n' "$0"
+      printf 'Usage: %s [-l language]\n' "$0"
       exit 0
       ;;
     :|?)
-      printf 'Usage: %s [-l ja|en-US]\n' "$0" >&2
+      printf 'Usage: %s [-l language]\n' "$0" >&2
       exit 2
       ;;
   esac
 done
 
-if [[ "$requested_language" != "all" ]] && ! is_supported_language "$requested_language"; then
-  printf '未対応の言語です: %s（対応: ja, en-US）\n' "$requested_language" >&2
-  exit 2
+if [[ "$requested_language" == "all" ]]; then
+  file_pattern='*.png'
+else
+  file_pattern="$requested_language.png"
+fi
+
+# テンプレート更新で対象ロケールが減っても古い成果物を残さないよう初期化する。
+if [[ -d "$HEADER_OUTPUT_ROOT" ]]; then
+  find "$HEADER_OUTPUT_ROOT" -maxdepth 1 -type f -name "$file_pattern" -delete
 fi
 
 cd "$PROJECT_ROOT"
@@ -39,13 +45,14 @@ flutter test \
   --dart-define=APPSTORE_HEADER_OUTPUT_ROOT="$HEADER_OUTPUT_ROOT"
 
 generated_files=()
-generated_languages=("${SUPPORTED_LANGUAGES[@]}")
-if [[ "$requested_language" != "all" ]]; then
-  generated_languages=("$requested_language")
+while IFS= read -r generated_file; do
+  generated_files+=("$generated_file")
+done < <(find "$HEADER_OUTPUT_ROOT" -maxdepth 1 -type f -name "$file_pattern" -print | sort)
+if [[ "${#generated_files[@]}" -eq 0 ]]; then
+  printf '生成された Product Page Header が見つかりません: %s/%s\n' \
+    "$HEADER_OUTPUT_ROOT" "$file_pattern" >&2
+  exit 1
 fi
-for language in "${generated_languages[@]}"; do
-  generated_files+=("$HEADER_OUTPUT_ROOT/$language.png")
-done
 xcrun swift "$SCRIPT_DIR/strip_png_alpha.swift" "${generated_files[@]}"
 
 printf 'Product Page Header 生成完了: %s\n' "$HEADER_OUTPUT_ROOT"

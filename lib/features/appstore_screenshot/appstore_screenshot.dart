@@ -6,6 +6,7 @@ enum AppStoreScreenshotLocale {
   ja(fastlaneDirectoryName: 'ja'),
   enUs(fastlaneDirectoryName: 'en-US');
 
+  /// fastlane の既存ロケールディレクトリ名へ対応付ける。
   const AppStoreScreenshotLocale({required this.fastlaneDirectoryName});
 
   /// fastlane/screenshots 配下の言語ディレクトリ名。
@@ -26,9 +27,52 @@ enum AppStoreScreenshotLocale {
   }
 }
 
+/// App Store スクリーンショットの対象端末クラス。
+enum AppStoreScreenshotDevice {
+  iphone69(
+    fileNameLabel: 'iphone_69',
+    logicalSize: Size(430, 932),
+    pixelRatio: 3,
+    expectedPixelWidth: 1290,
+    expectedPixelHeight: 2796,
+  ),
+  ipad13(
+    fileNameLabel: 'ipad_13',
+    logicalSize: Size(1024, 1366),
+    pixelRatio: 2,
+    expectedPixelWidth: 2048,
+    expectedPixelHeight: 2732,
+  );
+
+  /// Apple が受理する端末別の出力寸法から描画条件を作る。
+  const AppStoreScreenshotDevice({
+    required this.fileNameLabel,
+    required this.logicalSize,
+    required this.pixelRatio,
+    required this.expectedPixelWidth,
+    required this.expectedPixelHeight,
+  });
+
+  /// fastlane 配置時に端末クラスを識別するファイル名ラベル。
+  final String fileNameLabel;
+
+  /// Widget test で描画する論理サイズ。
+  final Size logicalSize;
+
+  /// Apple の要求ピクセル寸法へ変換する倍率。
+  final double pixelRatio;
+
+  /// Apple が受理する画像幅。
+  final int expectedPixelWidth;
+
+  /// Apple が受理する画像高さ。
+  final int expectedPixelHeight;
+}
+
 /// 1言語分のストア用キャッチコピー。
 @immutable
 class AppStoreScreenshotCopy {
+  /// ストア画面の3段階の訴求文を保持する。
   const AppStoreScreenshotCopy({
     required this.eyebrow,
     required this.headline,
@@ -47,6 +91,22 @@ class AppStoreScreenshotCopy {
 
 /// ストア掲載順のページ番号。
 const appStoreScreenshotPageNumbers = [1, 2, 3, 4, 5];
+
+/// ページ番号と端末クラスから fastlane 配置用ファイル名を返す。
+String appStoreScreenshotFileName({
+  required int pageNumber,
+  required AppStoreScreenshotDevice device,
+}) {
+  final fileStem = switch (pageNumber) {
+    1 => 'snap_to_budget',
+    2 => 'receipt_scan',
+    3 => 'duplicate_detection',
+    4 => 'source_image',
+    5 => 'monthly_report',
+    _ => throw ArgumentError.value(pageNumber, 'pageNumber'),
+  };
+  return '${pageNumber.toString().padLeft(2, '0')}_${device.fileNameLabel}_$fileStem.png';
+}
 
 /// ページ番号と言語に対応するキャッチコピーを返す。
 AppStoreScreenshotCopy appStoreScreenshotCopy({
@@ -118,14 +178,16 @@ AppStoreScreenshotCopy appStoreScreenshotCopy({
   return copy;
 }
 
-/// 1290×2796 px で撮影する App Store スクリーンショット画面。
+/// iPhone・iPad の規定寸法で撮影する App Store スクリーンショット画面。
 ///
-/// 430×932 logical px の Widget を devicePixelRatio 3 で画像化する。
+/// 端末別の論理サイズと倍率は [AppStoreScreenshotDevice] を単一ソースにする。
 /// 本番の永続化層や Firebase に接続せず、固定データだけで再現可能にする。
 class AppStoreScreenshotPage extends StatelessWidget {
+  /// 指定端末・掲載順・ロケールのストア画面を作る。
   const AppStoreScreenshotPage({
     required this.pageNumber,
     required this.locale,
+    required this.device,
     super.key,
   });
 
@@ -134,6 +196,9 @@ class AppStoreScreenshotPage extends StatelessWidget {
 
   /// 表示するキャッチコピーのロケール。
   final AppStoreScreenshotLocale locale;
+
+  /// 表示レイアウトを合わせる端末クラス。
+  final AppStoreScreenshotDevice device;
 
   @override
   Widget build(BuildContext context) {
@@ -161,64 +226,140 @@ class AppStoreScreenshotPage extends StatelessWidget {
                 left: -120,
                 child: _BackgroundOrb(diameter: 230, color: Color(0x267A8A5E)),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(30, 58, 30, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _BrandMark(locale: locale),
-                    const SizedBox(height: 28),
-                    Text(
-                      copy.eyebrow,
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      copy.headline,
-                      style: const TextStyle(
-                        color: AppColors.onSurface,
-                        fontSize: 39,
-                        height: 1.04,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: 354,
-                      child: Text(
-                        copy.supportingText,
-                        style: const TextStyle(
-                          color: AppColors.neutral700,
-                          fontSize: 15,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: _DeviceFrame(
-                          child: _mockAppScreen(
-                            pageNumber: pageNumber,
-                            locale: locale,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              device == AppStoreScreenshotDevice.iphone69
+                  ? _buildIPhoneContent(copy: copy)
+                  : _buildIPadContent(copy: copy),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// 6.9インチ iPhone の縦長画面へ訴求と端末モックを配置する。
+  Widget _buildIPhoneContent({required AppStoreScreenshotCopy copy}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(30, 58, 30, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _BrandMark(locale: locale),
+          const SizedBox(height: 28),
+          Text(
+            copy.eyebrow,
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.15,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            copy.headline,
+            style: const TextStyle(
+              color: AppColors.onSurface,
+              fontSize: 39,
+              height: 1.04,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.25,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: 354,
+            child: Text(
+              copy.supportingText,
+              style: const TextStyle(
+                color: AppColors.neutral700,
+                fontSize: 15,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 30),
+          Expanded(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: _DeviceFrame(
+                child: _mockAppScreen(pageNumber: pageNumber, locale: locale),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 13インチ iPad の4:3画面へ訴求と端末モックを横並びで配置する。
+  Widget _buildIPadContent({required AppStoreScreenshotCopy copy}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(64, 68, 64, 64),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _BrandMark(locale: locale, large: true),
+          Expanded(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 430,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        copy.eyebrow,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        copy.headline,
+                        style: const TextStyle(
+                          color: AppColors.onSurface,
+                          fontSize: 60,
+                          height: 1.02,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1.8,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        copy.supportingText,
+                        style: const TextStyle(
+                          color: AppColors.neutral700,
+                          fontSize: 22,
+                          height: 1.45,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: 400,
+                  height: 704,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: _DeviceFrame(
+                      child: _mockAppScreen(
+                        pageNumber: pageNumber,
+                        locale: locale,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -228,8 +369,9 @@ class AppStoreScreenshotPage extends StatelessWidget {
 ///
 /// 1920×823 logical px を devicePixelRatio 2 で撮影し、Apple 公式テンプレートの
 /// 3840×1646 px canvas に合わせる。キーコンテンツは Art Safe Area 相当の中央
-/// 823×330 logical px 内へ収める。
+/// 823×330 logical px に対し、横方向へ3 pxの余白を取った820×330 px内へ収める。
 class ProductPageHeaderCreative extends StatelessWidget {
+  /// 指定ロケールの Product Page Header を作る。
   const ProductPageHeaderCreative({required this.locale, super.key});
 
   /// 表示するキャッチコピーのロケール。
@@ -320,6 +462,7 @@ class ProductPageHeaderCreative extends StatelessWidget {
   }
 }
 
+/// 掲載順ごとのテーマ色から背景グラデーションを返す。
 LinearGradient _backgroundGradient(int pageNumber) {
   return switch (pageNumber) {
     1 => const LinearGradient(
@@ -351,6 +494,7 @@ LinearGradient _backgroundGradient(int pageNumber) {
   };
 }
 
+/// 掲載順に対応する固定データのアプリ画面モックを返す。
 Widget _mockAppScreen({
   required int pageNumber,
   required AppStoreScreenshotLocale locale,
@@ -365,10 +509,15 @@ Widget _mockAppScreen({
   };
 }
 
+/// 背景へ奥行きを加える半透明の円形装飾。
 class _BackgroundOrb extends StatelessWidget {
+  /// 指定直径と色の装飾を作る。
   const _BackgroundOrb({required this.diameter, required this.color});
 
+  /// 円の直径。
   final double diameter;
+
+  /// 円の塗り色。
   final Color color;
 
   @override
@@ -381,10 +530,15 @@ class _BackgroundOrb extends StatelessWidget {
   }
 }
 
+/// アイコンとローカライズ済み名称で構成するブランド表記。
 class _BrandMark extends StatelessWidget {
+  /// 通常はスクリーンショット向けの小サイズとし、ヘッダーだけ拡大指定する。
   const _BrandMark({required this.locale, this.large = false});
 
+  /// ブランド名を切り替えるロケール。
   final AppStoreScreenshotLocale locale;
+
+  /// Product Page Header 用の拡大表示かどうか。
   final bool large;
 
   @override
@@ -420,9 +574,12 @@ class _BrandMark extends StatelessWidget {
   }
 }
 
+/// アプリ画面モックを収める iPhone 風の端末フレーム。
 class _DeviceFrame extends StatelessWidget {
+  /// 指定した画面モックをフレーム内へ収める。
   const _DeviceFrame({required this.child});
 
+  /// フレーム内へ表示するアプリ画面モック。
   final Widget child;
 
   @override
@@ -466,15 +623,22 @@ class _DeviceFrame extends StatelessWidget {
   }
 }
 
+/// 各アプリ画面モックで共有するタイトルと余白の骨格。
 class _MockScreenScaffold extends StatelessWidget {
+  /// 通常画面は明色とし、撮影画面だけ明示的に暗色へ切り替える。
   const _MockScreenScaffold({
     required this.title,
     required this.child,
     this.dark = false,
   });
 
+  /// モック画面上部のタイトル。
   final String title;
+
+  /// タイトル下へ表示する画面内容。
   final Widget child;
+
+  /// カメラ画面向けの暗色表示かどうか。
   final bool dark;
 
   @override
@@ -507,9 +671,12 @@ class _MockScreenScaffold extends StatelessWidget {
   }
 }
 
+/// Web明細のスクリーンショット取り込みを表す画面モック。
 class _ScreenshotImportMock extends StatelessWidget {
+  /// 指定ロケールの固定データを表示する。
   const _ScreenshotImportMock({required this.locale});
 
+  /// モック内文言のロケール。
   final AppStoreScreenshotLocale locale;
 
   @override
@@ -604,9 +771,12 @@ class _ScreenshotImportMock extends StatelessWidget {
   }
 }
 
+/// レシートをカメラで読み取る画面モック。
 class _ReceiptScanMock extends StatelessWidget {
+  /// 指定ロケールの固定データを表示する。
   const _ReceiptScanMock({required this.locale});
 
+  /// モック内文言のロケール。
   final AppStoreScreenshotLocale locale;
 
   @override
@@ -697,9 +867,12 @@ class _ReceiptScanMock extends StatelessWidget {
   }
 }
 
+/// レシートとカード明細の重複候補を表す画面モック。
 class _DuplicateDetectionMock extends StatelessWidget {
+  /// 指定ロケールの固定データを表示する。
   const _DuplicateDetectionMock({required this.locale});
 
+  /// モック内文言のロケール。
   final AppStoreScreenshotLocale locale;
 
   @override
@@ -762,9 +935,12 @@ class _DuplicateDetectionMock extends StatelessWidget {
   }
 }
 
+/// 読み取り結果と元画像の紐付きを表す画面モック。
 class _SourceImageMock extends StatelessWidget {
+  /// 指定ロケールの固定データを表示する。
   const _SourceImageMock({required this.locale});
 
+  /// モック内文言のロケール。
   final AppStoreScreenshotLocale locale;
 
   @override
@@ -784,9 +960,9 @@ class _SourceImageMock extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          Text(
-            isJapanese ? 'Amazon.co.jp' : 'Amazon.com',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          const Text(
+            'Amazon.co.jp',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 20),
           Container(
@@ -876,9 +1052,12 @@ class _SourceImageMock extends StatelessWidget {
   }
 }
 
+/// 口座連携なしの月次集計を表す画面モック。
 class _MonthlyReportMock extends StatelessWidget {
+  /// 指定ロケールの固定データを表示する。
   const _MonthlyReportMock({required this.locale});
 
+  /// モック内文言のロケール。
   final AppStoreScreenshotLocale locale;
 
   @override
@@ -1008,7 +1187,9 @@ class _MonthlyReportMock extends StatelessWidget {
   }
 }
 
+/// Product Page Header で撮影から明細化までを示す視覚モチーフ。
 class _HeaderVisualMotif extends StatelessWidget {
+  /// 固定デザインの視覚モチーフを作る。
   const _HeaderVisualMotif();
 
   @override
@@ -1100,15 +1281,22 @@ class _HeaderVisualMotif extends StatelessWidget {
   }
 }
 
+/// アプリ画面モック内で共通利用する角丸カード。
 class _MockCard extends StatelessWidget {
+  /// 通常カードの境界を既存 divider token に揃え、訴求カードだけ枠色を上書きする。
   const _MockCard({
     required this.color,
     required this.child,
     this.borderColor = AppColors.divider,
   });
 
+  /// カードの背景色。
   final Color color;
+
+  /// カードの枠線色。
   final Color borderColor;
+
+  /// カード内へ表示する内容。
   final Widget child;
 
   @override
@@ -1127,15 +1315,22 @@ class _MockCard extends StatelessWidget {
   }
 }
 
+/// 色付き円形背景へアイコンを収める共通部品。
 class _RoundIcon extends StatelessWidget {
+  /// 指定したアイコンと配色で円形アイコンを作る。
   const _RoundIcon({
     required this.icon,
     required this.color,
     required this.backgroundColor,
   });
 
+  /// 表示する Material icon。
   final IconData icon;
+
+  /// アイコンの前景色。
   final Color color;
+
+  /// 円形背景の色。
   final Color backgroundColor;
 
   @override
@@ -1149,10 +1344,15 @@ class _RoundIcon extends StatelessWidget {
   }
 }
 
+/// 明細名と金額を1行で示すモック部品。
 class _StatementRow extends StatelessWidget {
+  /// 指定した明細名と金額を表示する。
   const _StatementRow({required this.label, required this.amount});
 
+  /// 明細の表示名。
   final String label;
+
+  /// 通貨記号を含む表示金額。
   final String amount;
 
   @override
@@ -1183,15 +1383,22 @@ class _StatementRow extends StatelessWidget {
   }
 }
 
+/// レシート内の商品名と金額を1行で示すモック部品。
 class _ReceiptLine extends StatelessWidget {
+  /// 通常行を標準とし、合計行だけ明示的に太字へ切り替える。
   const _ReceiptLine({
     required this.label,
     required this.value,
     this.bold = false,
   });
 
+  /// 商品または合計の表示名。
   final String label;
+
+  /// 通貨記号を含む表示金額。
   final String value;
+
+  /// 合計行として強調するかどうか。
   final bool bold;
 
   @override
@@ -1221,7 +1428,9 @@ class _ReceiptLine extends StatelessWidget {
   }
 }
 
+/// 取引の取得元・店名・金額をまとめる画面モック部品。
 class _TransactionSourceCard extends StatelessWidget {
+  /// 指定した取得元情報から取引カードを作る。
   const _TransactionSourceCard({
     required this.icon,
     required this.sourceLabel,
@@ -1229,9 +1438,16 @@ class _TransactionSourceCard extends StatelessWidget {
     required this.amount,
   });
 
+  /// 取得元を表す Material icon。
   final IconData icon;
+
+  /// レシートやカード明細などの取得元名。
   final String sourceLabel;
+
+  /// 取引先の表示名。
   final String merchant;
+
+  /// 通貨記号を含む表示金額。
   final String amount;
 
   @override
@@ -1293,7 +1509,9 @@ class _TransactionSourceCard extends StatelessWidget {
   }
 }
 
+/// 月次集計のカテゴリ別金額を横棒で示すモック部品。
 class _CategoryBar extends StatelessWidget {
+  /// 指定カテゴリの割合と配色から横棒を作る。
   const _CategoryBar({
     required this.label,
     required this.amount,
@@ -1301,9 +1519,16 @@ class _CategoryBar extends StatelessWidget {
     required this.color,
   });
 
+  /// カテゴリの表示名。
   final String label;
+
+  /// 通貨記号を含む表示金額。
   final String amount;
+
+  /// 横棒の最大幅に対する割合。
   final double fraction;
+
+  /// 横棒の色。
   final Color color;
 
   @override

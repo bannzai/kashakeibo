@@ -8,30 +8,32 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kashakeibo/features/appstore_screenshot/appstore_screenshot.dart';
 import 'package:kashakeibo/style/tokens.dart';
 
+/// 通常の `flutter test` では画像を書き出さず、明示的な生成時だけ有効にする。
 const _generateAppStoreAssets = bool.fromEnvironment(
   'GENERATE_APPSTORE_ASSETS',
 );
-const _generationKind = String.fromEnvironment(
-  'APPSTORE_ASSET_KIND',
-  defaultValue: 'screenshots',
-);
-const _generationLanguage = String.fromEnvironment(
-  'APPSTORE_ASSET_LANGUAGE',
-  defaultValue: 'all',
-);
+
+/// 生成スクリプトが必ず指定する対象アセット種別。
+const _generationKind = String.fromEnvironment('APPSTORE_ASSET_KIND');
+
+/// 生成スクリプトが必ず指定する fastlane ロケール名。
+const _generationLanguage = String.fromEnvironment('APPSTORE_ASSET_LANGUAGE');
+
+/// 0 は全ページ生成を表し、ヘッダー生成ではページ指定が不要なため既定値にする。
 const _generationPageNumber = int.fromEnvironment(
   'APPSTORE_SCREENSHOT_PAGE',
   defaultValue: 0,
 );
+
+/// 中間生成物を置くルート。シェル側を単一ソースにするため必須指定とする。
 const _screenshotOutputRoot = String.fromEnvironment(
   'APPSTORE_SCREENSHOT_OUTPUT_ROOT',
-  defaultValue: 'scripts/generate_screenshots/artifacts',
-);
-const _headerOutputRoot = String.fromEnvironment(
-  'APPSTORE_HEADER_OUTPUT_ROOT',
-  defaultValue: 'fastlane/creative_assets/product_page_header',
 );
 
+/// ヘッダー成果物を置くルート。シェル側を単一ソースにするため必須指定とする。
+const _headerOutputRoot = String.fromEnvironment('APPSTORE_HEADER_OUTPUT_ROOT');
+
+/// ストア素材の描画検証と生成テストを登録する。
 void main() {
   setUpAll(_loadFigtreeFont);
 
@@ -50,18 +52,23 @@ void main() {
   });
 
   for (final locale in AppStoreScreenshotLocale.values) {
-    for (final pageNumber in appStoreScreenshotPageNumbers) {
-      testWidgets('${locale.fastlaneDirectoryName} の $pageNumber 枚目が描画できる', (
-        tester,
-      ) async {
-        await _pumpAsset(
-          tester: tester,
-          logicalSize: const Size(430, 932),
-          child: AppStoreScreenshotPage(pageNumber: pageNumber, locale: locale),
-        );
+    for (final device in AppStoreScreenshotDevice.values) {
+      for (final pageNumber in appStoreScreenshotPageNumbers) {
+        testWidgets('${locale.fastlaneDirectoryName} ${device.fileNameLabel} の '
+            '$pageNumber 枚目が描画できる', (tester) async {
+          await _pumpAsset(
+            tester: tester,
+            logicalSize: device.logicalSize,
+            child: AppStoreScreenshotPage(
+              pageNumber: pageNumber,
+              locale: locale,
+              device: device,
+            ),
+          );
 
-        expect(tester.takeException(), isNull);
-      });
+          expect(tester.takeException(), isNull);
+        });
+      }
     }
   }
 
@@ -72,20 +79,24 @@ void main() {
           ? appStoreScreenshotPageNumbers
           : [_generationPageNumber];
       for (final locale in locales) {
-        for (final pageNumber in pageNumbers) {
-          await _writeRenderedAsset(
-            tester: tester,
-            logicalSize: const Size(430, 932),
-            pixelRatio: 3,
-            child: AppStoreScreenshotPage(
-              pageNumber: pageNumber,
-              locale: locale,
-            ),
-            outputPath:
-                '$_screenshotOutputRoot/${locale.fastlaneDirectoryName}/${_screenshotFileName(pageNumber: pageNumber)}',
-            expectedPixelWidth: 1290,
-            expectedPixelHeight: 2796,
-          );
+        for (final device in AppStoreScreenshotDevice.values) {
+          for (final pageNumber in pageNumbers) {
+            await _writeRenderedAsset(
+              tester: tester,
+              logicalSize: device.logicalSize,
+              pixelRatio: device.pixelRatio,
+              child: AppStoreScreenshotPage(
+                pageNumber: pageNumber,
+                locale: locale,
+                device: device,
+              ),
+              outputPath:
+                  '$_screenshotOutputRoot/${locale.fastlaneDirectoryName}/'
+                  '${appStoreScreenshotFileName(pageNumber: pageNumber, device: device)}',
+              expectedPixelWidth: device.expectedPixelWidth,
+              expectedPixelHeight: device.expectedPixelHeight,
+            );
+          }
         }
       }
       return;
@@ -112,6 +123,7 @@ void main() {
   }, skip: !_generateAppStoreAssets);
 }
 
+/// 生成対象のロケール名を enum へ変換する。
 List<AppStoreScreenshotLocale> _selectedLocales() {
   if (_generationLanguage == 'all') {
     return AppStoreScreenshotLocale.values;
@@ -123,17 +135,7 @@ List<AppStoreScreenshotLocale> _selectedLocales() {
   ];
 }
 
-String _screenshotFileName({required int pageNumber}) {
-  return switch (pageNumber) {
-    1 => '01_snap_to_budget.png',
-    2 => '02_receipt_scan.png',
-    3 => '03_duplicate_detection.png',
-    4 => '04_source_image.png',
-    5 => '05_monthly_report.png',
-    _ => throw ArgumentError.value(pageNumber, 'pageNumber'),
-  };
-}
-
+/// ストア素材専用フォントを Widget test の FontLoader へ登録する。
 Future<void> _loadFigtreeFont() async {
   final fontLoader = FontLoader('Figtree')
     ..addFont(rootBundle.load('assets/fonts/Figtree-Regular.ttf'))
@@ -150,10 +152,12 @@ Future<void> _loadFigtreeFont() async {
   await materialIconsFontLoader.load();
 }
 
+/// pubspec に含めない日本語サブセットをテスト用 ByteData として読む。
 Future<ByteData> _readFontFile({required String path}) async {
   return ByteData.sublistView(await File(path).readAsBytes());
 }
 
+/// 指定論理サイズで素材 Widget を描画し、画像化対象の key を返す。
 Future<GlobalKey> _pumpAsset({
   required WidgetTester tester,
   required Size logicalSize,
@@ -182,6 +186,7 @@ Future<GlobalKey> _pumpAsset({
   return repaintBoundaryKey;
 }
 
+/// Widget を PNG 化し、期待ピクセル寸法を検証して保存する。
 Future<void> _writeRenderedAsset({
   required WidgetTester tester,
   required Size logicalSize,

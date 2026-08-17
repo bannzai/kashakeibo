@@ -16,23 +16,35 @@ while getopts ':l:n:h' option; do
     l) requested_language="$OPTARG" ;;
     n) requested_page_number="$OPTARG" ;;
     h)
-      printf 'Usage: %s [-l ja|en-US] [-n 1|2|3|4|5]\n' "$0"
+      printf 'Usage: %s [-l language] [-n positive-page-number]\n' "$0"
       exit 0
       ;;
     :|?)
-      printf 'Usage: %s [-l ja|en-US] [-n 1|2|3|4|5]\n' "$0" >&2
+      printf 'Usage: %s [-l language] [-n positive-page-number]\n' "$0" >&2
       exit 2
       ;;
   esac
 done
 
-if [[ "$requested_language" != "all" ]] && ! is_supported_language "$requested_language"; then
-  printf '未対応の言語です: %s（対応: ja, en-US）\n' "$requested_language" >&2
+if [[ "$requested_page_number" != "0" ]] && ! [[ "$requested_page_number" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'ページ番号は正の整数で指定してください: %s\n' "$requested_page_number" >&2
   exit 2
 fi
-if [[ "$requested_page_number" != "0" ]] && ! is_supported_page_number "$requested_page_number"; then
-  printf '未対応のページ番号です: %s（対応: 1〜5）\n' "$requested_page_number" >&2
-  exit 2
+
+selected_artifacts_root="$ARTIFACTS_ROOT"
+if [[ "$requested_language" != "all" ]]; then
+  selected_artifacts_root="$ARTIFACTS_ROOT/$requested_language"
+fi
+if [[ "$requested_page_number" == "0" ]]; then
+  file_pattern='*.png'
+else
+  page_prefix="$(printf '%02d' "$requested_page_number")"
+  file_pattern="${page_prefix}_*.png"
+fi
+
+# 同じ引数で再実行しても古い端末クラスの画像が残らないよう、対象生成物だけを初期化する。
+if [[ -d "$selected_artifacts_root" ]]; then
+  find "$selected_artifacts_root" -type f -name "$file_pattern" -delete
 fi
 
 cd "$PROJECT_ROOT"
@@ -46,20 +58,14 @@ flutter test \
   --dart-define=APPSTORE_SCREENSHOT_OUTPUT_ROOT="$ARTIFACTS_ROOT"
 
 generated_files=()
-generated_languages=("${SUPPORTED_LANGUAGES[@]}")
-generated_page_numbers=("${SUPPORTED_PAGE_NUMBERS[@]}")
-if [[ "$requested_language" != "all" ]]; then
-  generated_languages=("$requested_language")
+while IFS= read -r generated_file; do
+  generated_files+=("$generated_file")
+done < <(find "$selected_artifacts_root" -type f -name "$file_pattern" -print | sort)
+if [[ "${#generated_files[@]}" -eq 0 ]]; then
+  printf '生成されたスクリーンショットが見つかりません: %s/%s\n' \
+    "$selected_artifacts_root" "$file_pattern" >&2
+  exit 1
 fi
-if [[ "$requested_page_number" != "0" ]]; then
-  generated_page_numbers=("$requested_page_number")
-fi
-for language in "${generated_languages[@]}"; do
-  for page_number in "${generated_page_numbers[@]}"; do
-    file_name="$(screenshot_file_name "$page_number")"
-    generated_files+=("$ARTIFACTS_ROOT/$language/$file_name")
-  done
-done
 xcrun swift "$SCRIPT_DIR/strip_png_alpha.swift" "${generated_files[@]}"
 
 organize_arguments=()

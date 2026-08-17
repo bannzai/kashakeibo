@@ -5,7 +5,8 @@ Flutter の PNG エンコーダーが付与する alpha チャンネルは、mac
 
 ## 生成物
 
-- スクリーンショット: 1290×2796 px、PNG、日本語・英語それぞれ5枚
+- iPhone スクリーンショット: 1290×2796 px、PNG、日本語・英語それぞれ5枚
+- iPad スクリーンショット: 2048×2732 px、PNG、日本語・英語それぞれ5枚
 - Product Page Header: 3840×1646 px、PNG、日本語・英語
 
 スクリーンショットの中間生成物は `scripts/generate_screenshots/artifacts/{lang}/`、fastlane からアップロードする最終画像は `fastlane/screenshots/{lang}/` に置く。Product Page Header は `fastlane/creative_assets/product_page_header/` に置く。
@@ -27,12 +28,12 @@ Flutter の PNG エンコーダーが付与する alpha チャンネルは、mac
 `fastlane/screenshots/` への配置後は、既存 lane からメタデータと一緒にアップロードできる。
 
 ```sh
-bundle exec fastlane ios metadata_upload
+fastlane ios metadata_upload
 ```
 
 ## スクリプトの責務
 
-- `appstore_screenshot_env.sh`: 対象言語・ページ・出力先・共通関数
+- `appstore_screenshot_env.sh`: 出力先の共通定義
 - `generate_appstore_screenshots.sh`: Flutter 描画テストの起動と fastlane 配置の統括
 - `organize_screenshots.sh`: artifacts から fastlane 形式への配置
 - `generate_header_creatives.sh`: Product Page Header の描画と配置
