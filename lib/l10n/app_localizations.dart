@@ -152,6 +152,96 @@ abstract class AppLocalizations {
   /// **'Next month'**
   String get nextMonth;
 
+  /// Tooltip for the settings button
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSettings;
+
+  /// Title of the settings screen
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// Title of the account backup card
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get accountBackupTitle;
+
+  /// Status shown while an anonymous account has no linked sign-in provider
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get accountBackupNotSet;
+
+  /// Status shown after an account has a linked sign-in provider
+  ///
+  /// In en, this message translates to:
+  /// **'Set up'**
+  String get accountBackupConfigured;
+
+  /// Explanation shown before account linking
+  ///
+  /// In en, this message translates to:
+  /// **'Link an account to keep your data when you change devices.'**
+  String get accountBackupDescription;
+
+  /// Explanation shown after account linking
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the same account on another device to access your saved data.'**
+  String get accountBackupConfiguredDescription;
+
+  /// Button that links Apple or signs in to an existing Apple-linked account
+  ///
+  /// In en, this message translates to:
+  /// **'Link with Apple'**
+  String get linkOrSignInWithApple;
+
+  /// Button that links Google or signs in to an existing Google-linked account
+  ///
+  /// In en, this message translates to:
+  /// **'Link with Google'**
+  String get linkOrSignInWithGoogle;
+
+  /// Message shown after account linking succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Account linked'**
+  String get accountLinked;
+
+  /// Button that starts account deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccount;
+
+  /// Title of the account deletion confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get deleteAccountConfirmationTitle;
+
+  /// Warning shown before account deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Your account and saved transactions will be permanently deleted. This cannot be undone.'**
+  String get deleteAccountConfirmationMessage;
+
+  /// Button that cancels a destructive confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// Button that confirms account deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
   /// Transaction category: food (groceries)
   ///
   /// In en, this message translates to:

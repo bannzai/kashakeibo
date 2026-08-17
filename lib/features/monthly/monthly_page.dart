@@ -5,7 +5,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
+import 'package:kashakeibo/provider/firebase_analytics.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/style/tokens.dart';
 
@@ -30,6 +32,7 @@ class MonthlyPage extends HookConsumerWidget {
         yearMonth: yearMonthFrom(dateTime: displayMonth.value),
       ),
     );
+    final logAnalyticsEvent = ref.watch(logAnalyticsEventProvider);
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
@@ -38,6 +41,15 @@ class MonthlyPage extends HookConsumerWidget {
           children: [
             _MonthHeader(
               displayMonth: displayMonth.value,
+              onOpenSettings: () async {
+                await logAnalyticsEvent(name: 'open_settings');
+                if (!context.mounted) {
+                  return;
+                }
+                await Navigator.of(context).push<void>(
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
               onPreviousMonth: () {
                 displayMonth.value = DateTime(
                   displayMonth.value.year,
@@ -111,10 +123,14 @@ class _MonthHeader extends StatelessWidget {
   /// 次の月ボタンのコールバック。
   final VoidCallback onNextMonth;
 
+  /// 設定画面を開くコールバック。
+  final AsyncCallback onOpenSettings;
+
   const _MonthHeader({
     required this.displayMonth,
     required this.onPreviousMonth,
     required this.onNextMonth,
+    required this.onOpenSettings,
   });
 
   @override
@@ -124,6 +140,12 @@ class _MonthHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
       child: Row(
         children: [
+          _CircleGhostButton(
+            icon: Icons.settings_outlined,
+            tooltip: l10n.openSettings,
+            onPressed: onOpenSettings,
+          ),
+          const SizedBox(width: 8),
           _CircleGhostButton(
             icon: Icons.chevron_left,
             tooltip: l10n.previousMonth,
@@ -170,6 +192,8 @@ class _MonthHeader extends StatelessWidget {
             tooltip: l10n.nextMonth,
             onPressed: onNextMonth,
           ),
+          // 左側の設定ボタンと余白ぶんを確保し、月ラベルを画面中央に保つ。
+          const SizedBox(width: 42),
         ],
       ),
     );

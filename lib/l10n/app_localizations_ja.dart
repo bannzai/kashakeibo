@@ -36,6 +36,53 @@ class AppLocalizationsJa extends AppLocalizations {
   String get nextMonth => '次の月';
 
   @override
+  String get openSettings => '設定を開く';
+
+  @override
+  String get settingsTitle => '設定';
+
+  @override
+  String get accountBackupTitle => 'バックアップ';
+
+  @override
+  String get accountBackupNotSet => '未設定';
+
+  @override
+  String get accountBackupConfigured => '設定済み';
+
+  @override
+  String get accountBackupDescription => 'アカウントをリンクすると、機種変更してもデータが引き継げます。';
+
+  @override
+  String get accountBackupConfiguredDescription =>
+      '別の端末で同じアカウントを選ぶと、保存済みのデータを引き継げます。';
+
+  @override
+  String get linkOrSignInWithApple => 'Appleでリンク';
+
+  @override
+  String get linkOrSignInWithGoogle => 'Googleでリンク';
+
+  @override
+  String get accountLinked => 'アカウントをリンクしました';
+
+  @override
+  String get deleteAccount => 'アカウントを削除';
+
+  @override
+  String get deleteAccountConfirmationTitle => 'アカウントを削除しますか？';
+
+  @override
+  String get deleteAccountConfirmationMessage =>
+      'アカウントと保存済みの明細は完全に削除され、元に戻せません。';
+
+  @override
+  String get cancel => 'キャンセル';
+
+  @override
+  String get delete => '削除する';
+
+  @override
   String get categoryFood => '食費';
 
   @override
