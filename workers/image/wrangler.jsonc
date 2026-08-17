@@ -12,6 +12,8 @@
   "env": {
     "dev": {
       "name": "kashakeibo-image-worker-dev",
+      // workers.dev URL で配信する (MVP ではカスタムドメインを使わない)。デプロイ時の warning 抑止のため明記
+      "workers_dev": true,
       "r2_buckets": [
         {
           "binding": "IMAGE_BUCKET",
@@ -49,6 +51,8 @@
     },
     "prod": {
       "name": "kashakeibo-image-worker-prod",
+      // workers.dev URL で配信する (MVP ではカスタムドメインを使わない)。デプロイ時の warning 抑止のため明記
+      "workers_dev": true,
       "r2_buckets": [
         {
           "binding": "IMAGE_BUCKET",
