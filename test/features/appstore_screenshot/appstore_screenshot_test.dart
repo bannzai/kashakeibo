@@ -51,6 +51,34 @@ void main() {
     }
   });
 
+  test('日本語サブセットフォントに掲載文言の字形がすべて含まれる', () async {
+    final source = await File(
+      'lib/features/appstore_screenshot/appstore_screenshot.dart',
+    ).readAsString();
+    final requiredCodePoints = RegExp(r"""'((?:\\.|[^'\\])*)'""")
+        .allMatches(source)
+        .expand((match) => match.group(1)!.runes)
+        .where((codePoint) => codePoint > 0x7f);
+    final fontData = await _readFontFile(
+      path: 'assets/fonts/NotoSansJP-AppStoreSubset.ttf',
+    );
+    final missingCharacters =
+        requiredCodePoints
+            .where((codePoint) => !_fontHasGlyph(fontData, codePoint))
+            .map(String.fromCharCode)
+            .toSet()
+            .toList()
+          ..sort();
+
+    expect(
+      missingCharacters,
+      isEmpty,
+      reason:
+          '日本語サブセットフォントに未収録の文字があります: '
+          '${missingCharacters.join()}',
+    );
+  });
+
   for (final locale in AppStoreScreenshotLocale.values) {
     for (final device in AppStoreScreenshotDevice.values) {
       for (final pageNumber in appStoreScreenshotPageNumbers) {
@@ -70,6 +98,19 @@ void main() {
         });
       }
     }
+
+    testWidgets(
+      '${locale.fastlaneDirectoryName} の Product Page Header が描画できる',
+      (tester) async {
+        await _pumpAsset(
+          tester: tester,
+          logicalSize: const Size(1920, 823),
+          child: ProductPageHeaderCreative(locale: locale),
+        );
+
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets('App Store assets を生成する', (tester) async {
@@ -155,6 +196,102 @@ Future<void> _loadFigtreeFont() async {
 /// pubspec に含めない日本語サブセットをテスト用 ByteData として読む。
 Future<ByteData> _readFontFile({required String path}) async {
   return ByteData.sublistView(await File(path).readAsBytes());
+}
+
+/// TrueType/OpenType の Unicode cmap に指定文字の字形があるかを返す。
+bool _fontHasGlyph(ByteData fontData, int codePoint) {
+  final tableCount = fontData.getUint16(4);
+  int? cmapOffset;
+  for (var tableIndex = 0; tableIndex < tableCount; tableIndex += 1) {
+    final recordOffset = 12 + (tableIndex * 16);
+    final tag = String.fromCharCodes([
+      for (var byteIndex = 0; byteIndex < 4; byteIndex += 1)
+        fontData.getUint8(recordOffset + byteIndex),
+    ]);
+    if (tag == 'cmap') {
+      cmapOffset = fontData.getUint32(recordOffset + 8);
+      break;
+    }
+  }
+  if (cmapOffset == null) {
+    throw const FormatException('フォントに cmap テーブルがありません');
+  }
+
+  final subtableCount = fontData.getUint16(cmapOffset + 2);
+  for (
+    var subtableIndex = 0;
+    subtableIndex < subtableCount;
+    subtableIndex += 1
+  ) {
+    final recordOffset = cmapOffset + 4 + (subtableIndex * 8);
+    final platformId = fontData.getUint16(recordOffset);
+    final encodingId = fontData.getUint16(recordOffset + 2);
+    final isUnicodeTable =
+        platformId == 0 ||
+        (platformId == 3 && (encodingId == 1 || encodingId == 10));
+    if (!isUnicodeTable) {
+      continue;
+    }
+
+    final subtableOffset = cmapOffset + fontData.getUint32(recordOffset + 4);
+    final format = fontData.getUint16(subtableOffset);
+    if (format == 4 && _format4HasGlyph(fontData, subtableOffset, codePoint)) {
+      return true;
+    }
+    if (format == 12 &&
+        _format12HasGlyph(fontData, subtableOffset, codePoint)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// BMP 用 cmap format 4 から指定文字の glyph ID を探す。
+bool _format4HasGlyph(ByteData fontData, int offset, int codePoint) {
+  if (codePoint > 0xffff) {
+    return false;
+  }
+  final segmentCount = fontData.getUint16(offset + 6) ~/ 2;
+  final endCodesOffset = offset + 14;
+  final startCodesOffset = endCodesOffset + (segmentCount * 2) + 2;
+  final deltasOffset = startCodesOffset + (segmentCount * 2);
+  final rangeOffsetsOffset = deltasOffset + (segmentCount * 2);
+
+  for (var segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+    final endCode = fontData.getUint16(endCodesOffset + (segmentIndex * 2));
+    final startCode = fontData.getUint16(startCodesOffset + (segmentIndex * 2));
+    if (codePoint < startCode || codePoint > endCode) {
+      continue;
+    }
+
+    final delta = fontData.getInt16(deltasOffset + (segmentIndex * 2));
+    final rangeOffsetPosition = rangeOffsetsOffset + (segmentIndex * 2);
+    final rangeOffset = fontData.getUint16(rangeOffsetPosition);
+    if (rangeOffset == 0) {
+      return ((codePoint + delta) & 0xffff) != 0;
+    }
+    final glyphPosition =
+        rangeOffsetPosition + rangeOffset + ((codePoint - startCode) * 2);
+    final glyphId = fontData.getUint16(glyphPosition);
+    return glyphId != 0 && ((glyphId + delta) & 0xffff) != 0;
+  }
+  return false;
+}
+
+/// 補助平面対応の cmap format 12 から指定文字の glyph ID を探す。
+bool _format12HasGlyph(ByteData fontData, int offset, int codePoint) {
+  final groupCount = fontData.getUint32(offset + 12);
+  for (var groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
+    final groupOffset = offset + 16 + (groupIndex * 12);
+    final startCode = fontData.getUint32(groupOffset);
+    final endCode = fontData.getUint32(groupOffset + 4);
+    if (codePoint < startCode || codePoint > endCode) {
+      continue;
+    }
+    final startGlyphId = fontData.getUint32(groupOffset + 8);
+    return startGlyphId + codePoint - startCode != 0;
+  }
+  return false;
 }
 
 /// 指定論理サイズで素材 Widget を描画し、画像化対象の key を返す。

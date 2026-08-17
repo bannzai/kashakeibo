@@ -54,7 +54,7 @@ func stripAlphaChannel(filePath: String) throws {
         )
     }
 
-    let temporaryURL = fileURL.appendingPathExtension("rgb-temporary.png")
+    let temporaryURL = fileURL.appendingPathExtension("rgb-temporary")
     if FileManager.default.fileExists(atPath: temporaryURL.path) {
         try FileManager.default.removeItem(at: temporaryURL)
     }

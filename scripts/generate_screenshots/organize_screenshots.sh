@@ -52,6 +52,14 @@ else
 fi
 
 for language in "${languages[@]}"; do
+  case "$language" in
+    ja|en-US) ;;
+    *)
+      printf '未対応の言語ディレクトリです: %s（対応: ja, en-US）\n' "$language" >&2
+      exit 2
+      ;;
+  esac
+
   source_files=()
   while IFS= read -r source_file; do
     source_files+=("$source_file")
