@@ -1,0 +1,92 @@
+{
+  // カシャケイボの画像アップロード・取得 Worker。
+  // R2 への読み書きはこの Worker に一本化し、Firebase Auth の ID token 検証を通ったリクエストだけを許可する。
+  // レシート・明細スクショは機微情報のため、R2 の公開バケット配信は使わない (documents/adr/0001-tech-stack.md)。
+  //
+  // デプロイは environment 必須: `wrangler deploy --env dev` / `wrangler deploy --env prod`。
+  // トップレベルに binding を置かないことで、env 指定なしの誤デプロイを防ぐ。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kashakeibo-image-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-06",
+  "env": {
+    "dev": {
+      "name": "kashakeibo-image-worker-dev",
+      // workers.dev URL で配信する (MVP ではカスタムドメインを使わない)。デプロイ時の warning 抑止のため明記
+      "workers_dev": true,
+      "r2_buckets": [
+        {
+          "binding": "IMAGE_BUCKET",
+          "bucket_name": "kashakeibo-images-dev"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          // Firebase の公開 JWK のキャッシュ先 (wrangler kv namespace create PUBLIC_JWK_CACHE_KV_DEV で作成済み)
+          "binding": "PUBLIC_JWK_CACHE_KV",
+          "id": "c003fcbb5016488fb252bb978373c94f"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            // 日次アップロード回数カウンター。判定と加算を直列化して並行リクエストの上限すり抜けを防ぐ
+            "name": "DAILY_UPLOAD_COUNTER",
+            "class_name": "DailyUploadCounter"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["DailyUploadCounter"]
+        }
+      ],
+      "vars": {
+        // Firebase プロジェクト ID (firebase/.firebaserc の dev と一致させる)
+        "FIREBASE_PROJECT_ID": "kashakeibo-dev",
+        // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
+        "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache"
+      }
+    },
+    "prod": {
+      "name": "kashakeibo-image-worker-prod",
+      // workers.dev URL で配信する (MVP ではカスタムドメインを使わない)。デプロイ時の warning 抑止のため明記
+      "workers_dev": true,
+      "r2_buckets": [
+        {
+          "binding": "IMAGE_BUCKET",
+          "bucket_name": "kashakeibo-images-prod"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          // Firebase の公開 JWK のキャッシュ先 (wrangler kv namespace create PUBLIC_JWK_CACHE_KV_PROD で作成済み)
+          "binding": "PUBLIC_JWK_CACHE_KV",
+          "id": "98574226099d44c7a63da1b74a397c04"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            // 日次アップロード回数カウンター。判定と加算を直列化して並行リクエストの上限すり抜けを防ぐ
+            "name": "DAILY_UPLOAD_COUNTER",
+            "class_name": "DailyUploadCounter"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["DailyUploadCounter"]
+        }
+      ],
+      "vars": {
+        // Firebase プロジェクト ID (firebase/.firebaserc の prod と一致させる)
+        "FIREBASE_PROJECT_ID": "kashakeibo-prod",
+        // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
+        "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache"
+      }
+    }
+  }
+}
