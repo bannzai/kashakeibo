@@ -76,6 +76,10 @@
   "@accountLinked": {
     "description": "Message shown after account linking succeeds"
   },
+  "existingAccountSignedIn": "Switched to your existing account",
+  "@existingAccountSignedIn": {
+    "description": "Message shown after signing in to an account that was already linked on another device"
+  },
   "accountSwitchWarningTitle": "Check this device's data",
   "@accountSwitchWarningTitle": {
     "description": "Title shown before linking when the anonymous user already has data"

@@ -68,6 +68,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountLinked => 'Account linked';
 
   @override
+  String get existingAccountSignedIn => 'Switched to your existing account';
+
+  @override
   String get accountSwitchWarningTitle => 'Check this device\'s data';
 
   @override

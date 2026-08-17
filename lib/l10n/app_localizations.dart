@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'Account linked'**
   String get accountLinked;
 
+  /// Message shown after signing in to an account that was already linked on another device
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to your existing account'**
+  String get existingAccountSignedIn;
+
   /// Title shown before linking when the anonymous user already has data
   ///
   /// In en, this message translates to:

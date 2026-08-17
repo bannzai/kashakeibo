@@ -7,9 +7,19 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:kashakeibo/features/image_upload/image_upload_client.dart'
     as image_upload;
+import 'package:kashakeibo/provider/transaction.dart';
 
 /// 設定画面から実行するアカウント操作。
-typedef AccountAction = Future<void> Function();
+typedef AccountAction = Future<AccountActionResult> Function();
+
+/// アカウント操作が現在 UID へのリンクか、既存 UID への切替か。
+enum AccountActionResult {
+  /// 現在の UID へ認証情報をリンクした。
+  linked,
+
+  /// 認証情報が使用済みだったため既存 UID へ切り替えた。
+  signedInExistingAccount,
+}
 
 /// アカウント削除前の再認証を実行し、Apple の認可コードがあれば返す関数。
 typedef ReauthenticateForAccountDeletion =
@@ -65,28 +75,32 @@ Future<void> initializeGoogleSignInIfNeeded() async {
 /// Google の認証フローを実行し、Firebase Auth 用の認証情報を返す。
 Future<OAuthCredential> requestGoogleCredential() async {
   await initializeGoogleSignInIfNeeded();
-  return GoogleAuthProvider.credential(
-    idToken:
-        (await GoogleSignIn.instance.authenticate()).authentication.idToken,
-  );
+  final googleAuthentication =
+      (await GoogleSignIn.instance.authenticate()).authentication;
+  final googleIDToken = googleAuthentication.idToken;
+  if (googleIDToken == null) {
+    throw StateError('Googleの認証情報を取得できないため、アカウントをリンクできない');
+  }
+  return GoogleAuthProvider.credential(idToken: googleIDToken);
 }
 
 /// 現在の匿名ユーザーへ Apple をリンクする。
 ///
 /// 同じ Apple ID が既存の Firebase ユーザーへリンク済みなら、そのユーザーへ
 /// サインインする。これにより別端末でも同じ UID 配下のデータを参照できる。
-Future<void> linkOrSignInCurrentUserWithApple() async {
+Future<AccountActionResult> linkOrSignInCurrentUserWithApple() async {
   final currentUser = FirebaseAuth.instance.currentUser;
   if (currentUser == null) {
     throw StateError('サインイン前に Apple アカウントはリンクできない');
   }
   if (hasLinkedProvider(user: currentUser, providerID: 'apple.com')) {
-    return;
+    return AccountActionResult.linked;
   }
 
   final appleAuthProvider = AppleAuthProvider();
   try {
     await currentUser.linkWithProvider(appleAuthProvider);
+    return AccountActionResult.linked;
   } on FirebaseAuthException catch (error) {
     if (error.code != 'credential-already-in-use') {
       rethrow;
@@ -96,11 +110,12 @@ Future<void> linkOrSignInCurrentUserWithApple() async {
     }
     if (error.credential != null) {
       await FirebaseAuth.instance.signInWithCredential(error.credential!);
-      return;
+      return AccountActionResult.signedInExistingAccount;
     }
     // Apple のプラットフォーム実装が衝突時の credential を返さない場合だけ、
     // 既存ユーザーへのサインインフローを再度表示する。
     await FirebaseAuth.instance.signInWithProvider(appleAuthProvider);
+    return AccountActionResult.signedInExistingAccount;
   }
 }
 
@@ -108,18 +123,19 @@ Future<void> linkOrSignInCurrentUserWithApple() async {
 ///
 /// 同じ Google アカウントが既存の Firebase ユーザーへリンク済みなら、その
 /// ユーザーへサインインする。これにより別端末でも同じ UID のデータを参照できる。
-Future<void> linkOrSignInCurrentUserWithGoogle() async {
+Future<AccountActionResult> linkOrSignInCurrentUserWithGoogle() async {
   final currentUser = FirebaseAuth.instance.currentUser;
   if (currentUser == null) {
     throw StateError('サインイン前に Google アカウントはリンクできない');
   }
   if (hasLinkedProvider(user: currentUser, providerID: 'google.com')) {
-    return;
+    return AccountActionResult.linked;
   }
 
   final googleAuthCredential = await requestGoogleCredential();
   try {
     await currentUser.linkWithCredential(googleAuthCredential);
+    return AccountActionResult.linked;
   } on FirebaseAuthException catch (error) {
     if (error.code != 'credential-already-in-use') {
       rethrow;
@@ -128,6 +144,7 @@ Future<void> linkOrSignInCurrentUserWithGoogle() async {
       rethrow;
     }
     await FirebaseAuth.instance.signInWithCredential(googleAuthCredential);
+    return AccountActionResult.signedInExistingAccount;
   }
 }
 
@@ -137,12 +154,9 @@ Future<bool> hasCurrentUserData() async {
   if (currentUser == null) {
     return false;
   }
-  final transactionDocuments = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(currentUser.uid)
-      .collection('transactions')
-      .limit(1)
-      .get();
+  final transactionDocuments = await transactionDocumentsReference(
+    userID: currentUser.uid,
+  ).limit(1).get();
   return transactionDocuments.docs.isNotEmpty;
 }
 
@@ -247,12 +261,10 @@ class FirebaseDeleteAccount implements DeleteAccount {
     while (true) {
       // Firestore の1バッチ上限500件に対して、将来同じバッチへ別の削除を追加しても
       // 上限を越えない余裕を残すため400件ずつ処理する。
-      final transactionDocuments = await firebaseFirestore
-          .collection('users')
-          .doc(userID)
-          .collection('transactions')
-          .limit(400)
-          .get();
+      final transactionDocuments = await transactionDocumentsReference(
+        userID: userID,
+        firebaseFirestore: firebaseFirestore,
+      ).limit(400).get();
       if (transactionDocuments.docs.isEmpty) {
         return;
       }

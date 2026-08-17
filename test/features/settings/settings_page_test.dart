@@ -77,9 +77,11 @@ void main() {
         firebaseUser: firebaseUser,
         linkOrSignInWithApple: () async {
           appleLinkCount++;
+          return AccountActionResult.linked;
         },
         linkOrSignInWithGoogle: () async {
           googleLinkCount++;
+          return AccountActionResult.linked;
         },
         deleteAccount: FakeDeleteAccount(),
         logAnalyticsEvent: ({required name}) async {
@@ -112,6 +114,33 @@ void main() {
     );
   });
 
+  testWidgets('既存アカウントへサインインした場合はリンクではなく切替完了を表示する', (tester) async {
+    final firebaseUser = MockSettingsUser();
+    when(() => firebaseUser.isAnonymous).thenReturn(true);
+    when(() => firebaseUser.providerData).thenReturn(const []);
+
+    await tester.pumpWidget(
+      buildSettingsApp(
+        firebaseUser: firebaseUser,
+        linkOrSignInWithApple: () async => AccountActionResult.linked,
+        linkOrSignInWithGoogle: () async =>
+            AccountActionResult.signedInExistingAccount,
+        deleteAccount: FakeDeleteAccount(),
+        logAnalyticsEvent: ({required name}) async {},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppLocalizationsEn().linkOrSignInWithGoogle));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.text(AppLocalizationsEn().existingAccountSignedIn),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('リンク済みユーザーは設定済みになり、リンク済みプロバイダのボタンを隠す', (tester) async {
     final firebaseUser = MockSettingsUser();
     final appleUserInfo = MockUserInfo();
@@ -122,8 +151,8 @@ void main() {
     await tester.pumpWidget(
       buildSettingsApp(
         firebaseUser: firebaseUser,
-        linkOrSignInWithApple: () async {},
-        linkOrSignInWithGoogle: () async {},
+        linkOrSignInWithApple: () async => AccountActionResult.linked,
+        linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: FakeDeleteAccount(),
         logAnalyticsEvent: ({required name}) async {},
       ),
@@ -153,8 +182,9 @@ void main() {
         firebaseUser: firebaseUser,
         linkOrSignInWithApple: () async {
           appleLinkCount++;
+          return AccountActionResult.linked;
         },
-        linkOrSignInWithGoogle: () async {},
+        linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: FakeDeleteAccount(),
         logAnalyticsEvent: ({required name}) async {
           analyticsEvents.add(name);
@@ -191,8 +221,9 @@ void main() {
         firebaseUser: firebaseUser,
         linkOrSignInWithApple: () async {
           appleLinkCount++;
+          return AccountActionResult.linked;
         },
-        linkOrSignInWithGoogle: () async {},
+        linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: FakeDeleteAccount(),
         logAnalyticsEvent: ({required name}) {
           analyticsCount++;
@@ -215,6 +246,46 @@ void main() {
     expect(appleLinkCount, 1);
   });
 
+  testWidgets('Analyticsの完了待ち中に削除ボタンを連打しても確認ダイアログは一つだけ表示する', (tester) async {
+    final firebaseUser = MockSettingsUser();
+    final analyticsCompleter = Completer<void>();
+    var deleteStartAnalyticsCount = 0;
+    when(() => firebaseUser.isAnonymous).thenReturn(true);
+    when(() => firebaseUser.providerData).thenReturn(const []);
+
+    await tester.pumpWidget(
+      buildSettingsApp(
+        firebaseUser: firebaseUser,
+        linkOrSignInWithApple: () async => AccountActionResult.linked,
+        linkOrSignInWithGoogle: () async => AccountActionResult.linked,
+        deleteAccount: FakeDeleteAccount(),
+        logAnalyticsEvent: ({required name}) {
+          if (name == 'delete_account_start') {
+            deleteStartAnalyticsCount++;
+            return analyticsCompleter.future;
+          }
+          return Future.value();
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final deleteAccountButton = find.text(AppLocalizationsEn().deleteAccount);
+    await tester.tap(deleteAccountButton);
+    await tester.tap(deleteAccountButton);
+    expect(deleteStartAnalyticsCount, 1);
+
+    analyticsCompleter.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.text(AppLocalizationsEn().deleteAccountConfirmationTitle),
+      findsOneWidget,
+    );
+    await tester.tap(find.text(AppLocalizationsEn().cancel));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('確認ダイアログで削除するとアカウント削除機能を実行する', (tester) async {
     final firebaseUser = MockSettingsUser();
     final deleteAccount = FakeDeleteAccount();
@@ -225,8 +296,8 @@ void main() {
     await tester.pumpWidget(
       buildSettingsApp(
         firebaseUser: firebaseUser,
-        linkOrSignInWithApple: () async {},
-        linkOrSignInWithGoogle: () async {},
+        linkOrSignInWithApple: () async => AccountActionResult.linked,
+        linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: deleteAccount,
         logAnalyticsEvent: ({required name}) async {
           analyticsEvents.add(name);
@@ -236,7 +307,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(AppLocalizationsEn().deleteAccount));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(
       find.text(AppLocalizationsEn().deleteAccountConfirmationTitle),
       findsOneWidget,

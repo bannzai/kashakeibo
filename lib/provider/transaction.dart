@@ -7,17 +7,22 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'transaction.g.dart';
 
+/// `/users/{userID}/transactions` への未変換の参照。
+CollectionReference<Map<String, dynamic>> transactionDocumentsReference({
+  required String userID,
+  FirebaseFirestore? firebaseFirestore,
+}) => (firebaseFirestore ?? FirebaseFirestore.instance)
+    .collection('users')
+    .doc(userID)
+    .collection('transactions');
+
 /// `/users/{userID}/transactions` への参照 (Entity コンバータ適用済み)。
 CollectionReference<Transaction> transactionsReference({
   required String userID,
-}) => FirebaseFirestore.instance
-    .collection('users')
-    .doc(userID)
-    .collection('transactions')
-    .withConverter(
-      fromFirestore: Transaction.fromFirestore,
-      toFirestore: Transaction.toFirestore,
-    );
+}) => transactionDocumentsReference(userID: userID).withConverter(
+  fromFirestore: Transaction.fromFirestore,
+  toFirestore: Transaction.toFirestore,
+);
 
 /// 指定月 (yearMonth: "2026-08" 形式) の明細一覧を取引日時の降順で購読するストリーム。
 ///

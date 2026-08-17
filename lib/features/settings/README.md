@@ -28,4 +28,5 @@
 ## 有効期限・制約
 
 - Firebase Authentication の Apple / Google プロバイダ設定と、各プラットフォームの OAuth 設定が必要
+- Android の Google 認証には、Web OAuth client を含む `google-services.json` を Firebase から再取得し、生成される `default_web_client_id` を `google_sign_in` が読める状態にする
 - R2 画像は Firebase Auth ユーザーを削除する前に、画像 Worker の `DELETE /images` で削除する

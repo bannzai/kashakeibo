@@ -44,13 +44,18 @@ class SettingsPage extends HookConsumerWidget {
             return;
           }
         }
-        await accountAction();
+        final accountActionResult = await accountAction();
         if (!context.mounted) {
           return;
         }
+        final successMessage = switch (accountActionResult) {
+          AccountActionResult.linked => l10n.accountLinked,
+          AccountActionResult.signedInExistingAccount =>
+            l10n.existingAccountSignedIn,
+        };
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.accountLinked)));
+        ).showSnackBar(SnackBar(content: Text(successMessage)));
       } catch (error) {
         if (!context.mounted) {
           return;
@@ -124,18 +129,21 @@ class SettingsPage extends HookConsumerWidget {
                     onPressed: operationInProgress.value
                         ? null
                         : () async {
-                            await logAnalyticsEvent(
-                              name: 'delete_account_start',
-                            );
-                            if (!context.mounted ||
-                                !await _confirmAccountDeletion(
-                                  context: context,
-                                  logAnalyticsEvent: logAnalyticsEvent,
-                                )) {
+                            if (operationInProgress.value) {
                               return;
                             }
                             operationInProgress.value = true;
                             try {
+                              await logAnalyticsEvent(
+                                name: 'delete_account_start',
+                              );
+                              if (!context.mounted ||
+                                  !await _confirmAccountDeletion(
+                                    context: context,
+                                    logAnalyticsEvent: logAnalyticsEvent,
+                                  )) {
+                                return;
+                              }
                               await deleteAccount.call();
                               if (context.mounted) {
                                 Navigator.of(context).pop();
