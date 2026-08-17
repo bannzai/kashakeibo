@@ -723,7 +723,7 @@ class _DuplicateDetectionMock extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              isJapanese ? '≒ 金額と日付が一致' : '≒ Same amount and date',
+              isJapanese ? '金額と日付が一致' : 'Same amount and date',
               style: const TextStyle(
                 color: AppColors.sage700,
                 fontSize: 11,
