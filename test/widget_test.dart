@@ -103,6 +103,12 @@ void main() {
   });
 
   testWidgets('月次一覧: 明細が無い月は空メッセージを表示する', (tester) async {
+    final analyticsEvents = <String>[];
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -110,10 +116,14 @@ void main() {
             yearMonth: yearMonthFrom(dateTime: DateTime.now()),
           ).overrideWith((ref) => Stream.value(const [])),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: MonthlyPage(),
+          home: MonthlyPage(
+            logAnalyticsEvent: ({required name, parameters}) async {
+              analyticsEvents.add(name);
+            },
+          ),
         ),
       ),
     );
@@ -129,10 +139,12 @@ void main() {
 
     expect(find.text(AppLocalizationsEn().settings), findsOneWidget);
     expect(find.text(AppLocalizationsEn().termsOfService), findsOneWidget);
+    expect(analyticsEvents, ['settings_open']);
   });
 
   testWidgets('設定画面: 3つの法務ドキュメントを開ける', (tester) async {
     final openedUris = <Uri>[];
+    final analyticsEvents = <({String name, String document})>[];
 
     await tester.pumpWidget(
       MaterialApp(
@@ -141,6 +153,12 @@ void main() {
         home: SettingsPage(
           openExternalUri: ({required uri}) async {
             openedUris.add(uri);
+          },
+          logAnalyticsEvent: ({required name, parameters}) async {
+            analyticsEvents.add((
+              name: name,
+              document: parameters!['document']! as String,
+            ));
           },
         ),
       ),
@@ -160,6 +178,14 @@ void main() {
       Uri.parse('https://bannzai.github.io/kashakeibo/PrivacyPolicy-en'),
       Uri.parse(
         'https://bannzai.github.io/kashakeibo/SpecifiedCommercialTransactionAct-ja',
+      ),
+    ]);
+    expect(analyticsEvents, [
+      (name: 'legal_document_open', document: 'terms'),
+      (name: 'legal_document_open', document: 'privacy_policy'),
+      (
+        name: 'legal_document_open',
+        document: 'specified_commercial_transaction_act',
       ),
     ]);
   });

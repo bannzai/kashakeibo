@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -9,6 +11,7 @@ import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/style/tokens.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
 
 /// 月次一覧画面。月切替ヘッダー・収支サマリー・カテゴリ内訳・明細リストを表示する。
 ///
@@ -18,7 +21,10 @@ import 'package:kashakeibo/style/tokens.dart';
 /// 集計はサマリードキュメントを持たず、購読中の当月明細からクライアント集計する
 /// (`.claude/rules/firestore-aggregation-rules.md`)。
 class MonthlyPage extends HookConsumerWidget {
-  const MonthlyPage({super.key});
+  /// Analyticsイベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
+  const MonthlyPage({this.logAnalyticsEvent = recordAnalyticsEvent, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,6 +57,7 @@ class MonthlyPage extends HookConsumerWidget {
                   displayMonth.value.month + 1,
                 );
               },
+              logAnalyticsEvent: logAnalyticsEvent,
             ),
             Expanded(
               child: transactionsAsync.when(
@@ -112,10 +119,14 @@ class _MonthHeader extends StatelessWidget {
   /// 次の月ボタンのコールバック。
   final VoidCallback onNextMonth;
 
+  /// Analyticsイベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
   const _MonthHeader({
     required this.displayMonth,
     required this.onPreviousMonth,
     required this.onNextMonth,
+    required this.logAnalyticsEvent,
   });
 
   @override
@@ -123,67 +134,77 @@ class _MonthHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
-      child: Row(
+      child: Column(
         children: [
-          _CircleGhostButton(
-            icon: Icons.chevron_left,
-            tooltip: l10n.previousMonth,
-            onPressed: onPreviousMonth,
-          ),
-          const SizedBox(width: 42),
-          Expanded(
-            child: GestureDetector(
-              onLongPress: kDebugMode
-                  ? () {
-                      showModalBottomSheet<void>(
-                        context: context,
-                        builder: (context) => const DebugSheet(),
-                      );
-                    }
-                  : null,
-              child: Column(
-                children: [
-                  Text(
-                    DateFormat.yMMMM(
-                      Localizations.localeOf(context).toString(),
-                    ).format(displayMonth),
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
+          Align(
+            alignment: Alignment.centerRight,
+            child: _CircleGhostButton(
+              icon: Icons.tune,
+              tooltip: l10n.openSettings,
+              onPressed: () {
+                unawaited(logAnalyticsEvent(name: 'settings_open'));
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => SettingsPage(
+                      openExternalUri: openExternalUri,
+                      logAnalyticsEvent: logAnalyticsEvent,
                     ),
                   ),
-                  Text(
-                    DateFormat(
-                      'MMMM yyyy',
-                      'en_US',
-                    ).format(displayMonth).toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      color: AppColors.neutral600,
-                      letterSpacing: 0.63,
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
-          _CircleGhostButton(
-            icon: Icons.chevron_right,
-            tooltip: l10n.nextMonth,
-            onPressed: onNextMonth,
-          ),
-          const SizedBox(width: 8),
-          _CircleGhostButton(
-            icon: Icons.tune,
-            tooltip: l10n.openSettings,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) =>
-                      SettingsPage(openExternalUri: openExternalUri),
+          Row(
+            children: [
+              _CircleGhostButton(
+                icon: Icons.chevron_left,
+                tooltip: l10n.previousMonth,
+                onPressed: onPreviousMonth,
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onLongPress: kDebugMode
+                      ? () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            builder: (context) => const DebugSheet(),
+                          );
+                        }
+                      : null,
+                  child: Column(
+                    children: [
+                      Text(
+                        DateFormat.yMMMM(
+                          Localizations.localeOf(context).toString(),
+                        ).format(displayMonth),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        DateFormat(
+                          'MMMM yyyy',
+                          'en_US',
+                        ).format(displayMonth).toUpperCase(),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          color: AppColors.neutral600,
+                          letterSpacing: 0.63,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              );
-            },
+              ),
+              _CircleGhostButton(
+                icon: Icons.chevron_right,
+                tooltip: l10n.nextMonth,
+                onPressed: onNextMonth,
+              ),
+            ],
           ),
         ],
       ),

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/style/tokens.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _legalDocumentsHost = 'bannzai.github.io';
@@ -23,7 +26,14 @@ class SettingsPage extends StatelessWidget {
   /// 外部URLを開く処理。
   final OpenExternalUri openExternalUri;
 
-  const SettingsPage({required this.openExternalUri, super.key});
+  /// Analyticsイベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
+  const SettingsPage({
+    required this.openExternalUri,
+    this.logAnalyticsEvent = recordAnalyticsEvent,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,22 +64,28 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   _LegalDocumentRow(
                     label: l10n.termsOfService,
+                    document: 'terms',
                     uri: _legalDocumentUri(path: 'Terms'),
                     openExternalUri: openExternalUri,
+                    logAnalyticsEvent: logAnalyticsEvent,
                   ),
                   const Divider(height: 1),
                   _LegalDocumentRow(
                     label: l10n.privacyPolicy,
+                    document: 'privacy_policy',
                     uri: _legalDocumentUri(path: privacyPolicyPath),
                     openExternalUri: openExternalUri,
+                    logAnalyticsEvent: logAnalyticsEvent,
                   ),
                   const Divider(height: 1),
                   _LegalDocumentRow(
                     label: l10n.specifiedCommercialTransactionAct,
+                    document: 'specified_commercial_transaction_act',
                     uri: _legalDocumentUri(
                       path: 'SpecifiedCommercialTransactionAct-ja',
                     ),
                     openExternalUri: openExternalUri,
+                    logAnalyticsEvent: logAnalyticsEvent,
                   ),
                 ],
               ),
@@ -90,16 +106,24 @@ class _LegalDocumentRow extends StatelessWidget {
   /// 行に表示する文言。
   final String label;
 
+  /// Analyticsで法務ドキュメントを識別する値。
+  final String document;
+
   /// 開く法務ドキュメントのURL。
   final Uri uri;
 
   /// 外部URLを開く処理。
   final OpenExternalUri openExternalUri;
 
+  /// Analyticsイベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
   const _LegalDocumentRow({
     required this.label,
+    required this.document,
     required this.uri,
     required this.openExternalUri,
+    required this.logAnalyticsEvent,
   });
 
   @override
@@ -112,6 +136,12 @@ class _LegalDocumentRow extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right, color: AppColors.neutral500),
       onTap: () async {
+        unawaited(
+          logAnalyticsEvent(
+            name: 'legal_document_open',
+            parameters: {'document': document},
+          ),
+        );
         try {
           await openExternalUri(uri: uri);
         } catch (error) {
