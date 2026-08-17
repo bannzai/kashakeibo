@@ -68,6 +68,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountLinked => 'Account linked';
 
   @override
+  String get accountSwitchWarningTitle => 'Check this device\'s data';
+
+  @override
+  String get accountSwitchWarningMessage =>
+      'If the account you choose is already used on another device, this device\'s anonymous data will no longer be accessible. Review any transactions you need before continuing.';
+
+  @override
+  String get continueAccountLink => 'Continue';
+
+  @override
   String get deleteAccount => 'Delete account';
 
   @override

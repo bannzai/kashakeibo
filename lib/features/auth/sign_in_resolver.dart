@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -18,29 +17,28 @@ class SignInResolver extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final firebaseUserAsync = ref.watch(firebaseUserChangesProvider);
+    final ensureAnonymousSignIn = ref.watch(ensureAnonymousSignInProvider);
     final signInError = useState<Object?>(null);
 
     // Widget 内部で完結するローカル関数。サインイン失敗時のエラーを保持して
     // リトライボタンからも再実行できるようにする。
     Future<void> signInAnonymouslyIfNeeded() async {
-      if (FirebaseAuth.instance.currentUser != null) {
-        return;
-      }
       try {
-        await FirebaseAuth.instance.signInAnonymously();
+        await ensureAnonymousSignIn();
         signInError.value = null;
       } catch (error) {
         signInError.value = error;
       }
     }
 
-    // 初回起動 (未サインイン) 時に匿名サインインを開始する。
-    // アプリプロセスにつき一度実行すればよく、以降の再試行はリトライボタンが
-    // 担うため依存配列は空にする。
+    // 初回起動に加え、アカウント削除で UID が null へ戻った時にも匿名認証する。
+    final firebaseUserID = firebaseUserAsync.valueOrNull?.uid;
     useEffect(() {
-      signInAnonymouslyIfNeeded();
+      if (firebaseUserID == null) {
+        signInAnonymouslyIfNeeded();
+      }
       return null;
-    }, const []);
+    }, [firebaseUserID]);
 
     final firebaseUserChangesError = firebaseUserAsync.whenOrNull(
       error: (error, _) => error,

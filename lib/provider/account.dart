@@ -18,6 +18,9 @@ typedef ReauthenticateForAccountDeletion =
 /// アカウントに属する R2 画像を削除する関数。
 typedef DeleteAllImagesForAccount = Future<void> Function({required User user});
 
+/// 現在の匿名ユーザーに保存済みデータがあるかを返す関数。
+typedef HasCurrentUserData = Future<bool> Function();
+
 /// Apple アカウントのリンク、または既存アカウントへのサインイン操作。
 final linkOrSignInWithAppleProvider = Provider<AccountAction>(
   (ref) => linkOrSignInCurrentUserWithApple,
@@ -26,6 +29,11 @@ final linkOrSignInWithAppleProvider = Provider<AccountAction>(
 /// Google アカウントのリンク、または既存アカウントへのサインイン操作。
 final linkOrSignInWithGoogleProvider = Provider<AccountAction>(
   (ref) => linkOrSignInCurrentUserWithGoogle,
+);
+
+/// 現在の匿名ユーザーに保存済みデータがあるかを確認する機能。
+final hasCurrentUserDataProvider = Provider<HasCurrentUserData>(
+  (ref) => hasCurrentUserData,
 );
 
 /// 現在のユーザーと、現在保存済みのユーザーデータを削除する機能。
@@ -121,6 +129,21 @@ Future<void> linkOrSignInCurrentUserWithGoogle() async {
     }
     await FirebaseAuth.instance.signInWithCredential(googleAuthCredential);
   }
+}
+
+/// 現在のユーザーに明細が1件以上保存されているかを返す。
+Future<bool> hasCurrentUserData() async {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) {
+    return false;
+  }
+  final transactionDocuments = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(currentUser.uid)
+      .collection('transactions')
+      .limit(1)
+      .get();
+  return transactionDocuments.docs.isNotEmpty;
 }
 
 /// ユーザーに指定プロバイダがリンク済みかを返す。

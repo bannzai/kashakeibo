@@ -17,15 +17,33 @@ class SettingsPage extends HookConsumerWidget {
     final firebaseUserAsync = ref.watch(firebaseUserChangesProvider);
     final linkOrSignInWithApple = ref.watch(linkOrSignInWithAppleProvider);
     final linkOrSignInWithGoogle = ref.watch(linkOrSignInWithGoogleProvider);
+    final hasCurrentUserData = ref.watch(hasCurrentUserDataProvider);
     final deleteAccount = ref.watch(deleteAccountProvider);
     final logAnalyticsEvent = ref.watch(logAnalyticsEventProvider);
     final operationInProgress = useState(false);
     final l10n = AppLocalizations.of(context);
 
     /// アカウントリンクを実行し、結果を画面へ表示する。
-    Future<void> runLinkAction({required AccountAction accountAction}) async {
+    Future<void> runLinkAction({
+      required String analyticsEventName,
+      required bool isAnonymous,
+      required AccountAction accountAction,
+    }) async {
+      if (operationInProgress.value) {
+        return;
+      }
       operationInProgress.value = true;
       try {
+        await logAnalyticsEvent(name: analyticsEventName);
+        if (isAnonymous && await hasCurrentUserData()) {
+          if (!context.mounted ||
+              !await _confirmPossibleAccountSwitch(
+                context: context,
+                logAnalyticsEvent: logAnalyticsEvent,
+              )) {
+            return;
+          }
+        }
         await accountAction();
         if (!context.mounted) {
           return;
@@ -86,12 +104,18 @@ class SettingsPage extends HookConsumerWidget {
                   googleLinked: googleLinked,
                   operationInProgress: operationInProgress.value,
                   onApplePressed: () async {
-                    await logAnalyticsEvent(name: 'link_apple_account');
-                    await runLinkAction(accountAction: linkOrSignInWithApple);
+                    await runLinkAction(
+                      analyticsEventName: 'link_apple_account',
+                      isAnonymous: firebaseUser.isAnonymous,
+                      accountAction: linkOrSignInWithApple,
+                    );
                   },
                   onGooglePressed: () async {
-                    await logAnalyticsEvent(name: 'link_google_account');
-                    await runLinkAction(accountAction: linkOrSignInWithGoogle);
+                    await runLinkAction(
+                      analyticsEventName: 'link_google_account',
+                      isAnonymous: firebaseUser.isAnonymous,
+                      accountAction: linkOrSignInWithGoogle,
+                    );
                   },
                 ),
                 const SizedBox(height: 14),
@@ -272,6 +296,42 @@ class _BackupCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 匿名データがある状態で既存アカウントへ切り替わる可能性を確認する。
+Future<bool> _confirmPossibleAccountSwitch({
+  required BuildContext context,
+  required LogAnalyticsEvent logAnalyticsEvent,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  return await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.accountSwitchWarningTitle),
+          content: Text(l10n.accountSwitchWarningMessage),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await logAnalyticsEvent(name: 'account_switch_cancel');
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(false);
+                }
+              },
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () async {
+                await logAnalyticsEvent(name: 'account_switch_continue');
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(true);
+                }
+              },
+              child: Text(l10n.continueAccountLink),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 }
 
 /// アカウント削除の確認ダイアログを表示する。

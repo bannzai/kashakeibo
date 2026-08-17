@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,6 +37,7 @@ Widget buildSettingsApp({
   required AccountAction linkOrSignInWithGoogle,
   required DeleteAccount deleteAccount,
   required LogAnalyticsEvent logAnalyticsEvent,
+  HasCurrentUserData? hasCurrentUserData,
 }) => ProviderScope(
   overrides: [
     firebaseUserChangesProvider.overrideWith(
@@ -42,6 +45,9 @@ Widget buildSettingsApp({
     ),
     linkOrSignInWithAppleProvider.overrideWithValue(linkOrSignInWithApple),
     linkOrSignInWithGoogleProvider.overrideWithValue(linkOrSignInWithGoogle),
+    hasCurrentUserDataProvider.overrideWithValue(
+      hasCurrentUserData ?? () async => false,
+    ),
     deleteAccountProvider.overrideWithValue(deleteAccount),
     logAnalyticsEventProvider.overrideWithValue(logAnalyticsEvent),
   ],
@@ -133,6 +139,80 @@ void main() {
       find.text(AppLocalizationsEn().linkOrSignInWithGoogle),
       findsOneWidget,
     );
+  });
+
+  testWidgets('匿名データがある場合は既存アカウント切替の警告を表示し、キャンセルするとリンクしない', (tester) async {
+    final firebaseUser = MockSettingsUser();
+    var appleLinkCount = 0;
+    final analyticsEvents = <String>[];
+    when(() => firebaseUser.isAnonymous).thenReturn(true);
+    when(() => firebaseUser.providerData).thenReturn(const []);
+
+    await tester.pumpWidget(
+      buildSettingsApp(
+        firebaseUser: firebaseUser,
+        linkOrSignInWithApple: () async {
+          appleLinkCount++;
+        },
+        linkOrSignInWithGoogle: () async {},
+        deleteAccount: FakeDeleteAccount(),
+        logAnalyticsEvent: ({required name}) async {
+          analyticsEvents.add(name);
+        },
+        hasCurrentUserData: () async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppLocalizationsEn().linkOrSignInWithApple));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.text(AppLocalizationsEn().accountSwitchWarningTitle),
+      findsOneWidget,
+    );
+    await tester.tap(find.text(AppLocalizationsEn().cancel));
+    await tester.pumpAndSettle();
+
+    expect(appleLinkCount, 0);
+    expect(analyticsEvents, contains('account_switch_cancel'));
+  });
+
+  testWidgets('Analyticsの完了待ち中にリンクボタンを連打しても認証操作は一度だけ実行する', (tester) async {
+    final firebaseUser = MockSettingsUser();
+    final analyticsCompleter = Completer<void>();
+    var analyticsCount = 0;
+    var appleLinkCount = 0;
+    when(() => firebaseUser.isAnonymous).thenReturn(true);
+    when(() => firebaseUser.providerData).thenReturn(const []);
+
+    await tester.pumpWidget(
+      buildSettingsApp(
+        firebaseUser: firebaseUser,
+        linkOrSignInWithApple: () async {
+          appleLinkCount++;
+        },
+        linkOrSignInWithGoogle: () async {},
+        deleteAccount: FakeDeleteAccount(),
+        logAnalyticsEvent: ({required name}) {
+          analyticsCount++;
+          return analyticsCompleter.future;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final appleLinkButton = find.text(
+      AppLocalizationsEn().linkOrSignInWithApple,
+    );
+    await tester.tap(appleLinkButton);
+    await tester.tap(appleLinkButton);
+    expect(analyticsCount, 1);
+    expect(appleLinkCount, 0);
+
+    analyticsCompleter.complete();
+    await tester.pumpAndSettle();
+    expect(appleLinkCount, 1);
   });
 
   testWidgets('確認ダイアログで削除するとアカウント削除機能を実行する', (tester) async {

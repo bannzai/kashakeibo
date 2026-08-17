@@ -67,6 +67,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get accountLinked => 'アカウントをリンクしました';
 
   @override
+  String get accountSwitchWarningTitle => 'この端末のデータを確認';
+
+  @override
+  String get accountSwitchWarningMessage =>
+      '選択したアカウントが別の端末で利用中の場合、この端末の匿名データにはアクセスできなくなります。必要な明細を確認してから続けてください。';
+
+  @override
+  String get continueAccountLink => '続ける';
+
+  @override
   String get deleteAccount => 'アカウントを削除';
 
   @override

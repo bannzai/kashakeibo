@@ -212,6 +212,24 @@ abstract class AppLocalizations {
   /// **'Account linked'**
   String get accountLinked;
 
+  /// Title shown before linking when the anonymous user already has data
+  ///
+  /// In en, this message translates to:
+  /// **'Check this device\'s data'**
+  String get accountSwitchWarningTitle;
+
+  /// Warning that switching to an existing account cannot carry over anonymous data
+  ///
+  /// In en, this message translates to:
+  /// **'If the account you choose is already used on another device, this device\'s anonymous data will no longer be accessible. Review any transactions you need before continuing.'**
+  String get accountSwitchWarningMessage;
+
+  /// Button that accepts the anonymous data warning and continues account linking
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueAccountLink;
+
   /// Button that starts account deletion
   ///
   /// In en, this message translates to:

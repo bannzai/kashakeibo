@@ -76,6 +76,18 @@
   "@accountLinked": {
     "description": "Message shown after account linking succeeds"
   },
+  "accountSwitchWarningTitle": "Check this device's data",
+  "@accountSwitchWarningTitle": {
+    "description": "Title shown before linking when the anonymous user already has data"
+  },
+  "accountSwitchWarningMessage": "If the account you choose is already used on another device, this device's anonymous data will no longer be accessible. Review any transactions you need before continuing.",
+  "@accountSwitchWarningMessage": {
+    "description": "Warning that switching to an existing account cannot carry over anonymous data"
+  },
+  "continueAccountLink": "Continue",
+  "@continueAccountLink": {
+    "description": "Button that accepts the anonymous data warning and continues account linking"
+  },
   "deleteAccount": "Delete account",
   "@deleteAccount": {
     "description": "Button that starts account deletion"
