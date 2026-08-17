@@ -265,14 +265,12 @@ class AppStoreScreenshotPage extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(30, 52, 30, 0),
+            padding: const EdgeInsets.fromLTRB(30, 64, 30, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ScreenshotBrandMark(locale: locale, palette: palette),
-                const SizedBox(height: 22),
                 _EyebrowChip(text: copy.eyebrow, palette: palette),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 SizedBox(
                   width: 370,
                   child: FittedBox(
@@ -346,18 +344,12 @@ class AppStoreScreenshotPage extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(72, 64, 72, 0),
+            padding: const EdgeInsets.fromLTRB(72, 84, 72, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ScreenshotBrandMark(
-                  locale: locale,
-                  palette: palette,
-                  large: true,
-                ),
-                const SizedBox(height: 30),
                 _EyebrowChip(text: copy.eyebrow, palette: palette, large: true),
-                const SizedBox(height: 22),
+                const SizedBox(height: 26),
                 SizedBox(
                   width: 880,
                   child: FittedBox(
@@ -507,9 +499,6 @@ class _ScreenshotPalette {
     required this.supportingTextColor,
     required this.chipBackgroundColor,
     required this.chipTextColor,
-    required this.brandCircleColor,
-    required this.brandIconColor,
-    required this.brandTextColor,
     required this.orbColor,
     required this.deviceOutlineColor,
   });
@@ -528,15 +517,6 @@ class _ScreenshotPalette {
 
   /// 訴求ラベルチップの文字色。
   final Color chipTextColor;
-
-  /// ブランドアイコン円の背景色。
-  final Color brandCircleColor;
-
-  /// ブランドアイコンの前景色。
-  final Color brandIconColor;
-
-  /// ブランド名の文字色。
-  final Color brandTextColor;
 
   /// 背景装飾の円の色。
   final Color orbColor;
@@ -561,9 +541,6 @@ _ScreenshotPalette _screenshotPalette({required int pageNumber}) {
       supportingTextColor: AppColors.accent200,
       chipBackgroundColor: Color(0x33FFF2EB),
       chipTextColor: AppColors.accent100,
-      brandCircleColor: AppColors.onPrimary,
-      brandIconColor: AppColors.accent700,
-      brandTextColor: AppColors.onPrimary,
       orbColor: Color(0x14FFF2EB),
       deviceOutlineColor: null,
     ),
@@ -577,9 +554,6 @@ _ScreenshotPalette _screenshotPalette({required int pageNumber}) {
       supportingTextColor: AppColors.neutral400,
       chipBackgroundColor: Color(0x33F5EAD8),
       chipTextColor: AppColors.accent300,
-      brandCircleColor: AppColors.primary,
-      brandIconColor: AppColors.onPrimary,
-      brandTextColor: AppColors.onPrimary,
       orbColor: Color(0x0DF5EAD8),
       deviceOutlineColor: Color(0x59F5EAD8),
     ),
@@ -593,9 +567,6 @@ _ScreenshotPalette _screenshotPalette({required int pageNumber}) {
       supportingTextColor: AppColors.sage200,
       chipBackgroundColor: Color(0x33F0FAE1),
       chipTextColor: AppColors.sage100,
-      brandCircleColor: AppColors.sage100,
-      brandIconColor: AppColors.sage700,
-      brandTextColor: AppColors.onPrimary,
       orbColor: Color(0x14F0FAE1),
       deviceOutlineColor: null,
     ),
@@ -609,9 +580,6 @@ _ScreenshotPalette _screenshotPalette({required int pageNumber}) {
       supportingTextColor: AppColors.neutral700,
       chipBackgroundColor: AppColors.primary,
       chipTextColor: AppColors.onPrimary,
-      brandCircleColor: AppColors.primary,
-      brandIconColor: AppColors.onPrimary,
-      brandTextColor: AppColors.onSurface,
       orbColor: Color(0x1AC67139),
       deviceOutlineColor: null,
     ),
@@ -625,68 +593,11 @@ _ScreenshotPalette _screenshotPalette({required int pageNumber}) {
       supportingTextColor: AppColors.sage700,
       chipBackgroundColor: AppColors.sage700,
       chipTextColor: AppColors.sage100,
-      brandCircleColor: AppColors.sage700,
-      brandIconColor: AppColors.sage100,
-      brandTextColor: AppColors.onSurface,
       orbColor: Color(0x1A7A8A5E),
       deviceOutlineColor: null,
     ),
     _ => throw ArgumentError.value(pageNumber, 'pageNumber'),
   };
-}
-
-/// スクリーンショット専用のブランド表記。
-///
-/// ページ配色に応じて前景色を切り替えるため、Product Page Header 共用の
-/// [_BrandMark] から独立させている。
-class _ScreenshotBrandMark extends StatelessWidget {
-  /// 指定ロケール・配色のブランド表記を作る。iPad だけ拡大指定する。
-  const _ScreenshotBrandMark({
-    required this.locale,
-    required this.palette,
-    this.large = false,
-  });
-
-  /// ブランド名を切り替えるロケール。
-  final AppStoreScreenshotLocale locale;
-
-  /// ページの配色。
-  final _ScreenshotPalette palette;
-
-  /// iPad 向けの拡大表示かどうか。
-  final bool large;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: large ? 44 : 32,
-          height: large ? 44 : 32,
-          decoration: BoxDecoration(
-            color: palette.brandCircleColor,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.document_scanner_rounded,
-            color: palette.brandIconColor,
-            size: large ? 26 : 19,
-          ),
-        ),
-        SizedBox(width: large ? 13 : 10),
-        Text(
-          locale == AppStoreScreenshotLocale.ja ? 'カシャケイボ' : 'Kashakeibo',
-          style: TextStyle(
-            color: palette.brandTextColor,
-            fontSize: large ? 25 : 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: large ? -0.4 : -0.2,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 /// 見出し上部の訴求ラベルを示すピル型チップ。
@@ -711,8 +622,8 @@ class _EyebrowChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: large
-          ? const EdgeInsets.symmetric(horizontal: 18, vertical: 10)
-          : const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          ? const EdgeInsets.symmetric(horizontal: 28, vertical: 15)
+          : const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
       decoration: BoxDecoration(
         color: palette.chipBackgroundColor,
         borderRadius: BorderRadius.circular(999),
@@ -721,7 +632,7 @@ class _EyebrowChip extends StatelessWidget {
         text,
         style: TextStyle(
           color: palette.chipTextColor,
-          fontSize: large ? 19 : 14,
+          fontSize: large ? 30 : 21,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.6,
         ),
