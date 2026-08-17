@@ -140,6 +140,48 @@ abstract class AppLocalizations {
   /// **'Excluded'**
   String get excludedFromAggregation;
 
+  /// Number of unresolved possible duplicate transaction pairs
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 possible duplicate} other{{count} possible duplicates}}'**
+  String duplicateCandidateCount(int count);
+
+  /// Hint shown below the duplicate candidate banner
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to review'**
+  String get duplicateCandidateReviewHint;
+
+  /// Title of the duplicate candidate confirmation sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Review possible duplicate'**
+  String get duplicateCandidateTitle;
+
+  /// Explanation shown above a possible duplicate pair
+  ///
+  /// In en, this message translates to:
+  /// **'These transactions have similar amounts, dates, and store names. Check whether they are the same expense.'**
+  String get duplicateCandidateDescription;
+
+  /// Reason why two transactions were detected as possible duplicates
+  ///
+  /// In en, this message translates to:
+  /// **'Same amount, date, and store'**
+  String get duplicateCandidateReason;
+
+  /// Button that merges two duplicate transactions
+  ///
+  /// In en, this message translates to:
+  /// **'Merge into one'**
+  String get mergeDuplicateCandidate;
+
+  /// Button that confirms two transactions are not duplicates
+  ///
+  /// In en, this message translates to:
+  /// **'Keep as separate expenses'**
+  String get keepBothDuplicateCandidates;
+
   /// Tooltip for the previous month button
   ///
   /// In en, this message translates to:

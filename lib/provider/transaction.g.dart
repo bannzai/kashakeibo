@@ -202,5 +202,48 @@ final addTransactionProvider = AutoDisposeProvider<AddTransaction>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AddTransactionRef = AutoDisposeProviderRef<AddTransaction>;
+String _$mergeDuplicateTransactionsHash() =>
+    r'0c6949ac73defcb882f3344efb723126870bddd1';
+
+/// 重複候補 2 件を 1 件へ統合する機能 Provider。
+///
+/// Copied from [mergeDuplicateTransactions].
+@ProviderFor(mergeDuplicateTransactions)
+final mergeDuplicateTransactionsProvider =
+    AutoDisposeProvider<MergeDuplicateTransactions>.internal(
+      mergeDuplicateTransactions,
+      name: r'mergeDuplicateTransactionsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$mergeDuplicateTransactionsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MergeDuplicateTransactionsRef =
+    AutoDisposeProviderRef<MergeDuplicateTransactions>;
+String _$keepBothTransactionsHash() =>
+    r'dcf6691be761dddb442db074b852ceddc1a2bd66';
+
+/// 重複候補 2 件を別々の明細として残す機能 Provider。
+///
+/// Copied from [keepBothTransactions].
+@ProviderFor(keepBothTransactions)
+final keepBothTransactionsProvider =
+    AutoDisposeProvider<KeepBothTransactions>.internal(
+      keepBothTransactions,
+      name: r'keepBothTransactionsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$keepBothTransactionsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef KeepBothTransactionsRef = AutoDisposeProviderRef<KeepBothTransactions>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -123,4 +123,63 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('月次一覧: 重複候補バナーから2件を比較する確認シートを開ける', (tester) async {
+    final transactions = [
+      buildTransaction(
+        id: 'receipt-transaction',
+        type: TransactionType.expense,
+        amount: 4230,
+        category: TransactionCategory.eatingOut,
+        title: '鳥貴族 三軒茶屋店',
+        excludedFromAggregation: false,
+      ),
+      buildTransaction(
+        id: 'card-transaction',
+        type: TransactionType.expense,
+        amount: 4230,
+        category: TransactionCategory.eatingOut,
+        title: '鳥貴族　三軒茶屋店',
+        excludedFromAggregation: false,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(transactions)),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppLocalizationsEn().duplicateCandidateCount(1)),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.text(AppLocalizationsEn().duplicateCandidateReviewHint),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppLocalizationsEn().duplicateCandidateTitle),
+      findsOneWidget,
+    );
+    expect(
+      find.text(AppLocalizationsEn().mergeDuplicateCandidate),
+      findsOneWidget,
+    );
+    expect(
+      find.text(AppLocalizationsEn().keepBothDuplicateCandidates),
+      findsOneWidget,
+    );
+  });
 }

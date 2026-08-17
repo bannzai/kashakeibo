@@ -30,6 +30,29 @@ class AppLocalizationsJa extends AppLocalizations {
   String get excludedFromAggregation => '計算対象外';
 
   @override
+  String duplicateCandidateCount(int count) {
+    return '重複の可能性が$count件あります';
+  }
+
+  @override
+  String get duplicateCandidateReviewHint => 'タップして確認';
+
+  @override
+  String get duplicateCandidateTitle => '重複候補の確認';
+
+  @override
+  String get duplicateCandidateDescription => '金額・日付・店名が近い明細です。同じ支出か確認してください。';
+
+  @override
+  String get duplicateCandidateReason => '金額・日付・店名が一致';
+
+  @override
+  String get mergeDuplicateCandidate => '1件にまとめる';
+
+  @override
+  String get keepBothDuplicateCandidates => '別々の支出として残す';
+
+  @override
   String get previousMonth => '前の月';
 
   @override
