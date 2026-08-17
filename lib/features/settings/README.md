@@ -17,7 +17,7 @@
 2. Apple または Google を選ぶ
 3. 認証情報が現在の匿名 UID に未使用なら、その UID へリンクする
 4. 認証情報が既存 UID にリンク済みなら、その UID へサインインして保存済みデータを表示する
-5. アカウント削除時はリンク済みプロバイダで再認証し、Firestore の明細・ユーザードキュメント・Firebase Auth アカウントを削除する
+5. アカウント削除時はリンク済みプロバイダで再認証し、R2 の全画像・Firestore の明細とユーザードキュメント・Firebase Auth アカウントを削除する
 
 ## データ形式
 
@@ -27,4 +27,4 @@
 ## 有効期限・制約
 
 - Firebase Authentication の Apple / Google プロバイダ設定と、各プラットフォームの OAuth 設定が必要
-- 現時点でアプリが保存するユーザーデータは Firestore の `users/{userID}/transactions` と `users/{userID}`。R2 画像機能を追加する際は、同じ削除操作から Worker の削除 API も呼ぶ
+- R2 画像は Firebase Auth ユーザーを削除する前に、画像 Worker の `DELETE /images` で削除する

@@ -4,6 +4,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:kashakeibo/features/image_upload/image_upload_client.dart'
+    as image_upload;
 
 /// 設定画面から実行するアカウント操作。
 typedef AccountAction = Future<void> Function();
@@ -11,6 +14,9 @@ typedef AccountAction = Future<void> Function();
 /// アカウント削除前の再認証を実行し、Apple の認可コードがあれば返す関数。
 typedef ReauthenticateForAccountDeletion =
     Future<String?> Function({required User user});
+
+/// アカウントに属する R2 画像を削除する関数。
+typedef DeleteAllImagesForAccount = Future<void> Function({required User user});
 
 /// Apple アカウントのリンク、または既存アカウントへのサインイン操作。
 final linkOrSignInWithAppleProvider = Provider<AccountAction>(
@@ -28,6 +34,7 @@ final deleteAccountProvider = Provider<DeleteAccount>(
     firebaseAuth: FirebaseAuth.instance,
     firebaseFirestore: FirebaseFirestore.instance,
     reauthenticateForAccountDeletion: reauthenticateForAccountDeletion,
+    deleteAllImagesForAccount: deleteAllImagesForAccount,
   ),
 );
 
@@ -140,6 +147,23 @@ Future<String?> reauthenticateForAccountDeletion({required User user}) async {
   return null;
 }
 
+/// Firebase ID token が有効なうちに Worker 経由で本人の R2 画像を全削除する。
+Future<void> deleteAllImagesForAccount({required User user}) async {
+  final firebaseIdToken = await user.getIdToken(true);
+  if (firebaseIdToken == null) {
+    throw StateError('画像の削除に必要な認証情報を取得できないため、アカウントを削除できない');
+  }
+  final httpClient = http.Client();
+  try {
+    await image_upload.deleteAllImages(
+      firebaseIdToken: firebaseIdToken,
+      httpClient: httpClient,
+    );
+  } finally {
+    httpClient.close();
+  }
+}
+
 /// アカウントと、その UID 配下のアプリデータを削除する機能。
 abstract interface class DeleteAccount {
   /// 削除を実行する。
@@ -157,14 +181,18 @@ class FirebaseDeleteAccount implements DeleteAccount {
   /// 削除直前にリンク済みプロバイダで再認証する関数。
   final ReauthenticateForAccountDeletion reauthenticateForAccountDeletion;
 
+  /// Worker 経由で R2 の全画像を削除する関数。
+  final DeleteAllImagesForAccount deleteAllImagesForAccount;
+
   /// Firebase クライアントと再認証関数を指定して削除機能を作る。
   FirebaseDeleteAccount({
     required this.firebaseAuth,
     required this.firebaseFirestore,
     required this.reauthenticateForAccountDeletion,
+    required this.deleteAllImagesForAccount,
   });
 
-  /// Firestore の明細・ユーザードキュメントと Firebase Auth を削除する。
+  /// R2 画像、Firestore データ、Firebase Auth を削除する。
   ///
   /// 各削除は存在しないデータに対しても成功するため、途中失敗後の再実行を含めて
   /// 冪等。リンク済みアカウントは先に再認証し、データ削除後に recent-login
@@ -179,14 +207,15 @@ class FirebaseDeleteAccount implements DeleteAccount {
     final appleAuthorizationCode = await reauthenticateForAccountDeletion(
       user: currentUser,
     );
+
+    await deleteAllImagesForAccount(user: currentUser);
+    await _deleteTransactions(userID: currentUser.uid);
+    await firebaseFirestore.collection('users').doc(currentUser.uid).delete();
     if (appleAuthorizationCode != null) {
       await firebaseAuth.revokeTokenWithAuthorizationCode(
         appleAuthorizationCode,
       );
     }
-
-    await _deleteTransactions(userID: currentUser.uid);
-    await firebaseFirestore.collection('users').doc(currentUser.uid).delete();
     await currentUser.delete();
   }
 

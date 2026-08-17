@@ -17,6 +17,7 @@ void main() {
     final firebaseAuth = MockFirebaseAuth();
     final firebaseUser = MockUser();
     var reauthenticationCount = 0;
+    var imageDeletionCount = 0;
     var currentUserReadCount = 0;
     when(
       () => firebaseAuth.currentUser,
@@ -48,12 +49,16 @@ void main() {
         reauthenticationCount++;
         return null;
       },
+      deleteAllImagesForAccount: ({required user}) async {
+        imageDeletionCount++;
+      },
     );
     await deleteAccount.call();
     // 削除済み状態で再実行しても何も起こらない。
     await deleteAccount.call();
 
     expect(reauthenticationCount, 1);
+    expect(imageDeletionCount, 1);
     expect(
       (await firebaseFirestore
               .collection('users')
@@ -86,6 +91,7 @@ void main() {
       firebaseFirestore: FakeFirebaseFirestore(),
       reauthenticateForAccountDeletion: ({required user}) async =>
           'authorization-code',
+      deleteAllImagesForAccount: ({required user}) async {},
     ).call();
 
     verifyInOrder([
@@ -110,8 +116,37 @@ void main() {
         firebaseFirestore: firebaseFirestore,
         reauthenticateForAccountDeletion: ({required user}) async =>
             throw FirebaseAuthException(code: 'requires-recent-login'),
+        deleteAllImagesForAccount: ({required user}) async {},
       ).call(),
       throwsA(isA<FirebaseAuthException>()),
+    );
+
+    expect(
+      (await firebaseFirestore.collection('users').doc('user-id').get()).exists,
+      isTrue,
+    );
+    verifyNever(() => firebaseUser.delete());
+  });
+
+  test('R2画像の削除が失敗した場合はFirestoreとAuthを削除しない', () async {
+    final firebaseFirestore = FakeFirebaseFirestore();
+    final firebaseAuth = MockFirebaseAuth();
+    final firebaseUser = MockUser();
+    when(() => firebaseAuth.currentUser).thenReturn(firebaseUser);
+    when(() => firebaseUser.uid).thenReturn('user-id');
+    await firebaseFirestore.collection('users').doc('user-id').set({
+      'created': true,
+    });
+
+    await expectLater(
+      FirebaseDeleteAccount(
+        firebaseAuth: firebaseAuth,
+        firebaseFirestore: firebaseFirestore,
+        reauthenticateForAccountDeletion: ({required user}) async => null,
+        deleteAllImagesForAccount: ({required user}) async =>
+            throw StateError('画像削除失敗'),
+      ).call(),
+      throwsStateError,
     );
 
     expect(
