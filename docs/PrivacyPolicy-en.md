@@ -1,4 +1,5 @@
 ---
+permalink: /PrivacyPolicy-en
 ---
 
 # Privacy Policy

@@ -1,4 +1,5 @@
 ---
+permalink: /AccountDeletion
 ---
 
 # アカウントの削除について
