@@ -19,6 +19,7 @@ App Store 掲載用のスクリーンショットと Product Page Header を、F
 サブセットの再生成は、Noto Sans JP Regular の元フォントを用意し、`appstore_screenshot.dart` 内の全非 ASCII 文字を対象に fontTools で行う (収録漏れは `flutter test` のフォント検査が検出する):
 
 ```sh
+mkdir -p tmp
 python3 - <<'EOF'
 import re
 src = open('lib/features/appstore_screenshot/appstore_screenshot.dart', encoding='utf-8').read()

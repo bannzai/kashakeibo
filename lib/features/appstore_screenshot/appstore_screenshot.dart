@@ -203,7 +203,7 @@ class AppStoreScreenshotPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final copy = appStoreScreenshotCopy(pageNumber: pageNumber, locale: locale);
-    final palette = _screenshotPalette(pageNumber);
+    final palette = _screenshotPalette(pageNumber: pageNumber);
     return DefaultTextStyle.merge(
       // color: Material 外の Text に Flutter のエラー用赤色が漏れるため、
       // 色未指定のモック文言の基準色を明示する。
@@ -549,7 +549,7 @@ class _ScreenshotPalette {
 ///
 /// 1: テラコッタ (第一印象の主張) / 2: ダーク (カメラの臨場感) /
 /// 3: セージ (照合の安心感) / 4: クリーム (息継ぎ) / 5: ライトセージ (信頼で締め)
-_ScreenshotPalette _screenshotPalette(int pageNumber) {
+_ScreenshotPalette _screenshotPalette({required int pageNumber}) {
   return switch (pageNumber) {
     1 => const _ScreenshotPalette(
       backgroundGradient: LinearGradient(
