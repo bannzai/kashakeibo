@@ -5,7 +5,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
+import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
+import 'package:kashakeibo/l10n/transaction_labels.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/style/tokens.dart';
 
@@ -33,6 +35,20 @@ class MonthlyPage extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        tooltip: l10n.manualEntryOpen,
+        onPressed: () async {
+          final registered = await showManualEntrySheet(context: context);
+          if (!context.mounted || registered != true) {
+            return;
+          }
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.manualEntryRegistered)));
+        },
+        icon: const Icon(Icons.edit_note),
+        label: Text(l10n.manualEntryOpen),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -479,6 +495,7 @@ class _TransactionRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final subTexts = [
       categoryLabel(category: transaction.category, l10n: l10n),
+      transactionSourceLabel(source: transaction.source, l10n: l10n),
       if (transaction.excludedFromAggregation) l10n.excludedFromAggregation,
     ];
     return Opacity(
@@ -543,20 +560,6 @@ class _TransactionRow extends StatelessWidget {
 /// 金額を桁区切り数字 ("1,234") に整形する。¥ 記号は表示側でスタイルを分けて付ける。
 String formatAmountNumber({required int amount}) =>
     NumberFormat.decimalPattern().format(amount);
-
-/// カテゴリの表示名を返す。
-String categoryLabel({
-  required TransactionCategory category,
-  required AppLocalizations l10n,
-}) => switch (category) {
-  TransactionCategory.food => l10n.categoryFood,
-  TransactionCategory.eatingOut => l10n.categoryEatingOut,
-  TransactionCategory.dailyGoods => l10n.categoryDailyGoods,
-  TransactionCategory.transportation => l10n.categoryTransportation,
-  TransactionCategory.subscription => l10n.categorySubscription,
-  TransactionCategory.salary => l10n.categorySalary,
-  TransactionCategory.other => l10n.categoryOther,
-};
 
 /// カテゴリ横棒の色 (design_handoff_kashakeibo/README.md のレポート画面の割当)。
 Color categoryColor({required TransactionCategory category}) =>

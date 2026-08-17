@@ -63,5 +63,21 @@
   "categoryOther": "Other",
   "@categoryOther": {
     "description": "Transaction category: other"
-  }
+  },
+  "manualEntryOpen": "Enter manually",
+  "manualEntryTitle": "Manual entry",
+  "manualEntryAmount": "Amount",
+  "manualEntryAmountRequired": "Enter an amount of at least 1 yen",
+  "manualEntryStore": "Store or note",
+  "manualEntryStoreRequired": "Enter a store or note",
+  "manualEntryType": "Transaction type",
+  "manualEntryCategory": "Category",
+  "manualEntryCategoryRequired": "Select a category",
+  "manualEntryDate": "Date",
+  "manualEntryRegister": "Add transaction",
+  "manualEntryRegistered": "Transaction added",
+  "transactionSourceReceipt": "Receipt",
+  "transactionSourceScreenshot": "Screenshot",
+  "transactionSourceManual": "Manual",
+  "transactionSourceUnknown": "Unknown source"
 }
