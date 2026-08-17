@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/style/tokens.dart';
@@ -129,6 +130,7 @@ class _MonthHeader extends StatelessWidget {
             tooltip: l10n.previousMonth,
             onPressed: onPreviousMonth,
           ),
+          const SizedBox(width: 42),
           Expanded(
             child: GestureDetector(
               onLongPress: kDebugMode
@@ -169,6 +171,19 @@ class _MonthHeader extends StatelessWidget {
             icon: Icons.chevron_right,
             tooltip: l10n.nextMonth,
             onPressed: onNextMonth,
+          ),
+          const SizedBox(width: 8),
+          _CircleGhostButton(
+            icon: Icons.tune,
+            tooltip: l10n.openSettings,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) =>
+                      SettingsPage(openExternalUri: openExternalUri),
+                ),
+              );
+            },
           ),
         ],
       ),

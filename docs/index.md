@@ -6,6 +6,7 @@
 
 - [利用規約](Terms)
 - [プライバシーポリシー](PrivacyPolicy)
+- [Privacy Policy (English)](PrivacyPolicy-en)
 - [特定商取引法に基づく表示](SpecifiedCommercialTransactionAct-ja)
 - [アカウントの削除について](AccountDeletion)
 

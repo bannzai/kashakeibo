@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/app_localizations_en.dart';
 import 'package:kashakeibo/provider/transaction.dart';
@@ -122,5 +123,44 @@ void main() {
       find.text(AppLocalizationsEn().monthlyTransactionsEmpty),
       findsOneWidget,
     );
+
+    await tester.tap(find.byTooltip(AppLocalizationsEn().openSettings));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().settings), findsOneWidget);
+    expect(find.text(AppLocalizationsEn().termsOfService), findsOneWidget);
+  });
+
+  testWidgets('設定画面: 3つの法務ドキュメントを開ける', (tester) async {
+    final openedUris = <Uri>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: SettingsPage(
+          openExternalUri: ({required uri}) async {
+            openedUris.add(uri);
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().termsOfService));
+    await tester.pump();
+    await tester.tap(find.text(AppLocalizationsEn().privacyPolicy));
+    await tester.pump();
+    await tester.tap(
+      find.text(AppLocalizationsEn().specifiedCommercialTransactionAct),
+    );
+    await tester.pump();
+
+    expect(openedUris, [
+      Uri.parse('https://bannzai.github.io/kashakeibo/Terms'),
+      Uri.parse('https://bannzai.github.io/kashakeibo/PrivacyPolicy-en'),
+      Uri.parse(
+        'https://bannzai.github.io/kashakeibo/SpecifiedCommercialTransactionAct-ja',
+      ),
+    ]);
   });
 }
