@@ -37,24 +37,21 @@ npm test        # vitest (@cloudflare/vitest-pool-workers)。R2/KV は miniflare
 npm run typecheck
 ```
 
-## デプロイ (未実施・要ユーザー承認)
+## デプロイ
 
-Cloudflare アカウント配下へのリソース作成を伴うため、初回は以下を手動 (または承認の上で agent が) 実行する。
+Cloudflare 側のリソースは作成済み (2026-08-17):
+
+- R2 バケット: `kashakeibo-images-dev` / `kashakeibo-images-prod`
+- KV namespace: `PUBLIC_JWK_CACHE_KV_DEV` / `PUBLIC_JWK_CACHE_KV_PROD` (ID は wrangler.jsonc に記載済み)
+- Durable Object (`DailyUploadCounter`) は初回デプロイ時に wrangler.jsonc の migrations から自動作成される
+
+デプロイは environment 必須 (トップレベルに binding を置いていないため、env 指定なしの誤デプロイは失敗する):
 
 ```sh
 cd workers/image
-
-# 1. R2 バケット作成 (bucket_name は wrangler.jsonc と一致させる)
-npx wrangler r2 bucket create kashakeibo-images
-
-# 2. JWK キャッシュ用 KV namespace 作成 → 出力された id を wrangler.jsonc の REPLACE_WITH_KV_NAMESPACE_ID に反映
-npx wrangler kv namespace create PUBLIC_JWK_CACHE_KV
-
-# 3. wrangler.jsonc の REPLACE_WITH_FIREBASE_PROJECT_ID を Firebase プロジェクト ID に置き換え (issue #3 で作成)
-
-# 4. デプロイ
-npx wrangler deploy
+npx wrangler deploy --env dev    # → kashakeibo-image-worker-dev
+npx wrangler deploy --env prod   # → kashakeibo-image-worker-prod
 ```
 
-- dev / prod の Firebase プロジェクトを分ける場合は wrangler の [environments](https://developers.cloudflare.com/workers/wrangler/environments/) (`env.dev` / `env.prod`) で `FIREBASE_PROJECT_ID`・バケット・KV を分ける
+- デプロイ後に表示される `*.workers.dev` URL を Flutter の `--dart-define=IMAGE_API_BASE_URL=...` に渡す
 - 画像は機微情報のため、R2 バケットの公開アクセス (r2.dev ドメイン・カスタムドメイン直結) は有効化しない
