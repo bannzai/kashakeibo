@@ -601,6 +601,9 @@ _ScreenshotPalette _screenshotPalette({required int pageNumber}) {
 }
 
 /// 見出し上部の訴求ラベルを示すピル型チップ。
+///
+/// ブランド表記を持たない構図の起点になるため、ストア一覧のサムネイル
+/// (実寸の約1/4) でも判読できる文字サイズ・余白にしている。
 class _EyebrowChip extends StatelessWidget {
   /// 指定文言・配色のチップを作る。iPad だけ拡大指定する。
   const _EyebrowChip({
