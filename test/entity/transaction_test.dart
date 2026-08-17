@@ -12,6 +12,7 @@ Transaction buildTransaction({
   id: 'transaction-id',
   userID: 'user-id',
   type: type,
+  source: TransactionSource.manual,
   amount: amount,
   category: category,
   title: 'タイトル',
@@ -36,6 +37,7 @@ void main() {
         'id': 'transaction-id',
         'userID': 'user-id',
         'type': 'expense',
+        'source': 'manual',
         'amount': 1200,
         'category': 'food',
         'title': 'スーパーマーケット',
@@ -46,6 +48,7 @@ void main() {
         'serverUpdatedDateTime': null,
       });
       expect(transaction.type, TransactionType.expense);
+      expect(transaction.source, TransactionSource.manual);
       expect(transaction.amount, 1200);
       expect(transaction.category, TransactionCategory.food);
       expect(transaction.transactionDate, DateTime(2026, 8, 16, 12));
@@ -58,6 +61,7 @@ void main() {
         'id': 'transaction-id',
         'userID': 'user-id',
         'type': 'expense',
+        'source': 'manual',
         'amount': 1200,
         'category': 'newCategoryAddedInFuture',
         'title': 'タイトル',
@@ -66,6 +70,21 @@ void main() {
         'excludedFromAggregation': false,
       });
       expect(transaction.category, TransactionCategory.other);
+    });
+
+    test('出所が無い旧データは unknown として読む', () {
+      final transaction = Transaction.fromJson({
+        'id': 'transaction-id',
+        'userID': 'user-id',
+        'type': 'expense',
+        'amount': 1200,
+        'category': 'food',
+        'title': 'タイトル',
+        'transactionDate': Timestamp.fromDate(DateTime(2026, 8, 16, 12)),
+        'yearMonth': '2026-08',
+        'excludedFromAggregation': false,
+      });
+      expect(transaction.source, TransactionSource.unknown);
     });
   });
 
@@ -114,6 +133,7 @@ void main() {
         excludedFromAggregation: false,
       ).toJson();
       expect(json['type'], 'income');
+      expect(json['source'], 'manual');
       expect(json['category'], 'salary');
       expect(
         json['transactionDate'],
