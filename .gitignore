@@ -54,3 +54,9 @@ fastlane/screenshots
 
 # 作業用一時ファイル (CLAUDE.md のディレクトリ運用)
 /tmp/
+
+# Firebase クライアント設定 (API key を含むため git 管理外。Firebase console / firebase CLI から取得して配置する)
+/ios/Firebase/dev/GoogleService-Info.plist
+/ios/Firebase/prod/GoogleService-Info.plist
+/android/app/google-services.json
+/android/app/src/debug/google-services.json
