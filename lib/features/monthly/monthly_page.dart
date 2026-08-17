@@ -24,7 +24,7 @@ class MonthlyPage extends HookConsumerWidget {
   /// Analyticsイベントを記録する処理。
   final LogAnalyticsEvent logAnalyticsEvent;
 
-  const MonthlyPage({this.logAnalyticsEvent = recordAnalyticsEvent, super.key});
+  const MonthlyPage({required this.logAnalyticsEvent, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

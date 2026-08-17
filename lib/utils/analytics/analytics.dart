@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 
 /// Analyticsイベントを記録する処理。テストでは呼び出し先を差し替える。
 typedef LogAnalyticsEvent =
@@ -13,4 +14,7 @@ typedef LogAnalyticsEvent =
 Future<void> recordAnalyticsEvent({
   required String name,
   Map<String, Object>? parameters,
-}) => FirebaseAnalytics.instance.logEvent(name: name, parameters: parameters);
+}) async {
+  debugPrint('Analytics: name=$name, parameters=$parameters');
+  await FirebaseAnalytics.instance.logEvent(name: name, parameters: parameters);
+}

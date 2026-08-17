@@ -22,7 +22,7 @@ Future<void> openExternalUri({required Uri uri}) async {
 }
 
 /// 法務ドキュメントへの導線を表示する設定画面。
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   /// 外部URLを開く処理。
   final OpenExternalUri openExternalUri;
 
@@ -31,9 +31,25 @@ class SettingsPage extends StatelessWidget {
 
   const SettingsPage({
     required this.openExternalUri,
-    this.logAnalyticsEvent = recordAnalyticsEvent,
+    required this.logAnalyticsEvent,
     super.key,
   });
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _settingsCloseLogged = false;
+
+  /// 戻る操作を経路によらず一度だけ記録する。
+  void _logSettingsClose() {
+    if (_settingsCloseLogged) {
+      return;
+    }
+    _settingsCloseLogged = true;
+    unawaited(widget.logAnalyticsEvent(name: 'settings_close'));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,62 +59,69 @@ class SettingsPage extends StatelessWidget {
         ? 'PrivacyPolicy-en'
         : 'PrivacyPolicy';
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        surfaceTintColor: AppColors.background,
-        leading: IconButton(
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          icon: const BackButtonIcon(),
-          onPressed: () {
-            unawaited(logAnalyticsEvent(name: 'settings_close'));
-            Navigator.of(context).pop();
-          },
+    return PopScope<void>(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          _logSettingsClose();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          surfaceTintColor: AppColors.background,
+          leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            icon: const BackButtonIcon(),
+            onPressed: () {
+              _logSettingsClose();
+              Navigator.of(context).pop();
+            },
+          ),
+          title: Text(
+            l10n.settings,
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+          ),
         ),
-        title: Text(
-          l10n.settings,
-          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
-        ),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-          children: [
-            Material(
-              color: AppColors.neutral100,
-              borderRadius: BorderRadius.circular(16),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  _LegalDocumentRow(
-                    label: l10n.termsOfService,
-                    document: 'terms',
-                    uri: _legalDocumentUri(path: 'Terms'),
-                    openExternalUri: openExternalUri,
-                    logAnalyticsEvent: logAnalyticsEvent,
-                  ),
-                  const Divider(height: 1),
-                  _LegalDocumentRow(
-                    label: l10n.privacyPolicy,
-                    document: 'privacy_policy',
-                    uri: _legalDocumentUri(path: privacyPolicyPath),
-                    openExternalUri: openExternalUri,
-                    logAnalyticsEvent: logAnalyticsEvent,
-                  ),
-                  const Divider(height: 1),
-                  _LegalDocumentRow(
-                    label: l10n.specifiedCommercialTransactionAct,
-                    document: 'specified_commercial_transaction_act',
-                    uri: _legalDocumentUri(
-                      path: 'SpecifiedCommercialTransactionAct-ja',
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+            children: [
+              Material(
+                color: AppColors.neutral100,
+                borderRadius: BorderRadius.circular(16),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    _LegalDocumentRow(
+                      label: l10n.termsOfService,
+                      document: 'terms',
+                      uri: _legalDocumentUri(path: 'Terms'),
+                      openExternalUri: widget.openExternalUri,
+                      logAnalyticsEvent: widget.logAnalyticsEvent,
                     ),
-                    openExternalUri: openExternalUri,
-                    logAnalyticsEvent: logAnalyticsEvent,
-                  ),
-                ],
+                    const Divider(height: 1),
+                    _LegalDocumentRow(
+                      label: l10n.privacyPolicy,
+                      document: 'privacy_policy',
+                      uri: _legalDocumentUri(path: privacyPolicyPath),
+                      openExternalUri: widget.openExternalUri,
+                      logAnalyticsEvent: widget.logAnalyticsEvent,
+                    ),
+                    const Divider(height: 1),
+                    _LegalDocumentRow(
+                      label: l10n.specifiedCommercialTransactionAct,
+                      document: 'specified_commercial_transaction_act',
+                      uri: _legalDocumentUri(
+                        path: 'SpecifiedCommercialTransactionAct-ja',
+                      ),
+                      openExternalUri: widget.openExternalUri,
+                      logAnalyticsEvent: widget.logAnalyticsEvent,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

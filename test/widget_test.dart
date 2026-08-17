@@ -8,6 +8,12 @@ import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/app_localizations_en.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 
+/// Analyticsを必要としないウィジェットテスト用の記録処理。
+Future<void> discardAnalyticsEvent({
+  required String name,
+  Map<String, Object>? parameters,
+}) async {}
+
 /// テスト用の明細を組み立てる。
 Transaction buildTransaction({
   required String id,
@@ -77,7 +83,7 @@ void main() {
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: MonthlyPage(),
+          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
         ),
       ),
     );
