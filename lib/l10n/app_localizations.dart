@@ -167,8 +167,14 @@ abstract class AppLocalizations {
   /// Reason why two transactions were detected as possible duplicates
   ///
   /// In en, this message translates to:
-  /// **'Same amount, date, and store'**
+  /// **'Same amount with nearby dates and similar store names'**
   String get duplicateCandidateReason;
+
+  /// Label on the transaction selected to remain after merging
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this transaction'**
+  String get duplicateCandidateKeep;
 
   /// Button that merges two duplicate transactions
   ///

@@ -39,6 +39,42 @@ Stream<List<Transaction>> monthlyTransactions(
       .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
 }
 
+/// 表示月と隣接月の明細から、表示月に関係する重複候補を返す。
+///
+/// 月末と翌月初の明細も前後 3 日以内の判定対象に含めるため、前月・当月・翌月を購読する。
+@riverpod
+List<DuplicateCandidate> monthlyDuplicateCandidates(
+  Ref ref, {
+  required String yearMonth,
+}) {
+  final monthStart = DateTime.parse('$yearMonth-01');
+  final transactions = <Transaction>[];
+  for (final monthOffset in const [-1, 0, 1]) {
+    final queryMonth = DateTime(
+      monthStart.year,
+      monthStart.month + monthOffset,
+    );
+    transactions.addAll(
+      ref
+              .watch(
+                monthlyTransactionsProvider(
+                  yearMonth: yearMonthFrom(dateTime: queryMonth),
+                ),
+              )
+              .value ??
+          const [],
+    );
+  }
+
+  return duplicateCandidates(transactions: transactions)
+      .where(
+        (candidate) =>
+            candidate.primaryTransaction.yearMonth == yearMonth ||
+            candidate.duplicateTransaction.yearMonth == yearMonth,
+      )
+      .toList();
+}
+
 /// 明細を新規作成する機能 Provider。
 @riverpod
 AddTransaction addTransaction(Ref ref) {
@@ -213,6 +249,12 @@ class KeepBothTransactions {
           .contains(latestFirstTransaction.id);
       if (firstAlreadyConfirmed && secondAlreadyConfirmed) {
         return;
+      }
+      if (!isDuplicateCandidate(
+        firstTransaction: latestFirstTransaction,
+        secondTransaction: latestSecondTransaction,
+      )) {
+        throw StateError('明細が更新されたため、重複候補ではなくなりました');
       }
 
       firestoreTransaction.set(

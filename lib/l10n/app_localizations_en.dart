@@ -51,7 +51,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'These transactions have similar amounts, dates, and store names. Check whether they are the same expense.';
 
   @override
-  String get duplicateCandidateReason => 'Same amount, date, and store';
+  String get duplicateCandidateReason =>
+      'Same amount with nearby dates and similar store names';
+
+  @override
+  String get duplicateCandidateKeep => 'Keep this transaction';
 
   @override
   String get mergeDuplicateCandidate => 'Merge into one';

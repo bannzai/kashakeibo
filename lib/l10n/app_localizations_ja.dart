@@ -44,7 +44,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get duplicateCandidateDescription => '金額・日付・店名が近い明細です。同じ支出か確認してください。';
 
   @override
-  String get duplicateCandidateReason => '金額・日付・店名が一致';
+  String get duplicateCandidateReason => '金額が同じ・日付と店名が近い';
+
+  @override
+  String get duplicateCandidateKeep => 'この明細を残す';
 
   @override
   String get mergeDuplicateCandidate => '1件にまとめる';

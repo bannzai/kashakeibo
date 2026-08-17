@@ -72,6 +72,9 @@ void main() {
           monthlyTransactionsProvider(
             yearMonth: yearMonthFrom(dateTime: DateTime.now()),
           ).overrideWith((ref) => Stream.value(transactions)),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => const []),
         ],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -108,6 +111,9 @@ void main() {
           monthlyTransactionsProvider(
             yearMonth: yearMonthFrom(dateTime: DateTime.now()),
           ).overrideWith((ref) => Stream.value(const [])),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => const []),
         ],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -150,6 +156,11 @@ void main() {
           monthlyTransactionsProvider(
             yearMonth: yearMonthFrom(dateTime: DateTime.now()),
           ).overrideWith((ref) => Stream.value(transactions)),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith(
+            (ref) => duplicateCandidates(transactions: transactions),
+          ),
         ],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -179,6 +190,71 @@ void main() {
     );
     expect(
       find.text(AppLocalizationsEn().keepBothDuplicateCandidates),
+      findsOneWidget,
+    );
+    expect(
+      find.text(AppLocalizationsEn().duplicateCandidateKeep),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('月次一覧: 前月末と当月初の明細も重複候補として表示する', (tester) async {
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month);
+    final previousMonth = DateTime(now.year, now.month - 1);
+    final nextMonth = DateTime(now.year, now.month + 1);
+    final currentYearMonth = yearMonthFrom(dateTime: currentMonth);
+    final previousYearMonth = yearMonthFrom(dateTime: previousMonth);
+    final nextYearMonth = yearMonthFrom(dateTime: nextMonth);
+    final previousMonthTransaction =
+        buildTransaction(
+          id: 'previous-month-transaction',
+          type: TransactionType.expense,
+          amount: 1200,
+          category: TransactionCategory.food,
+          title: 'スーパーマーケット',
+          excludedFromAggregation: false,
+        ).copyWith(
+          transactionDate: DateTime(now.year, now.month, 0, 12),
+          yearMonth: previousYearMonth,
+        );
+    final currentMonthTransaction =
+        buildTransaction(
+          id: 'current-month-transaction',
+          type: TransactionType.expense,
+          amount: 1200,
+          category: TransactionCategory.food,
+          title: 'スーパーマーケット',
+          excludedFromAggregation: false,
+        ).copyWith(
+          transactionDate: DateTime(now.year, now.month, 1, 12),
+          yearMonth: currentYearMonth,
+        );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: previousYearMonth,
+          ).overrideWith((ref) => Stream.value([previousMonthTransaction])),
+          monthlyTransactionsProvider(
+            yearMonth: currentYearMonth,
+          ).overrideWith((ref) => Stream.value([currentMonthTransaction])),
+          monthlyTransactionsProvider(
+            yearMonth: nextYearMonth,
+          ).overrideWith((ref) => Stream.value(const [])),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppLocalizationsEn().duplicateCandidateCount(1)),
       findsOneWidget,
     );
   });

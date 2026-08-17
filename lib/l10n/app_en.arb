@@ -49,9 +49,13 @@
   "@duplicateCandidateDescription": {
     "description": "Explanation shown above a possible duplicate pair"
   },
-  "duplicateCandidateReason": "Same amount, date, and store",
+  "duplicateCandidateReason": "Same amount with nearby dates and similar store names",
   "@duplicateCandidateReason": {
     "description": "Reason why two transactions were detected as possible duplicates"
+  },
+  "duplicateCandidateKeep": "Keep this transaction",
+  "@duplicateCandidateKeep": {
+    "description": "Label on the transaction selected to remain after merging"
   },
   "mergeDuplicateCandidate": "Merge into one",
   "@mergeDuplicateCandidate": {

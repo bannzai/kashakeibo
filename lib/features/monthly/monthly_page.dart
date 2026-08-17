@@ -25,10 +25,12 @@ class MonthlyPage extends HookConsumerWidget {
     final displayMonth = useState(
       DateTime(DateTime.now().year, DateTime.now().month),
     );
+    final selectedYearMonth = yearMonthFrom(dateTime: displayMonth.value);
     final transactionsAsync = ref.watch(
-      monthlyTransactionsProvider(
-        yearMonth: yearMonthFrom(dateTime: displayMonth.value),
-      ),
+      monthlyTransactionsProvider(yearMonth: selectedYearMonth),
+    );
+    final duplicateCandidateList = ref.watch(
+      monthlyDuplicateCandidatesProvider(yearMonth: selectedYearMonth),
     );
     final l10n = AppLocalizations.of(context);
 
@@ -62,16 +64,13 @@ class MonthlyPage extends HookConsumerWidget {
                   ),
                 ),
                 data: (transactions) {
-                  final candidates = duplicateCandidates(
-                    transactions: transactions,
-                  );
                   return ListView(
                     padding: const EdgeInsets.only(bottom: 24),
                     children: [
                       _MonthlySummaryCard(transactions: transactions),
-                      if (candidates.isNotEmpty)
+                      if (duplicateCandidateList.isNotEmpty)
                         _DuplicateCandidateBanner(
-                          candidateCount: candidates.length,
+                          candidateCount: duplicateCandidateList.length,
                           onTap: () {
                             showModalBottomSheet<void>(
                               context: context,
@@ -84,7 +83,7 @@ class MonthlyPage extends HookConsumerWidget {
                                 ),
                               ),
                               builder: (context) => _DuplicateCandidateSheet(
-                                candidate: candidates.first,
+                                candidate: duplicateCandidateList.first,
                               ),
                             );
                           },
@@ -409,6 +408,7 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
     final keepBothTransactions = ref.watch(keepBothTransactionsProvider);
     final isSubmitting = useState(false);
     final operationError = useState<Object?>(null);
+    final selectedTransactionID = useState(candidate.primaryTransaction.id);
     final l10n = AppLocalizations.of(context);
 
     Future<void> resolve({required Future<void> Function() operation}) async {
@@ -448,7 +448,17 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
             style: const TextStyle(fontSize: 12, color: AppColors.neutral600),
           ),
           const SizedBox(height: 16),
-          _DuplicateTransactionCard(transaction: candidate.primaryTransaction),
+          _DuplicateTransactionCard(
+            transaction: candidate.primaryTransaction,
+            isSelected:
+                selectedTransactionID.value == candidate.primaryTransaction.id,
+            onTap: isSubmitting.value
+                ? null
+                : () {
+                    selectedTransactionID.value =
+                        candidate.primaryTransaction.id;
+                  },
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Row(
@@ -479,6 +489,15 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
           ),
           _DuplicateTransactionCard(
             transaction: candidate.duplicateTransaction,
+            isSelected:
+                selectedTransactionID.value ==
+                candidate.duplicateTransaction.id,
+            onTap: isSubmitting.value
+                ? null
+                : () {
+                    selectedTransactionID.value =
+                        candidate.duplicateTransaction.id;
+                  },
           ),
           if (operationError.value != null)
             Padding(
@@ -496,10 +515,17 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
             onPressed: isSubmitting.value
                 ? null
                 : () {
+                    final keepPrimary =
+                        selectedTransactionID.value ==
+                        candidate.primaryTransaction.id;
                     resolve(
                       operation: () => mergeDuplicateTransactions.call(
-                        primaryTransaction: candidate.primaryTransaction,
-                        duplicateTransaction: candidate.duplicateTransaction,
+                        primaryTransaction: keepPrimary
+                            ? candidate.primaryTransaction
+                            : candidate.duplicateTransaction,
+                        duplicateTransaction: keepPrimary
+                            ? candidate.duplicateTransaction
+                            : candidate.primaryTransaction,
                       ),
                     );
                   },
@@ -545,53 +571,92 @@ class _DuplicateTransactionCard extends StatelessWidget {
   /// 表示する明細。
   final Transaction transaction;
 
-  const _DuplicateTransactionCard({required this.transaction});
+  /// マージ後に残す明細として選択されているか。
+  final bool isSelected;
+
+  /// この明細を残す選択へ切り替える処理。
+  final VoidCallback? onTap;
+
+  const _DuplicateTransactionCard({
+    required this.transaction,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border.all(color: AppColors.divider),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.title,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  DateFormat.yMd(
-                    Localizations.localeOf(context).toString(),
-                  ).format(transaction.transactionLocalDate),
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: AppColors.neutral600,
-                  ),
-                ),
-              ],
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            border: Border.all(
+              color: isSelected ? AppColors.sage700 : AppColors.divider,
+              width: isSelected ? 2 : 1,
             ),
+            borderRadius: BorderRadius.circular(16),
           ),
-          const SizedBox(width: 12),
-          Text(
-            '¥${formatAmountNumber(amount: transaction.amount)}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
+          child: Row(
+            children: [
+              Icon(
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                size: 20,
+                color: isSelected ? AppColors.sage700 : AppColors.neutral600,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      transaction.title,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      DateFormat.yMd(
+                        Localizations.localeOf(context).toString(),
+                      ).format(transaction.transactionLocalDate),
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: AppColors.neutral600,
+                      ),
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        AppLocalizations.of(context).duplicateCandidateKeep,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.sage700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '¥${formatAmountNumber(amount: transaction.amount)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
