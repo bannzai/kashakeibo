@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # Flutter widget test で App Store スクリーンショットを生成し、fastlane 形式へ配置する。
-# 引数なしで日本語・英語の全5枚を生成する。-l と -n で1言語・1ページに絞れる。
+# 引数なしで日本語・英語、iPhone・iPad の全画像を生成する。
+# -l と -n で1言語・1ページに絞れる。
 
 set -euo pipefail
 
@@ -26,6 +27,10 @@ while getopts ':l:n:h' option; do
   esac
 done
 
+if [[ "$requested_language" != "all" ]] && ! is_supported_language "$requested_language"; then
+  printf '未対応の言語です: %s（対応: ja, en-US）\n' "$requested_language" >&2
+  exit 2
+fi
 if [[ "$requested_page_number" != "0" ]] && ! [[ "$requested_page_number" =~ ^[1-9][0-9]*$ ]]; then
   printf 'ページ番号は正の整数で指定してください: %s\n' "$requested_page_number" >&2
   exit 2

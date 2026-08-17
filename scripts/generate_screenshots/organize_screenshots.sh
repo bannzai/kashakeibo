@@ -43,6 +43,12 @@ if [[ "${#languages[@]}" -eq 0 ]]; then
   printf '言語別の生成物が見つかりません: %s\n' "$ARTIFACTS_ROOT" >&2
   exit 1
 fi
+for language in "${languages[@]}"; do
+  if ! is_supported_language "$language"; then
+    printf '未対応の言語ディレクトリです: %s（対応: ja, en-US）\n' "$language" >&2
+    exit 2
+  fi
+done
 
 if [[ "$requested_page_number" == "all" ]]; then
   file_pattern='*.png'
@@ -52,14 +58,6 @@ else
 fi
 
 for language in "${languages[@]}"; do
-  case "$language" in
-    ja|en-US) ;;
-    *)
-      printf '未対応の言語ディレクトリです: %s（対応: ja, en-US）\n' "$language" >&2
-      exit 2
-      ;;
-  esac
-
   source_files=()
   while IFS= read -r source_file; do
     source_files+=("$source_file")
