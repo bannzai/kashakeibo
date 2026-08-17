@@ -253,7 +253,18 @@ class FirebaseDeleteAccount implements DeleteAccount {
         appleAuthorizationCode,
       );
     }
-    await currentUser.delete();
+    try {
+      await currentUser.delete();
+    } on FirebaseAuthException catch (error) {
+      if (error.code != 'requires-recent-login' || !currentUser.isAnonymous) {
+        rethrow;
+      }
+      // 匿名ユーザーには再認証に使える credential が無く、recent-login 状態を
+      // 回復して delete() を成功させる手段が無い。ここまでで保存データの削除は
+      // 完了しているため、個人情報を含まない空の匿名 Auth レコードが残ることを
+      // 許容してサインアウトし、SignInResolver に新しい匿名アカウントを作らせる。
+      await firebaseAuth.signOut();
+    }
   }
 
   /// 指定ユーザーの明細を Firestore の上限内のバッチへ分割して削除する。

@@ -128,6 +128,64 @@ void main() {
     verifyNever(() => firebaseUser.delete());
   });
 
+  test('匿名ユーザーのAuth削除がrequires-recent-loginで失敗した場合はサインアウトへフォールバックする', () async {
+    final firebaseFirestore = FakeFirebaseFirestore();
+    final firebaseAuth = MockFirebaseAuth();
+    final firebaseUser = MockUser();
+    when(() => firebaseAuth.currentUser).thenReturn(firebaseUser);
+    when(() => firebaseUser.uid).thenReturn('user-id');
+    when(() => firebaseUser.isAnonymous).thenReturn(true);
+    when(() => firebaseUser.delete()).thenAnswer(
+      (_) async => throw FirebaseAuthException(code: 'requires-recent-login'),
+    );
+    when(() => firebaseAuth.signOut()).thenAnswer((_) async {});
+    await firebaseFirestore.collection('users').doc('user-id').set({
+      'created': true,
+    });
+
+    await FirebaseDeleteAccount(
+      firebaseAuth: firebaseAuth,
+      firebaseFirestore: firebaseFirestore,
+      reauthenticateForAccountDeletion: ({required user}) async => null,
+      deleteAllImagesForAccount: ({required user}) async {},
+    ).call();
+
+    expect(
+      (await firebaseFirestore.collection('users').doc('user-id').get()).exists,
+      isFalse,
+    );
+    verify(() => firebaseAuth.signOut()).called(1);
+  });
+
+  test('リンク済みユーザーのAuth削除がrequires-recent-loginで失敗した場合はエラーを伝える', () async {
+    final firebaseAuth = MockFirebaseAuth();
+    final firebaseUser = MockUser();
+    when(() => firebaseAuth.currentUser).thenReturn(firebaseUser);
+    when(() => firebaseUser.uid).thenReturn('user-id');
+    when(() => firebaseUser.isAnonymous).thenReturn(false);
+    when(() => firebaseUser.delete()).thenAnswer(
+      (_) async => throw FirebaseAuthException(code: 'requires-recent-login'),
+    );
+
+    await expectLater(
+      FirebaseDeleteAccount(
+        firebaseAuth: firebaseAuth,
+        firebaseFirestore: FakeFirebaseFirestore(),
+        reauthenticateForAccountDeletion: ({required user}) async => null,
+        deleteAllImagesForAccount: ({required user}) async {},
+      ).call(),
+      throwsA(
+        isA<FirebaseAuthException>().having(
+          (exception) => exception.code,
+          'code',
+          'requires-recent-login',
+        ),
+      ),
+    );
+
+    verifyNever(() => firebaseAuth.signOut());
+  });
+
   test('R2画像の削除が失敗した場合はFirestoreとAuthを削除しない', () async {
     final firebaseFirestore = FakeFirebaseFirestore();
     final firebaseAuth = MockFirebaseAuth();
