@@ -16,6 +16,21 @@ App Store 掲載用のスクリーンショットと Product Page Header を、F
 日本語と英語、6.9インチ iPhone と13インチ iPad をそれぞれ独立した画像として生成する。
 撮影環境で OS の日本語フォントへ依存しないよう、Google Fonts の Noto Sans JP を掲載文言に限定してサブセット化した `assets/fonts/NotoSansJP-AppStoreSubset.ttf` を使用する。キャッチコピーやモック画面内の日本語を変更する場合は、追加文字を含めてサブセットを再生成する。ライセンスは `assets/fonts/NotoSansJP-OFL.txt`。
 
+サブセットの再生成は、Noto Sans JP Regular の元フォントを用意し、`appstore_screenshot.dart` 内の全非 ASCII 文字を対象に fontTools で行う (収録漏れは `flutter test` のフォント検査が検出する):
+
+```sh
+python3 - <<'EOF'
+import re
+src = open('lib/features/appstore_screenshot/appstore_screenshot.dart', encoding='utf-8').read()
+chars = sorted({ch for m in re.finditer(r"'((?:\\.|[^'\\])*)'", src) for ch in m.group(1) if ord(ch) > 0x7f})
+open('tmp/subset_unicodes.txt', 'w').write(','.join(f'U+{ord(c):04X}' for c in chars))
+EOF
+python3 -m fontTools.subset <NotoSansJP-Regular.ttf のパス> \
+  --unicodes-file=tmp/subset_unicodes.txt \
+  --output-file=assets/fonts/NotoSansJP-AppStoreSubset.ttf \
+  --layout-features='*' --glyph-names --notdef-outline
+```
+
 ## フロー
 
 1. `scripts/generate_screenshots/generate_appstore_screenshots.sh` が生成テストを起動する。

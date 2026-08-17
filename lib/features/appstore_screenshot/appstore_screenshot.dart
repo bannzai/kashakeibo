@@ -128,45 +128,45 @@ AppStoreScreenshotCopy appStoreScreenshotCopy({
       3: AppStoreScreenshotCopy(
         eyebrow: '二重計上を防ぐ',
         headline: '同じ支出を\nかしこく発見。',
-        supportingText: 'レシートとカード明細の重複候補をまとめられます',
+        supportingText: '重複したレシートとカード明細をまとめられます',
       ),
       4: AppStoreScreenshotCopy(
-        eyebrow: 'AIでも、ちゃんと確かめられる',
+        eyebrow: 'AIでも、確かめられる',
         headline: '元画像へ\nいつでも戻れる。',
-        supportingText: '読み取り結果を画像と見比べて、すぐに修正できます',
+        supportingText: '読み取り結果と画像を見比べて、すぐ直せます',
       ),
       5: AppStoreScreenshotCopy(
         eyebrow: '口座連携なし',
-        headline: '連携切れを気にせず\n支出が見える。',
-        supportingText: '認証情報を預けず、月の家計をひと目で把握',
+        headline: '連携しないから、\n壊れない。',
+        supportingText: '認証情報を預けず、月の支出をひと目で把握',
       ),
     },
     AppStoreScreenshotLocale.enUs => const {
       1: AppStoreScreenshotCopy(
         eyebrow: 'SCREENSHOTS OR RECEIPTS',
         headline: 'Snap it.\nBudgeted.',
-        supportingText: 'AI extracts the amount, date, and merchant for you',
+        supportingText: 'AI extracts the amount, date, and merchant',
       ),
       2: AppStoreScreenshotCopy(
         eyebrow: 'EFFORTLESS AI SCANNING',
-        headline: 'Receipts become\nrecords in a snap.',
+        headline: 'Point, shoot,\nrecorded.',
         supportingText: 'Take a photo and let AI handle the typing',
       ),
       3: AppStoreScreenshotCopy(
         eyebrow: 'PREVENT DOUBLE COUNTING',
         headline: 'Catch duplicate\nspending.',
-        supportingText: 'Merge matching receipts and card statement entries',
+        supportingText: 'Merge matching receipt and card entries',
       ),
       4: AppStoreScreenshotCopy(
-        eyebrow: 'AI YOU CAN VERIFY',
-        headline: 'Your source image\nis always there.',
-        supportingText: 'Compare, confirm, and correct any scanned detail',
+        eyebrow: 'ORIGINAL IMAGE SAVED',
+        headline: 'AI you can\ndouble-check.',
+        supportingText: 'Compare every entry with its source image',
       ),
       5: AppStoreScreenshotCopy(
         eyebrow: 'NO BANK LINKING',
-        headline: 'See your spending.\nSkip broken syncs.',
+        headline: 'No bank links.\nNothing to break.',
         supportingText:
-            'Keep credentials private and your monthly budget clear',
+            'See monthly spending at a glance,\ncredentials stay private',
       ),
     },
   };
@@ -203,8 +203,12 @@ class AppStoreScreenshotPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final copy = appStoreScreenshotCopy(pageNumber: pageNumber, locale: locale);
+    final palette = _screenshotPalette(pageNumber);
     return DefaultTextStyle.merge(
+      // color: Material 外の Text に Flutter のエラー用赤色が漏れるため、
+      // 色未指定のモック文言の基準色を明示する。
       style: const TextStyle(
+        color: AppColors.onSurface,
         fontFamily: 'Figtree',
         fontFamilyFallback: ['NotoSansJPAppStore'],
         decoration: TextDecoration.none,
@@ -213,22 +217,22 @@ class AppStoreScreenshotPage extends StatelessWidget {
       child: Directionality(
         textDirection: TextDirection.ltr,
         child: DecoratedBox(
-          decoration: BoxDecoration(gradient: _backgroundGradient(pageNumber)),
+          decoration: BoxDecoration(gradient: palette.backgroundGradient),
           child: Stack(
             children: [
-              const Positioned(
-                top: -74,
-                right: -94,
-                child: _BackgroundOrb(diameter: 260, color: Color(0x33FFF2EB)),
+              Positioned(
+                top: -90,
+                right: -110,
+                child: _BackgroundOrb(diameter: 320, color: palette.orbColor),
               ),
-              const Positioned(
-                top: 266,
-                left: -120,
-                child: _BackgroundOrb(diameter: 230, color: Color(0x267A8A5E)),
+              Positioned(
+                bottom: -60,
+                left: -140,
+                child: _BackgroundOrb(diameter: 300, color: palette.orbColor),
               ),
               device == AppStoreScreenshotDevice.iphone69
-                  ? _buildIPhoneContent(copy: copy)
-                  : _buildIPadContent(copy: copy),
+                  ? _buildIPhoneContent(copy: copy, palette: palette)
+                  : _buildIPadContent(copy: copy, palette: palette),
             ],
           ),
         ),
@@ -237,54 +241,69 @@ class AppStoreScreenshotPage extends StatelessWidget {
   }
 
   /// 6.9インチ iPhone の縦長画面へ訴求と端末モックを配置する。
-  Widget _buildIPhoneContent({required AppStoreScreenshotCopy copy}) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 58, 30, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  ///
+  /// 端末モックは画面下端からブリードさせ、モック内部の情報量を
+  /// サムネイルでも判読できる大きさで見せる。
+  Widget _buildIPhoneContent({
+    required AppStoreScreenshotCopy copy,
+    required _ScreenshotPalette palette,
+  }) {
+    return SizedBox.expand(
+      child: Stack(
         children: [
-          _BrandMark(locale: locale),
-          const SizedBox(height: 28),
-          Text(
-            copy.eyebrow,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.15,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            copy.headline,
-            style: const TextStyle(
-              color: AppColors.onSurface,
-              fontSize: 39,
-              height: 1.04,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -1.25,
-            ),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: 354,
-            child: Text(
-              copy.supportingText,
-              style: const TextStyle(
-                color: AppColors.neutral700,
-                fontSize: 15,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 30),
-          Expanded(
-            child: Align(
-              alignment: Alignment.topCenter,
+          Positioned(
+            top: 320,
+            left: 0,
+            right: 0,
+            child: Center(
               child: _DeviceFrame(
+                width: 372,
+                height: 780,
+                outlineColor: palette.deviceOutlineColor,
                 child: _mockAppScreen(pageNumber: pageNumber, locale: locale),
               ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 52, 30, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ScreenshotBrandMark(locale: locale, palette: palette),
+                const SizedBox(height: 22),
+                _EyebrowChip(text: copy.eyebrow, palette: palette),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: 370,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      copy.headline,
+                      style: TextStyle(
+                        color: palette.headlineColor,
+                        fontSize: 44,
+                        height: 1.06,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1.4,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 366,
+                  child: Text(
+                    copy.supportingText,
+                    style: TextStyle(
+                      color: palette.supportingTextColor,
+                      fontSize: 16,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -292,67 +311,80 @@ class AppStoreScreenshotPage extends StatelessWidget {
     );
   }
 
-  /// 13インチ iPad の4:3画面へ訴求と端末モックを横並びで配置する。
-  Widget _buildIPadContent({required AppStoreScreenshotCopy copy}) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(64, 68, 64, 64),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// 13インチ iPad の4:3画面へ訴求と端末モックを縦組みで配置する。
+  ///
+  /// iPhone と同じ視覚言語を保つため、端末モックは iPhone と同じ基準サイズを
+  /// 拡大して中央へ置き、画面下端からブリードさせる。
+  Widget _buildIPadContent({
+    required AppStoreScreenshotCopy copy,
+    required _ScreenshotPalette palette,
+  }) {
+    return SizedBox.expand(
+      child: Stack(
         children: [
-          _BrandMark(locale: locale, large: true),
-          Expanded(
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 430,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        copy.eyebrow,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        copy.headline,
-                        style: const TextStyle(
-                          color: AppColors.onSurface,
-                          fontSize: 60,
-                          height: 1.02,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -1.8,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      Text(
-                        copy.supportingText,
-                        style: const TextStyle(
-                          color: AppColors.neutral700,
-                          fontSize: 22,
-                          height: 1.45,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+          Positioned(
+            top: 440,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                width: 520,
+                height: 1090,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: _DeviceFrame(
+                    width: 372,
+                    height: 780,
+                    outlineColor: palette.deviceOutlineColor,
+                    child: _mockAppScreen(
+                      pageNumber: pageNumber,
+                      locale: locale,
+                    ),
                   ),
                 ),
-                const Spacer(),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(72, 64, 72, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ScreenshotBrandMark(
+                  locale: locale,
+                  palette: palette,
+                  large: true,
+                ),
+                const SizedBox(height: 30),
+                _EyebrowChip(text: copy.eyebrow, palette: palette, large: true),
+                const SizedBox(height: 22),
                 SizedBox(
-                  width: 400,
-                  height: 704,
+                  width: 880,
                   child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: _DeviceFrame(
-                      child: _mockAppScreen(
-                        pageNumber: pageNumber,
-                        locale: locale,
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      copy.headline,
+                      style: TextStyle(
+                        color: palette.headlineColor,
+                        fontSize: 72,
+                        height: 1.05,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -2.2,
                       ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: 860,
+                  child: Text(
+                    copy.supportingText,
+                    style: TextStyle(
+                      color: palette.supportingTextColor,
+                      fontSize: 25,
+                      height: 1.45,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -462,36 +494,240 @@ class ProductPageHeaderCreative extends StatelessWidget {
   }
 }
 
-/// 掲載順ごとのテーマ色から背景グラデーションを返す。
-LinearGradient _backgroundGradient(int pageNumber) {
+/// 掲載順ごとのスクリーンショット配色一式。
+///
+/// ストア一覧のサムネイルで埋没しないよう、ページごとに彩度の高い
+/// フルブリード背景と、その上で可読な前景色をセットで定義する。
+@immutable
+class _ScreenshotPalette {
+  /// 背景と前景の組を1ページ分まとめる。
+  const _ScreenshotPalette({
+    required this.backgroundGradient,
+    required this.headlineColor,
+    required this.supportingTextColor,
+    required this.chipBackgroundColor,
+    required this.chipTextColor,
+    required this.brandCircleColor,
+    required this.brandIconColor,
+    required this.brandTextColor,
+    required this.orbColor,
+    required this.deviceOutlineColor,
+  });
+
+  /// フルブリードの背景グラデーション。
+  final LinearGradient backgroundGradient;
+
+  /// 主見出しの文字色。
+  final Color headlineColor;
+
+  /// 補足文の文字色。
+  final Color supportingTextColor;
+
+  /// 訴求ラベルチップの背景色。
+  final Color chipBackgroundColor;
+
+  /// 訴求ラベルチップの文字色。
+  final Color chipTextColor;
+
+  /// ブランドアイコン円の背景色。
+  final Color brandCircleColor;
+
+  /// ブランドアイコンの前景色。
+  final Color brandIconColor;
+
+  /// ブランド名の文字色。
+  final Color brandTextColor;
+
+  /// 背景装飾の円の色。
+  final Color orbColor;
+
+  /// 端末フレームの輪郭色。暗色背景でフレームが溶けるページだけ指定する。
+  final Color? deviceOutlineColor;
+}
+
+/// 掲載順ごとの配色を返す。
+///
+/// 1: テラコッタ (第一印象の主張) / 2: ダーク (カメラの臨場感) /
+/// 3: セージ (照合の安心感) / 4: クリーム (息継ぎ) / 5: ライトセージ (信頼で締め)
+_ScreenshotPalette _screenshotPalette(int pageNumber) {
   return switch (pageNumber) {
-    1 => const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0xFFF5EAD8), Color(0xFFFFE1D0)],
+    1 => const _ScreenshotPalette(
+      backgroundGradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [AppColors.accent600, AppColors.accent700],
+      ),
+      headlineColor: AppColors.onPrimary,
+      supportingTextColor: AppColors.accent200,
+      chipBackgroundColor: Color(0x33FFF2EB),
+      chipTextColor: AppColors.accent100,
+      brandCircleColor: AppColors.onPrimary,
+      brandIconColor: AppColors.accent700,
+      brandTextColor: AppColors.onPrimary,
+      orbColor: Color(0x14FFF2EB),
+      deviceOutlineColor: null,
     ),
-    2 => const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0xFFF5EAD8), Color(0xFFF0FAE1)],
+    2 => const _ScreenshotPalette(
+      backgroundGradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [AppColors.neutral900, AppColors.onSurface],
+      ),
+      headlineColor: AppColors.onPrimary,
+      supportingTextColor: AppColors.neutral400,
+      chipBackgroundColor: Color(0x33F5EAD8),
+      chipTextColor: AppColors.accent300,
+      brandCircleColor: AppColors.primary,
+      brandIconColor: AppColors.onPrimary,
+      brandTextColor: AppColors.onPrimary,
+      orbColor: Color(0x0DF5EAD8),
+      deviceOutlineColor: Color(0x59F5EAD8),
     ),
-    3 => const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0xFFF0FAE1), Color(0xFFF5EAD8)],
+    3 => const _ScreenshotPalette(
+      backgroundGradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [AppColors.sage700, AppColors.sage500],
+      ),
+      headlineColor: AppColors.onPrimary,
+      supportingTextColor: AppColors.sage200,
+      chipBackgroundColor: Color(0x33F0FAE1),
+      chipTextColor: AppColors.sage100,
+      brandCircleColor: AppColors.sage100,
+      brandIconColor: AppColors.sage700,
+      brandTextColor: AppColors.onPrimary,
+      orbColor: Color(0x14F0FAE1),
+      deviceOutlineColor: null,
     ),
-    4 => const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0xFFFFF2EB), Color(0xFFF5EAD8)],
+    4 => const _ScreenshotPalette(
+      backgroundGradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [AppColors.accent100, AppColors.background],
+      ),
+      headlineColor: AppColors.onSurface,
+      supportingTextColor: AppColors.neutral700,
+      chipBackgroundColor: AppColors.primary,
+      chipTextColor: AppColors.onPrimary,
+      brandCircleColor: AppColors.primary,
+      brandIconColor: AppColors.onPrimary,
+      brandTextColor: AppColors.onSurface,
+      orbColor: Color(0x1AC67139),
+      deviceOutlineColor: null,
     ),
-    5 => const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0xFFF5EAD8), Color(0xFFE1EECC)],
+    5 => const _ScreenshotPalette(
+      backgroundGradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [AppColors.sage100, AppColors.sage200],
+      ),
+      headlineColor: AppColors.onSurface,
+      supportingTextColor: AppColors.sage700,
+      chipBackgroundColor: AppColors.sage700,
+      chipTextColor: AppColors.sage100,
+      brandCircleColor: AppColors.sage700,
+      brandIconColor: AppColors.sage100,
+      brandTextColor: AppColors.onSurface,
+      orbColor: Color(0x1A7A8A5E),
+      deviceOutlineColor: null,
     ),
     _ => throw ArgumentError.value(pageNumber, 'pageNumber'),
   };
+}
+
+/// スクリーンショット専用のブランド表記。
+///
+/// ページ配色に応じて前景色を切り替えるため、Product Page Header 共用の
+/// [_BrandMark] から独立させている。
+class _ScreenshotBrandMark extends StatelessWidget {
+  /// 指定ロケール・配色のブランド表記を作る。iPad だけ拡大指定する。
+  const _ScreenshotBrandMark({
+    required this.locale,
+    required this.palette,
+    this.large = false,
+  });
+
+  /// ブランド名を切り替えるロケール。
+  final AppStoreScreenshotLocale locale;
+
+  /// ページの配色。
+  final _ScreenshotPalette palette;
+
+  /// iPad 向けの拡大表示かどうか。
+  final bool large;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: large ? 44 : 32,
+          height: large ? 44 : 32,
+          decoration: BoxDecoration(
+            color: palette.brandCircleColor,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.document_scanner_rounded,
+            color: palette.brandIconColor,
+            size: large ? 26 : 19,
+          ),
+        ),
+        SizedBox(width: large ? 13 : 10),
+        Text(
+          locale == AppStoreScreenshotLocale.ja ? 'カシャケイボ' : 'Kashakeibo',
+          style: TextStyle(
+            color: palette.brandTextColor,
+            fontSize: large ? 25 : 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: large ? -0.4 : -0.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 見出し上部の訴求ラベルを示すピル型チップ。
+class _EyebrowChip extends StatelessWidget {
+  /// 指定文言・配色のチップを作る。iPad だけ拡大指定する。
+  const _EyebrowChip({
+    required this.text,
+    required this.palette,
+    this.large = false,
+  });
+
+  /// チップへ表示する訴求ラベル。
+  final String text;
+
+  /// ページの配色。
+  final _ScreenshotPalette palette;
+
+  /// iPad 向けの拡大表示かどうか。
+  final bool large;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: large
+          ? const EdgeInsets.symmetric(horizontal: 18, vertical: 10)
+          : const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: palette.chipBackgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: palette.chipTextColor,
+          fontSize: large ? 19 : 14,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
 }
 
 /// 掲載順に対応する固定データのアプリ画面モックを返す。
@@ -576,8 +812,24 @@ class _BrandMark extends StatelessWidget {
 
 /// アプリ画面モックを収める iPhone 風の端末フレーム。
 class _DeviceFrame extends StatelessWidget {
-  /// 指定した画面モックをフレーム内へ収める。
-  const _DeviceFrame({required this.child});
+  /// 指定寸法のフレームへ画面モックを収める。
+  ///
+  /// 暗色背景でベゼルが背景に溶けるページは [outlineColor] で輪郭を足す。
+  const _DeviceFrame({
+    required this.width,
+    required this.height,
+    required this.outlineColor,
+    required this.child,
+  });
+
+  /// フレームの外寸幅。
+  final double width;
+
+  /// フレームの外寸高さ。
+  final double height;
+
+  /// ベゼルの輪郭色。不要なページは null。
+  final Color? outlineColor;
 
   /// フレーム内へ表示するアプリ画面モック。
   final Widget child;
@@ -585,34 +837,39 @@ class _DeviceFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 330,
-      height: 580,
-      padding: const EdgeInsets.all(9),
+      width: width,
+      height: height,
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xFF201E1D),
-        borderRadius: BorderRadius.circular(50),
-        boxShadow: const [
-          BoxShadow(
+        borderRadius: BorderRadius.circular(56),
+        border: outlineColor == null
+            ? null
+            : Border.all(color: outlineColor!, width: 2),
+        boxShadow: [
+          const BoxShadow(
             color: Color(0x402E2B25),
-            blurRadius: 30,
-            offset: Offset(0, 16),
+            blurRadius: 34,
+            offset: Offset(0, 18),
           ),
+          if (outlineColor != null)
+            const BoxShadow(color: Color(0x30F5EAD8), blurRadius: 60),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(41),
+        borderRadius: BorderRadius.circular(46),
         child: Stack(
           children: [
             Positioned.fill(child: child),
             Positioned(
-              top: 10,
-              left: 112,
-              right: 112,
+              top: 11,
+              left: 126,
+              right: 126,
               child: Container(
-                height: 20,
+                height: 22,
                 decoration: BoxDecoration(
                   color: const Color(0xFF201E1D),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(22),
                 ),
               ),
             ),
@@ -645,11 +902,11 @@ class _MockScreenScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final foregroundColor = dark ? Colors.white : AppColors.onSurface;
     return ColoredBox(
-      color: dark ? const Color(0xFF201E1D) : AppColors.background,
+      color: dark ? const Color(0xFF201E1D) : AppColors.neutral100,
       child: SafeArea(
-        minimum: const EdgeInsets.only(top: 18),
+        minimum: const EdgeInsets.only(top: 20),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 14),
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -657,7 +914,7 @@ class _MockScreenScaffold extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: foregroundColor,
-                  fontSize: 18,
+                  fontSize: 21,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -683,11 +940,11 @@ class _ScreenshotImportMock extends StatelessWidget {
   Widget build(BuildContext context) {
     final isJapanese = locale == AppStoreScreenshotLocale.ja;
     return _MockScreenScaffold(
-      title: isJapanese ? '写真・スクショから選ぶ' : 'Choose a screenshot',
+      title: isJapanese ? 'スクショを取り込み' : 'Import a screenshot',
       child: Column(
         children: [
           _MockCard(
-            color: const Color(0xFFF9F4ED),
+            color: Colors.white,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -703,14 +960,14 @@ class _ScreenshotImportMock extends StatelessWidget {
                       child: Text(
                         isJapanese ? 'カードご利用明細' : 'Card statement',
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 const _StatementRow(label: 'AMAZON.CO.JP', amount: '¥3,280'),
                 const SizedBox(height: 10),
                 const _StatementRow(label: 'PAYPAY', amount: '¥1,240'),
@@ -719,54 +976,135 @@ class _ScreenshotImportMock extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          const Icon(
-            Icons.keyboard_double_arrow_down_rounded,
-            color: AppColors.primary,
-            size: 32,
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isJapanese ? 'AIが3件を読み取り' : 'AI read 3 entries',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_downward_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _MockCard(
             color: AppColors.accent100,
             borderColor: AppColors.accent300,
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _RoundIcon(
-                  icon: Icons.auto_awesome_rounded,
-                  color: AppColors.accent700,
-                  backgroundColor: AppColors.accent200,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isJapanese ? '3件を読み取りました' : '3 entries found',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        isJapanese
-                            ? '金額・日付・店名を確認'
-                            : 'Review amount, date, and merchant',
-                        style: const TextStyle(
-                          color: AppColors.neutral600,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                Text(
+                  isJapanese ? '家計簿に追加済み' : 'Added to your budget',
+                  style: const TextStyle(
+                    color: AppColors.accent800,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                   ),
+                ),
+                const SizedBox(height: 12),
+                _ImportedEntryRow(
+                  merchant: 'Amazon.co.jp',
+                  category: isJapanese ? 'ネット通販' : 'Online',
+                  amount: '¥3,280',
+                ),
+                const SizedBox(height: 10),
+                _ImportedEntryRow(
+                  merchant: 'PayPay',
+                  category: isJapanese ? 'キャッシュレス' : 'Cashless',
+                  amount: '¥1,240',
+                ),
+                const SizedBox(height: 10),
+                _ImportedEntryRow(
+                  merchant: 'Suica',
+                  category: isJapanese ? '交通' : 'Transit',
+                  amount: '¥2,000',
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// AIが読み取って家計簿へ追加済みの明細1行を示すモック部品。
+class _ImportedEntryRow extends StatelessWidget {
+  /// 指定した店名・カテゴリ・金額の行を作る。
+  const _ImportedEntryRow({
+    required this.merchant,
+    required this.category,
+    required this.amount,
+  });
+
+  /// 取引先の表示名。
+  final String merchant;
+
+  /// 明細に付与されたカテゴリ名。
+  final String category;
+
+  /// 通貨記号を含む表示金額。
+  final String amount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(
+          Icons.check_circle_rounded,
+          color: AppColors.sage700,
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                merchant,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                category,
+                style: const TextStyle(
+                  color: AppColors.neutral600,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          amount,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -787,10 +1125,13 @@ class _ReceiptScanMock extends StatelessWidget {
       dark: true,
       child: Column(
         children: [
-          Expanded(
+          // 端末フレームは画面下端からブリードするため、キャプションと
+          // シャッターが可視領域へ収まるようレシートは固定高さにする。
+          SizedBox(
+            height: 350,
             child: Container(
-              width: 220,
-              padding: const EdgeInsets.fromLTRB(18, 24, 18, 18),
+              width: 256,
+              padding: const EdgeInsets.fromLTRB(20, 26, 20, 20),
               decoration: BoxDecoration(
                 color: AppColors.neutral100,
                 borderRadius: BorderRadius.circular(10),
@@ -804,27 +1145,27 @@ class _ReceiptScanMock extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.onSurface,
-                      fontSize: 15,
+                      fontSize: 17,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  const _ReceiptLine(label: 'GROCERIES', value: '¥2,480'),
-                  const SizedBox(height: 10),
-                  const _ReceiptLine(label: 'COFFEE', value: '¥480'),
-                  const SizedBox(height: 10),
-                  const _ReceiptLine(label: 'TAX', value: '¥237'),
+                  const SizedBox(height: 22),
+                  const _ReceiptScanLine(label: 'GROCERIES', value: '¥2,480'),
+                  const SizedBox(height: 12),
+                  const _ReceiptScanLine(label: 'COFFEE', value: '¥480'),
+                  const SizedBox(height: 12),
+                  const _ReceiptScanLine(label: 'TAX', value: '¥237'),
                   const Spacer(),
                   const Divider(color: AppColors.neutral400),
-                  const _ReceiptLine(
+                  const _ReceiptScanLine(
                     label: 'TOTAL',
                     value: '¥3,197',
                     bold: true,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   Container(
-                    height: 24,
+                    height: 26,
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -847,14 +1188,14 @@ class _ReceiptScanMock extends StatelessWidget {
             isJapanese ? 'レシートを枠内に' : 'Fit receipt inside the frame',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 18),
           Container(
-            width: 66,
-            height: 66,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -863,6 +1204,54 @@ class _ReceiptScanMock extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 撮影中レシート内の商品名と金額を1行で示すモック部品。
+///
+/// Product Page Header 共用の [_ReceiptLine] より大きな文字で描画するため、
+/// スクリーンショット専用に独立させている。
+class _ReceiptScanLine extends StatelessWidget {
+  /// 通常行を標準とし、合計行だけ明示的に太字へ切り替える。
+  const _ReceiptScanLine({
+    required this.label,
+    required this.value,
+    this.bold = false,
+  });
+
+  /// 商品または合計の表示名。
+  final String label;
+
+  /// 通貨記号を含む表示金額。
+  final String value;
+
+  /// 合計行として強調するかどうか。
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: AppColors.onSurface,
+              fontSize: bold ? 14 : 12,
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: AppColors.onSurface,
+            fontSize: bold ? 15 : 12,
+            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -899,7 +1288,7 @@ class _DuplicateDetectionMock extends StatelessWidget {
               isJapanese ? '金額と日付が一致' : 'Same amount and date',
               style: const TextStyle(
                 color: AppColors.sage700,
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -924,7 +1313,7 @@ class _DuplicateDetectionMock extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: AppColors.onPrimary,
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -953,8 +1342,10 @@ class _SourceImageMock extends StatelessWidget {
         children: [
           const Text(
             '¥3,280',
+            // 明細の主役である金額を画面内の視線の起点にするため強調色にする。
             style: TextStyle(
-              fontSize: 34,
+              color: AppColors.primary,
+              fontSize: 38,
               fontWeight: FontWeight.w800,
               fontFeatures: [FontFeature.tabularFigures()],
             ),
@@ -962,11 +1353,11 @@ class _SourceImageMock extends StatelessWidget {
           const SizedBox(height: 5),
           const Text(
             'Amazon.co.jp',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 20),
           Container(
-            height: 205,
+            height: 235,
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -981,7 +1372,7 @@ class _SourceImageMock extends StatelessWidget {
                     Text(
                       isJapanese ? '注文履歴' : 'Your Orders',
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1013,7 +1404,7 @@ class _SourceImageMock extends StatelessWidget {
                       isJapanese ? '拡大' : 'Zoom',
                       style: const TextStyle(
                         color: AppColors.neutral100,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1038,7 +1429,7 @@ class _SourceImageMock extends StatelessWidget {
                       : 'Your original source image stays linked',
                   style: const TextStyle(
                     color: AppColors.sage700,
-                    fontSize: 11,
+                    fontSize: 13,
                     height: 1.35,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1069,7 +1460,7 @@ class _MonthlyReportMock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _MockCard(
-            color: AppColors.neutral100,
+            color: Colors.white,
             child: Row(
               children: [
                 Expanded(
@@ -1080,13 +1471,13 @@ class _MonthlyReportMock extends StatelessWidget {
                         isJapanese ? '支出' : 'Spending',
                         style: const TextStyle(
                           color: AppColors.neutral600,
-                          fontSize: 10,
+                          fontSize: 12,
                         ),
                       ),
                       const Text(
                         '¥84,320',
                         style: TextStyle(
-                          fontSize: 23,
+                          fontSize: 28,
                           fontWeight: FontWeight.w800,
                           fontFeatures: [FontFeature.tabularFigures()],
                         ),
@@ -1101,14 +1492,14 @@ class _MonthlyReportMock extends StatelessWidget {
                       isJapanese ? '残り' : 'Remaining',
                       style: const TextStyle(
                         color: AppColors.neutral600,
-                        fontSize: 10,
+                        fontSize: 12,
                       ),
                     ),
                     const Text(
                       '¥35,680',
                       style: TextStyle(
                         color: AppColors.sage700,
-                        fontSize: 14,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1120,7 +1511,7 @@ class _MonthlyReportMock extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             isJapanese ? 'カテゴリ別' : 'By category',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
           _CategoryBar(
@@ -1150,7 +1541,7 @@ class _MonthlyReportMock extends StatelessWidget {
             fraction: 0.3,
             color: AppColors.sage400,
           ),
-          const Spacer(),
+          const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -1163,7 +1554,7 @@ class _MonthlyReportMock extends StatelessWidget {
                 const Icon(
                   Icons.lock_outline_rounded,
                   color: AppColors.sage700,
-                  size: 22,
+                  size: 24,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1173,7 +1564,7 @@ class _MonthlyReportMock extends StatelessWidget {
                         : 'Your bank credentials stay private',
                     style: const TextStyle(
                       color: AppColors.sage700,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1365,7 +1756,7 @@ class _StatementRow extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: AppColors.neutral700,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1373,7 +1764,7 @@ class _StatementRow extends StatelessWidget {
         Text(
           amount,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 14,
             fontWeight: FontWeight.w800,
             fontFeatures: [FontFeature.tabularFigures()],
           ),
@@ -1453,7 +1844,7 @@ class _TransactionSourceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _MockCard(
-      color: AppColors.neutral100,
+      color: Colors.white,
       child: Row(
         children: [
           _RoundIcon(
@@ -1470,7 +1861,7 @@ class _TransactionSourceCard extends StatelessWidget {
                   sourceLabel,
                   style: const TextStyle(
                     color: AppColors.neutral600,
-                    fontSize: 9,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1479,7 +1870,7 @@ class _TransactionSourceCard extends StatelessWidget {
                   merchant,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1488,7 +1879,7 @@ class _TransactionSourceCard extends StatelessWidget {
                   '2026/08/10',
                   style: TextStyle(
                     color: AppColors.neutral600,
-                    fontSize: 9,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1497,8 +1888,10 @@ class _TransactionSourceCard extends StatelessWidget {
           ),
           Text(
             amount,
+            // 2枚のカードで同じ金額が並ぶことを一目で示すため強調色にする。
             style: const TextStyle(
-              fontSize: 14,
+              color: AppColors.primary,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
               fontFeatures: [FontFeature.tabularFigures()],
             ),
@@ -1542,14 +1935,14 @@ class _CategoryBar extends StatelessWidget {
               child: Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
             Text(
               amount,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -1557,7 +1950,7 @@ class _CategoryBar extends StatelessWidget {
         FractionallySizedBox(
           widthFactor: fraction,
           child: Container(
-            height: 14,
+            height: 16,
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(999),
