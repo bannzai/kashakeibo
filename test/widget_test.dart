@@ -140,6 +140,12 @@ void main() {
     expect(find.text(AppLocalizationsEn().settings), findsOneWidget);
     expect(find.text(AppLocalizationsEn().termsOfService), findsOneWidget);
     expect(analyticsEvents, ['settings_open']);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().settings), findsNothing);
+    expect(analyticsEvents, ['settings_open', 'settings_close']);
   });
 
   testWidgets('設定画面: 3つの法務ドキュメントを開ける', (tester) async {

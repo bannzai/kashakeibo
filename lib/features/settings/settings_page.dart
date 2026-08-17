@@ -47,6 +47,14 @@ class SettingsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         surfaceTintColor: AppColors.background,
+        leading: IconButton(
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          icon: const BackButtonIcon(),
+          onPressed: () {
+            unawaited(logAnalyticsEvent(name: 'settings_close'));
+            Navigator.of(context).pop();
+          },
+        ),
         title: Text(
           l10n.settings,
           style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),

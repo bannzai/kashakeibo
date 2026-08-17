@@ -9,8 +9,17 @@ if ! gh api --silent "repos/${repository}/contents/docs/PrivacyPolicy-en.md?ref=
   exit 1
 fi
 
-pages_configuration="$(gh api "repos/${repository}/pages" 2>/dev/null || true)"
-if [[ -n "${pages_configuration}" ]] &&
+if pages_configuration="$(gh api "repos/${repository}/pages" 2>&1)"; then
+  pages_exists=true
+elif [[ "${pages_configuration}" == *"HTTP 404"* ]]; then
+  pages_exists=false
+  pages_configuration=''
+else
+  printf '%s\n' "${pages_configuration}" >&2
+  exit 1
+fi
+
+if [[ "${pages_exists}" == true ]] &&
   [[ "$(jq -r '.source.branch // empty' <<<"${pages_configuration}")" == "main" ]] &&
   [[ "$(jq -r '.source.path // empty' <<<"${pages_configuration}")" == "/docs" ]]; then
   echo "GitHub Pages は main の /docs で有効です: ${repository}"
@@ -18,7 +27,7 @@ if [[ -n "${pages_configuration}" ]] &&
 fi
 
 request_body='{"build_type":"legacy","source":{"branch":"main","path":"/docs"}}'
-if [[ -n "${pages_configuration}" ]]; then
+if [[ "${pages_exists}" == true ]]; then
   gh api --silent --method PUT "repos/${repository}/pages" --input - <<<"${request_body}"
 else
   gh api --silent --method POST "repos/${repository}/pages" --input - <<<"${request_body}"

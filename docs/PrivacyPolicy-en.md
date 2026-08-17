@@ -1,3 +1,6 @@
+---
+---
+
 # Privacy Policy
 
 bannzai (the "Provider") establishes this Privacy Policy (the "Policy") regarding the handling of user information, including personal information, in the Kashakeibo service (the "Service") provided by the Provider.
