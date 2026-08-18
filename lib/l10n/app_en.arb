@@ -36,6 +36,26 @@
   "@nextMonth": {
     "description": "Tooltip for the next month button"
   },
+  "openSettings": "Open settings",
+  "@openSettings": {
+    "description": "Tooltip for the button that opens settings"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  "termsOfService": "Terms of Service",
+  "@termsOfService": {
+    "description": "Link label for the terms of service"
+  },
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Link label for the privacy policy"
+  },
+  "specifiedCommercialTransactionAct": "Commercial Transaction Disclosure",
+  "@specifiedCommercialTransactionAct": {
+    "description": "Link label for the disclosure required by Japan's Specified Commercial Transactions Act"
+  },
   "categoryFood": "Food",
   "@categoryFood": {
     "description": "Transaction category: food (groceries)"

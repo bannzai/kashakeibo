@@ -5,6 +5,7 @@ import 'package:kashakeibo/features/auth/sign_in_resolver.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/style/tokens.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:kashakeibo/utils/config/environment.dart';
 import 'package:kashakeibo/utils/firebase_app_check/firebase_app_check.dart';
 import 'package:kashakeibo/utils/firebase_emulator/firebase_emulator.dart';
@@ -51,7 +52,9 @@ class App extends StatelessWidget {
           outline: AppColors.divider,
         ),
       ),
-      home: const SignInResolver(child: MonthlyPage()),
+      home: const SignInResolver(
+        child: MonthlyPage(logAnalyticsEvent: recordAnalyticsEvent),
+      ),
     );
   }
 }

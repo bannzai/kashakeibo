@@ -36,6 +36,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get nextMonth => '次の月';
 
   @override
+  String get openSettings => '設定を開く';
+
+  @override
+  String get settings => '設定';
+
+  @override
+  String get termsOfService => '利用規約';
+
+  @override
+  String get privacyPolicy => 'プライバシーポリシー';
+
+  @override
+  String get specifiedCommercialTransactionAct => '特定商取引法に基づく表示';
+
+  @override
   String get categoryFood => '食費';
 
   @override

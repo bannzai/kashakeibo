@@ -152,6 +152,36 @@ abstract class AppLocalizations {
   /// **'Next month'**
   String get nextMonth;
 
+  /// Tooltip for the button that opens settings
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSettings;
+
+  /// Settings screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// Link label for the terms of service
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfService;
+
+  /// Link label for the privacy policy
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
+  /// Link label for the disclosure required by Japan's Specified Commercial Transactions Act
+  ///
+  /// In en, this message translates to:
+  /// **'Commercial Transaction Disclosure'**
+  String get specifiedCommercialTransactionAct;
+
   /// Transaction category: food (groceries)
   ///
   /// In en, this message translates to:
