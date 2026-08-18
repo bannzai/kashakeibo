@@ -34,6 +34,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // debug ビルドは applicationId を .dev に分離し、dev / prod を同一端末に共存させる。
+            // namespace (= R class package) は据え置き、applicationId のみ変える。
+            applicationIdSuffix = ".dev"
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.

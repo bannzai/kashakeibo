@@ -1,2 +1,6 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// debug ビルドと release / profile ビルドで bundle ID を分け、dev / prod の
+// Firebase Auth Keychain の状態が同一端末で混ざらないようにする。Debug config = dev。
+APP_BUNDLE_IDENTIFIER = com.bannzai.kashakeibo.dev
