@@ -1,8 +1,8 @@
 ---
 feature: _root
 verification: mobile-mcp
-last_verified_commit: null
-last_verified_at: null
+last_verified_commit: 8a9634107c725e2670c43709dd1ea4493699072f
+last_verified_at: 2026-08-19
 ---
 
 # QA 全体ガイド
@@ -37,7 +37,10 @@ last_verified_at: null
 
 ## 実行ナレッジ
 
-（まだ知見なし。run-qa が実行中の flaky・落とし穴の知見を蓄積する。運用ルールは ~/.claude/skills/setup-qa/references/qa-md-format.md を参照）
+- **simtunnel のリモート Simulator は英語ロケール・UTC 日付**: 画面の文言はすべて l10n の en 値になる。QA.md の項目文が日本語文言を例示していても英語での同等表示で判定してよい (記録時にその旨を書く)。また Simulator の当日はホストマシン (JST) より 1 日前になることがある (2026-08-19 JST の実行時に Simulator は 2026-08-18)。「日付の初期値は今日」のような判定は Simulator の当日を基準にし、Material DatePicker で "Today" の枠線が付く日で確認できる
+- **アプリの再起動**: リモートではアプリの削除・再インストールができないため、初回起動の確認はインストール直後の状態で行う。再起動の確認は `bash tmp/qa/wda.sh terminate com.bannzai.kashakeibo` → `launch` で行うが、終了直後に 1 枚撮ってホーム画面が出ていることを確認しないと、再起動後の画面が終了前と同じに見えるだけで再起動の証拠にならない
+- **外部ブラウザ (Safari) で開いた URL の確認**: Safari のツールバーのアドレス欄はホスト名だけの短縮表示 (`bannzai.github.io`) で、どのパスを開いたかスクショからは判別できない。アドレス欄をタップして編集状態にすると `elements` に `"name": "URL"` の TextField が現れ、その `value` にフルURLが入るのでこれで判定する。また Simulator 初回起動時の Safari は「Start Page のカスタマイズ」「View Bookmarks, Share Menu, and Open Tabs」といったオンボーディングのポップオーバーを重ねてきて、閉じるまでツールバーの要素が `elements` に出ない (ポップオーバーの `Close` / `close` ボタンをタップして消す)。Safari からアプリへ戻るのは `bash tmp/qa/wda.sh launch com.bannzai.kashakeibo` で、直前に開いていた画面のまま復帰する
+- **キーボードで隠れる要素**: 手動明細入力シートのように autofocus で数字キーボードが出る画面では、画面下部のボタン (登録ボタン等) がキーボードの裏に入り `elements` にも出ない。数字キーボードには改行キーが無いため、`textInputAction: done` を持つ別のテキスト欄 (店名欄) をタップしてから `keys` に改行だけを送ってキーボードを閉じる。キーボードの開閉で全要素の rect がずれるので、閉じた後に `elements` を取り直してから座標を決める
 
 ## 横断確認項目
 
@@ -45,9 +48,9 @@ last_verified_at: null
 
 ## 1. 起動・サインイン
 
-- [ ] **初回起動の匿名サインイン**: 初回起動 (アプリ削除後の再インストール直後) にローディングを経て月次一覧が表示され、登録操作なしで使い始められる
+- [x] **初回起動の匿名サインイン**: 初回起動 (アプリ削除後の再インストール直後) にローディングを経て月次一覧が表示され、登録操作なしで使い始められる
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [ ] **2 回目以降の起動**: アプリを終了して再起動しても、同じユーザーのデータ (投入済み明細) が表示される
+- [x] **2 回目以降の起動**: アプリを終了して再起動しても、同じユーザーのデータ (投入済み明細) が表示される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [ ] **サインイン失敗時のエラー表示**: サインインに失敗するとエラーメッセージが加工されずに表示され、リトライボタンで再試行できる
   - 自動化: todo (初回起動時にネットワークを遮断する等の失敗状態の作り込み手段が未整備)
@@ -60,7 +63,13 @@ last_verified_at: null
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-19**
+
+simtunnel のリモート Simulator ではアプリ削除→再インストールができないため、runner へインストールした直後の初回起動状態 (明細 0 件・"No transactions this month") がそのまま観測できていることを根拠にする。ローディング表示の瞬間はスクショに収められない。
+
+runner の Simulator が英語ロケールのため、英語表示 ("August 2026" / "Spending" / "No transactions this month" / "Enter manually") で確認した。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/e560a189-a695-488f-a8ce-027780140e9a.jpg" width="320">
 
 </details>
 
@@ -68,7 +77,14 @@ last_verified_at: null
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-19**
+
+runner の Simulator が英語ロケールのため、英語表示で確認した。
+
+manual_entry の QA で 4 件の明細を登録した状態からアプリを終了 → 再起動した。左: 終了直後。ホーム画面に戻りアプリのプロセスが残っていないことを確認した (この確認をしないと、再起動後の画面が終了前の画面と同じに見えるだけで再起動の証拠にならない)。右: 再起動後。サインイン操作なしで同じ匿名ユーザーの明細 4 件 (Salary August / Cash expense / Lawson QA / Past Date Cafe) とサマリー (Spending ¥6,480 / Income ¥300,000 / Balance ¥293,520) が終了前と同じ内容で表示された。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/0709a35d-de93-4a56-b275-8d1042626e46.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/372cbad2-a3a5-42f3-bfaa-98ccaf2f40f9.jpg" width="320">
 
 </details>
 
