@@ -15,6 +15,21 @@ enum TransactionType {
   expense,
 }
 
+/// 明細が登録された経路。
+enum TransactionSource {
+  /// 紙レシートの撮影。
+  receipt,
+
+  /// カード明細・EC 購入履歴などのスクリーンショット。
+  screenshot,
+
+  /// ユーザーによる手動入力。
+  manual,
+
+  /// 出所フィールド追加前の明細、または将来追加された未知の出所。
+  unknown,
+}
+
 /// 明細のカテゴリ。
 ///
 /// 支出カテゴリの体系はデザイン (design_handoff_kashakeibo/README.md の
@@ -68,6 +83,16 @@ abstract class Transaction with _$Transaction {
     /// 明細の種別 (収入 / 支出)。月次集計・複合インデックスの絞り込みに使う。
     required TransactionType type,
 
+    /// 明細が登録された経路。
+    ///
+    /// 出所フィールド追加前の明細に誤った出所を割り当てないため、欠損値と
+    /// 未知の値は [TransactionSource.unknown] として読む。
+    @JsonKey(
+      defaultValue: TransactionSource.unknown,
+      unknownEnumValue: TransactionSource.unknown,
+    )
+    required TransactionSource source,
+
     /// 金額 (日本円、整数)。
     required int amount,
 
@@ -95,6 +120,11 @@ abstract class Transaction with _$Transaction {
     /// 集計の計算対象から除外するかどうか。重複明細の片方を残したまま
     /// 集計に含めない、などの用途 (documents/PROJECT.md の MVP スコープ)。
     required bool excludedFromAggregation,
+
+    /// 重複候補として提示済みで、ユーザーが「別物として残す」と判断した明細 ID。
+    /// 相手側にも自身の ID を保存し、どちらを先に読み込んでも同じ候補を再提示しない。
+    /// フィールドが無い旧データは未判断として扱う。
+    @Default(<String>[]) List<String> confirmedDistinctTransactionIDs,
     @ServerCreatedTimestamp() DateTime? serverCreatedDateTime,
     @ServerUpdatedTimestamp() DateTime? serverUpdatedDateTime,
   }) = _Transaction;
@@ -173,3 +203,91 @@ Map<TransactionCategory, int> categoryTotals({
     totals.entries.toList()..sort((a, b) => b.value.compareTo(a.value)),
   );
 }
+
+/// 重複候補を構成する 2 件の明細。
+typedef DuplicateCandidate = ({
+  Transaction primaryTransaction,
+  Transaction duplicateTransaction,
+});
+
+/// 重複候補とみなす取引日の最大差。
+const int duplicateCandidateMaximumDateDifferenceInDays = 3;
+
+/// 2 件の明細が、金額・取引日・店名のヒューリスティック上の重複候補かを返す。
+bool isDuplicateCandidate({
+  required Transaction firstTransaction,
+  required Transaction secondTransaction,
+}) {
+  if (firstTransaction.id == secondTransaction.id ||
+      firstTransaction.type != TransactionType.expense ||
+      secondTransaction.type != TransactionType.expense ||
+      firstTransaction.excludedFromAggregation ||
+      secondTransaction.excludedFromAggregation ||
+      firstTransaction.amount != secondTransaction.amount ||
+      firstTransaction.confirmedDistinctTransactionIDs.contains(
+        secondTransaction.id,
+      ) ||
+      secondTransaction.confirmedDistinctTransactionIDs.contains(
+        firstTransaction.id,
+      )) {
+    return false;
+  }
+
+  final firstDate = firstTransaction.transactionLocalDate;
+  final secondDate = secondTransaction.transactionLocalDate;
+  final firstCalendarDate = DateTime.utc(
+    firstDate.year,
+    firstDate.month,
+    firstDate.day,
+  );
+  final secondCalendarDate = DateTime.utc(
+    secondDate.year,
+    secondDate.month,
+    secondDate.day,
+  );
+  if (firstCalendarDate.difference(secondCalendarDate).inDays.abs() >
+      duplicateCandidateMaximumDateDifferenceInDays) {
+    return false;
+  }
+
+  final firstTitle = _normalizedTransactionTitle(title: firstTransaction.title);
+  final secondTitle = _normalizedTransactionTitle(
+    title: secondTransaction.title,
+  );
+  if (firstTitle.isEmpty || secondTitle.isEmpty) {
+    return false;
+  }
+  return firstTitle == secondTitle ||
+      (firstTitle.length >= 3 && secondTitle.contains(firstTitle)) ||
+      (secondTitle.length >= 3 && firstTitle.contains(secondTitle));
+}
+
+/// 一覧から、同じ組み合わせを重ねずに重複候補を抽出する。
+List<DuplicateCandidate> duplicateCandidates({
+  required List<Transaction> transactions,
+}) {
+  final candidates = <DuplicateCandidate>[];
+  for (var firstIndex = 0; firstIndex < transactions.length; firstIndex++) {
+    for (
+      var secondIndex = firstIndex + 1;
+      secondIndex < transactions.length;
+      secondIndex++
+    ) {
+      if (isDuplicateCandidate(
+        firstTransaction: transactions[firstIndex],
+        secondTransaction: transactions[secondIndex],
+      )) {
+        candidates.add((
+          primaryTransaction: transactions[firstIndex],
+          duplicateTransaction: transactions[secondIndex],
+        ));
+      }
+    }
+  }
+  return candidates;
+}
+
+/// 店名比較用に大文字小文字・空白・句読点・記号の差を取り除く。
+String _normalizedTransactionTitle({required String title}) => title
+    .toLowerCase()
+    .replaceAll(RegExp(r'[\s\p{P}\p{S}]', unicode: true), '');

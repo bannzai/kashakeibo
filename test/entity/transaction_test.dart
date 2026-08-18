@@ -12,6 +12,7 @@ Transaction buildTransaction({
   id: 'transaction-id',
   userID: 'user-id',
   type: type,
+  source: TransactionSource.manual,
   amount: amount,
   category: category,
   title: 'タイトル',
@@ -36,6 +37,7 @@ void main() {
         'id': 'transaction-id',
         'userID': 'user-id',
         'type': 'expense',
+        'source': 'manual',
         'amount': 1200,
         'category': 'food',
         'title': 'スーパーマーケット',
@@ -46,11 +48,13 @@ void main() {
         'serverUpdatedDateTime': null,
       });
       expect(transaction.type, TransactionType.expense);
+      expect(transaction.source, TransactionSource.manual);
       expect(transaction.amount, 1200);
       expect(transaction.category, TransactionCategory.food);
       expect(transaction.transactionDate, DateTime(2026, 8, 16, 12));
       expect(transaction.yearMonth, '2026-08');
       expect(transaction.excludedFromAggregation, false);
+      expect(transaction.confirmedDistinctTransactionIDs, isEmpty);
     });
 
     test('未知のカテゴリは other として読む (旧クライアントの後方互換)', () {
@@ -58,6 +62,7 @@ void main() {
         'id': 'transaction-id',
         'userID': 'user-id',
         'type': 'expense',
+        'source': 'manual',
         'amount': 1200,
         'category': 'newCategoryAddedInFuture',
         'title': 'タイトル',
@@ -66,6 +71,21 @@ void main() {
         'excludedFromAggregation': false,
       });
       expect(transaction.category, TransactionCategory.other);
+    });
+
+    test('出所が無い旧データは unknown として読む', () {
+      final transaction = Transaction.fromJson({
+        'id': 'transaction-id',
+        'userID': 'user-id',
+        'type': 'expense',
+        'amount': 1200,
+        'category': 'food',
+        'title': 'タイトル',
+        'transactionDate': Timestamp.fromDate(DateTime(2026, 8, 16, 12)),
+        'yearMonth': '2026-08',
+        'excludedFromAggregation': false,
+      });
+      expect(transaction.source, TransactionSource.unknown);
     });
   });
 
@@ -114,12 +134,14 @@ void main() {
         excludedFromAggregation: false,
       ).toJson();
       expect(json['type'], 'income');
+      expect(json['source'], 'manual');
       expect(json['category'], 'salary');
       expect(
         json['transactionDate'],
         Timestamp.fromDate(DateTime(2026, 8, 16, 12)),
       );
       expect(json['yearMonth'], '2026-08');
+      expect(json['confirmedDistinctTransactionIDs'], isEmpty);
       // サーバータイムスタンプは書き込みのたびに FieldValue で付与される
       // (.claude/rules/firestore-timestamp-rules.md)。
       expect(json['serverCreatedDateTime'], isA<FieldValue>());
@@ -211,6 +233,103 @@ void main() {
       ]);
       expect(totals[TransactionCategory.eatingOut], 9800);
       expect(totals[TransactionCategory.food], 4200);
+    });
+  });
+
+  group('duplicateCandidates', () {
+    final receiptTransaction =
+        buildTransaction(
+          type: TransactionType.expense,
+          amount: 4230,
+          category: TransactionCategory.eatingOut,
+          excludedFromAggregation: false,
+        ).copyWith(
+          id: 'receipt-transaction',
+          title: '鳥貴族 三軒茶屋店',
+          transactionDate: DateTime(2026, 8, 10, 12),
+        );
+    final cardTransaction =
+        buildTransaction(
+          type: TransactionType.expense,
+          amount: 4230,
+          category: TransactionCategory.eatingOut,
+          excludedFromAggregation: false,
+        ).copyWith(
+          id: 'card-transaction',
+          title: '鳥貴族　三軒茶屋店',
+          transactionDate: DateTime(2026, 8, 13, 12),
+        );
+
+    test('金額が同じ・取引日が前後3日以内・正規化した店名が一致する支出を検出する', () {
+      expect(
+        isDuplicateCandidate(
+          firstTransaction: receiptTransaction,
+          secondTransaction: cardTransaction,
+        ),
+        isTrue,
+      );
+      final candidates = duplicateCandidates(
+        transactions: [receiptTransaction, cardTransaction],
+      );
+      expect(candidates, hasLength(1));
+      expect(candidates.single.primaryTransaction.id, 'receipt-transaction');
+      expect(candidates.single.duplicateTransaction.id, 'card-transaction');
+    });
+
+    test('金額・日付・店名のいずれかが基準外なら検出しない', () {
+      expect(
+        isDuplicateCandidate(
+          firstTransaction: receiptTransaction,
+          secondTransaction: cardTransaction.copyWith(amount: 4229),
+        ),
+        isFalse,
+      );
+      expect(
+        isDuplicateCandidate(
+          firstTransaction: receiptTransaction,
+          secondTransaction: cardTransaction.copyWith(
+            transactionDate: DateTime(2026, 8, 14, 12),
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        isDuplicateCandidate(
+          firstTransaction: receiptTransaction,
+          secondTransaction: cardTransaction.copyWith(title: '別の店舗'),
+        ),
+        isFalse,
+      );
+    });
+
+    test('計算対象外・収入・別物として確定済みの組み合わせは検出しない', () {
+      expect(
+        isDuplicateCandidate(
+          firstTransaction: receiptTransaction,
+          secondTransaction: cardTransaction.copyWith(
+            excludedFromAggregation: true,
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        isDuplicateCandidate(
+          firstTransaction: receiptTransaction,
+          secondTransaction: cardTransaction.copyWith(
+            type: TransactionType.income,
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        isDuplicateCandidate(
+          firstTransaction: receiptTransaction.copyWith(
+            confirmedDistinctTransactionIDs: ['card-transaction'],
+          ),
+          secondTransaction: cardTransaction,
+        ),
+        isFalse,
+      );
     });
   });
 }

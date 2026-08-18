@@ -1,16 +1,45 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/provider/account.dart';
-import 'package:kashakeibo/provider/firebase_analytics.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
 import 'package:kashakeibo/style/tokens.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-/// バックアップ用アカウントリンクとアカウント削除を提供する設定画面。
+const _legalDocumentsHost = 'bannzai.github.io';
+const _legalDocumentsBasePath = '/kashakeibo';
+
+/// 外部URLを開く処理。テストでは呼び出し先を差し替える。
+typedef OpenExternalUri = Future<void> Function({required Uri uri});
+
+/// 端末の既定ブラウザでURLを開く。
+///
+/// ブラウザ起動はユーザーのタップごとに行う副作用のため冪等にはできない。
+Future<void> openExternalUri({required Uri uri}) async {
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    throw Exception('Could not launch $uri');
+  }
+}
+
+/// バックアップ用アカウントリンク、法務ドキュメントへの導線、アカウント削除を
+/// 提供する設定画面。
 class SettingsPage extends HookConsumerWidget {
-  const SettingsPage({super.key});
+  /// 外部URLを開く処理。
+  final OpenExternalUri openExternalUri;
+
+  /// Analyticsイベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
+  const SettingsPage({
+    required this.openExternalUri,
+    required this.logAnalyticsEvent,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,9 +48,22 @@ class SettingsPage extends HookConsumerWidget {
     final linkOrSignInWithGoogle = ref.watch(linkOrSignInWithGoogleProvider);
     final hasCurrentUserData = ref.watch(hasCurrentUserDataProvider);
     final deleteAccount = ref.watch(deleteAccountProvider);
-    final logAnalyticsEvent = ref.watch(logAnalyticsEventProvider);
     final operationInProgress = useState(false);
+    // 戻る操作を経路 (AppBar の戻るボタン / スワイプ) によらず一度だけ記録する。
+    final settingsCloseLogged = useRef(false);
     final l10n = AppLocalizations.of(context);
+    final privacyPolicyPath =
+        Localizations.localeOf(context).languageCode == 'en'
+        ? 'PrivacyPolicy-en'
+        : 'PrivacyPolicy';
+
+    void logSettingsClose() {
+      if (settingsCloseLogged.value) {
+        return;
+      }
+      settingsCloseLogged.value = true;
+      unawaited(logAnalyticsEvent(name: 'settings_close'));
+    }
 
     /// アカウントリンクを実行し、結果を画面へ表示する。
     Future<void> runLinkAction({
@@ -72,114 +114,223 @@ class SettingsPage extends HookConsumerWidget {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          l10n.settingsTitle,
-          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+    return PopScope<void>(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          logSettingsClose();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          surfaceTintColor: AppColors.background,
+          leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            icon: const BackButtonIcon(),
+            onPressed: () {
+              logSettingsClose();
+              Navigator.of(context).pop();
+            },
+          ),
+          title: Text(
+            l10n.settings,
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+          ),
         ),
-      ),
-      body: SafeArea(
-        top: false,
-        child: firebaseUserAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          // エラーメッセージは加工せずそのまま表示する
-          // (`.claude/rules/coding-conventions.md`)。
-          error: (error, _) => Center(child: Text(error.toString())),
-          data: (firebaseUser) {
-            if (firebaseUser == null) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final appleLinked = hasLinkedProvider(
-              user: firebaseUser,
-              providerID: 'apple.com',
-            );
-            final googleLinked = hasLinkedProvider(
-              user: firebaseUser,
-              providerID: 'google.com',
-            );
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-              children: [
-                _BackupCard(
-                  configured: !firebaseUser.isAnonymous,
-                  appleLinked: appleLinked,
-                  googleLinked: googleLinked,
-                  operationInProgress: operationInProgress.value,
-                  onApplePressed: () async {
-                    await runLinkAction(
-                      analyticsEventName: 'link_apple_account',
-                      isAnonymous: firebaseUser.isAnonymous,
-                      accountAction: linkOrSignInWithApple,
-                    );
-                  },
-                  onGooglePressed: () async {
-                    await runLinkAction(
-                      analyticsEventName: 'link_google_account',
-                      isAnonymous: firebaseUser.isAnonymous,
-                      accountAction: linkOrSignInWithGoogle,
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                Center(
-                  child: TextButton(
-                    onPressed: operationInProgress.value
-                        ? null
-                        : () async {
-                            if (operationInProgress.value) {
-                              return;
-                            }
-                            operationInProgress.value = true;
-                            try {
-                              await logAnalyticsEvent(
-                                name: 'delete_account_start',
-                              );
-                              if (!context.mounted ||
-                                  !await _confirmAccountDeletion(
-                                    context: context,
-                                    logAnalyticsEvent: logAnalyticsEvent,
-                                  )) {
-                                return;
-                              }
-                              await deleteAccount.call();
-                              if (context.mounted) {
-                                Navigator.of(context).pop();
-                              }
-                            } catch (error) {
-                              if (!context.mounted) {
-                                return;
-                              }
-                              // エラーメッセージは加工せずそのまま表示する
-                              // (`.claude/rules/coding-conventions.md`)。
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(error.toString())),
-                              );
-                            } finally {
-                              if (context.mounted) {
-                                operationInProgress.value = false;
-                              }
-                            }
-                          },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.accent800,
+        body: SafeArea(
+          child: firebaseUserAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            // エラーメッセージは加工せずそのまま表示する
+            // (`.claude/rules/coding-conventions.md`)。
+            error: (error, _) => Center(child: Text(error.toString())),
+            data: (firebaseUser) {
+              if (firebaseUser == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final appleLinked = hasLinkedProvider(
+                user: firebaseUser,
+                providerID: 'apple.com',
+              );
+              final googleLinked = hasLinkedProvider(
+                user: firebaseUser,
+                providerID: 'google.com',
+              );
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+                children: [
+                  _BackupCard(
+                    configured: !firebaseUser.isAnonymous,
+                    appleLinked: appleLinked,
+                    googleLinked: googleLinked,
+                    operationInProgress: operationInProgress.value,
+                    onApplePressed: () async {
+                      await runLinkAction(
+                        analyticsEventName: 'link_apple_account',
+                        isAnonymous: firebaseUser.isAnonymous,
+                        accountAction: linkOrSignInWithApple,
+                      );
+                    },
+                    onGooglePressed: () async {
+                      await runLinkAction(
+                        analyticsEventName: 'link_google_account',
+                        isAnonymous: firebaseUser.isAnonymous,
+                        accountAction: linkOrSignInWithGoogle,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Material(
+                    color: AppColors.neutral100,
+                    borderRadius: BorderRadius.circular(16),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        _LegalDocumentRow(
+                          label: l10n.termsOfService,
+                          document: 'terms',
+                          uri: _legalDocumentUri(path: 'Terms'),
+                          openExternalUri: openExternalUri,
+                          logAnalyticsEvent: logAnalyticsEvent,
+                        ),
+                        const Divider(height: 1),
+                        _LegalDocumentRow(
+                          label: l10n.privacyPolicy,
+                          document: 'privacy_policy',
+                          uri: _legalDocumentUri(path: privacyPolicyPath),
+                          openExternalUri: openExternalUri,
+                          logAnalyticsEvent: logAnalyticsEvent,
+                        ),
+                        const Divider(height: 1),
+                        _LegalDocumentRow(
+                          label: l10n.specifiedCommercialTransactionAct,
+                          document: 'specified_commercial_transaction_act',
+                          uri: _legalDocumentUri(
+                            path: 'SpecifiedCommercialTransactionAct-ja',
+                          ),
+                          openExternalUri: openExternalUri,
+                          logAnalyticsEvent: logAnalyticsEvent,
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      l10n.deleteAccount,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                  ),
+                  const SizedBox(height: 14),
+                  Center(
+                    child: TextButton(
+                      onPressed: operationInProgress.value
+                          ? null
+                          : () async {
+                              if (operationInProgress.value) {
+                                return;
+                              }
+                              operationInProgress.value = true;
+                              try {
+                                await logAnalyticsEvent(
+                                  name: 'delete_account_start',
+                                );
+                                if (!context.mounted ||
+                                    !await _confirmAccountDeletion(
+                                      context: context,
+                                      logAnalyticsEvent: logAnalyticsEvent,
+                                    )) {
+                                  return;
+                                }
+                                await deleteAccount.call();
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              } catch (error) {
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                // エラーメッセージは加工せずそのまま表示する
+                                // (`.claude/rules/coding-conventions.md`)。
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                              } finally {
+                                if (context.mounted) {
+                                  operationInProgress.value = false;
+                                }
+                              }
+                            },
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.accent800,
+                      ),
+                      child: Text(
+                        l10n.deleteAccount,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// GitHub Pages上の法務ドキュメントURLを返す。
+Uri _legalDocumentUri({required String path}) =>
+    Uri.https(_legalDocumentsHost, '$_legalDocumentsBasePath/$path');
+
+/// 設定画面の法務ドキュメント1行。
+class _LegalDocumentRow extends StatelessWidget {
+  /// 行に表示する文言。
+  final String label;
+
+  /// Analyticsで法務ドキュメントを識別する値。
+  final String document;
+
+  /// 開く法務ドキュメントのURL。
+  final Uri uri;
+
+  /// 外部URLを開く処理。
+  final OpenExternalUri openExternalUri;
+
+  /// Analyticsイベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
+  const _LegalDocumentRow({
+    required this.label,
+    required this.document,
+    required this.uri,
+    required this.openExternalUri,
+    required this.logAnalyticsEvent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      minTileHeight: 50,
+      title: Text(
+        label,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.neutral500),
+      onTap: () async {
+        unawaited(
+          logAnalyticsEvent(
+            name: 'legal_document_open',
+            parameters: {'document': document},
+          ),
+        );
+        try {
+          await openExternalUri(uri: uri);
+        } catch (error) {
+          if (!context.mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error.toString())));
+        }
+      },
     );
   }
 }

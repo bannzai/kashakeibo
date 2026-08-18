@@ -51,6 +51,7 @@ app.*.map.json
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
+/scripts/generate_screenshots/artifacts/
 
 # 作業用一時ファイル (CLAUDE.md のディレクトリ運用)
 /tmp/

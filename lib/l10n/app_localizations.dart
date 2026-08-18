@@ -140,6 +140,54 @@ abstract class AppLocalizations {
   /// **'Excluded'**
   String get excludedFromAggregation;
 
+  /// Number of unresolved possible duplicate transaction pairs
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 possible duplicate} other{{count} possible duplicates}}'**
+  String duplicateCandidateCount(int count);
+
+  /// Hint shown below the duplicate candidate banner
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to review'**
+  String get duplicateCandidateReviewHint;
+
+  /// Title of the duplicate candidate confirmation sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Review possible duplicate'**
+  String get duplicateCandidateTitle;
+
+  /// Explanation shown above a possible duplicate pair
+  ///
+  /// In en, this message translates to:
+  /// **'These transactions have similar amounts, dates, and store names. Check whether they are the same expense.'**
+  String get duplicateCandidateDescription;
+
+  /// Reason why two transactions were detected as possible duplicates
+  ///
+  /// In en, this message translates to:
+  /// **'Same amount with nearby dates and similar store names'**
+  String get duplicateCandidateReason;
+
+  /// Label on the transaction selected to remain after merging
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this transaction'**
+  String get duplicateCandidateKeep;
+
+  /// Button that merges two duplicate transactions
+  ///
+  /// In en, this message translates to:
+  /// **'Merge into one'**
+  String get mergeDuplicateCandidate;
+
+  /// Button that confirms two transactions are not duplicates
+  ///
+  /// In en, this message translates to:
+  /// **'Keep as separate expenses'**
+  String get keepBothDuplicateCandidates;
+
   /// Tooltip for the previous month button
   ///
   /// In en, this message translates to:
@@ -158,11 +206,29 @@ abstract class AppLocalizations {
   /// **'Open settings'**
   String get openSettings;
 
-  /// Title of the settings screen
+  /// Settings screen title
   ///
   /// In en, this message translates to:
   /// **'Settings'**
-  String get settingsTitle;
+  String get settings;
+
+  /// Link label for the terms of service
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfService;
+
+  /// Link label for the privacy policy
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
+  /// Link label for the disclosure required by Japan's Specified Commercial Transactions Act
+  ///
+  /// In en, this message translates to:
+  /// **'Commercial Transaction Disclosure'**
+  String get specifiedCommercialTransactionAct;
 
   /// Title of the account backup card
   ///
@@ -307,6 +373,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get categoryOther;
+
+  /// No description provided for @manualEntryOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter manually'**
+  String get manualEntryOpen;
+
+  /// No description provided for @manualEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual entry'**
+  String get manualEntryTitle;
+
+  /// No description provided for @manualEntryAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get manualEntryAmount;
+
+  /// No description provided for @manualEntryAmountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount of at least 1 yen'**
+  String get manualEntryAmountRequired;
+
+  /// No description provided for @manualEntryStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Store or note'**
+  String get manualEntryStore;
+
+  /// No description provided for @manualEntryDefaultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash expense'**
+  String get manualEntryDefaultTitle;
+
+  /// No description provided for @manualEntryStoreRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a store or note'**
+  String get manualEntryStoreRequired;
+
+  /// No description provided for @manualEntryType.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction type'**
+  String get manualEntryType;
+
+  /// No description provided for @manualEntryCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get manualEntryCategory;
+
+  /// No description provided for @manualEntryCategoryRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a category'**
+  String get manualEntryCategoryRequired;
+
+  /// No description provided for @manualEntryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get manualEntryDate;
+
+  /// No description provided for @manualEntryRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Add transaction'**
+  String get manualEntryRegister;
+
+  /// No description provided for @manualEntryRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction added'**
+  String get manualEntryRegistered;
+
+  /// No description provided for @transactionSourceReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt'**
+  String get transactionSourceReceipt;
+
+  /// No description provided for @transactionSourceScreenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot'**
+  String get transactionSourceScreenshot;
+
+  /// No description provided for @transactionSourceManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get transactionSourceManual;
+
+  /// No description provided for @transactionSourceUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown source'**
+  String get transactionSourceUnknown;
 }
 
 class _AppLocalizationsDelegate

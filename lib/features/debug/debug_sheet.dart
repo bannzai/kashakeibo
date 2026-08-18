@@ -106,6 +106,7 @@ Future<void> _addSampleTransactions({
   for (final (index, sample) in samples.indexed) {
     await addTransaction.call(
       type: sample.type,
+      source: TransactionSource.manual,
       amount: sample.amount,
       category: sample.category,
       title: sample.title,

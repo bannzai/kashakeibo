@@ -7,10 +7,28 @@
   "categoryBreakdown": "カテゴリ内訳",
   "monthlyTransactionsEmpty": "今月の明細はまだありません",
   "excludedFromAggregation": "計算対象外",
+  "duplicateCandidateCount": "重複の可能性が{count}件あります",
+  "@duplicateCandidateCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "duplicateCandidateReviewHint": "タップして確認",
+  "duplicateCandidateTitle": "重複候補の確認",
+  "duplicateCandidateDescription": "金額・日付・店名が近い明細です。同じ支出か確認してください。",
+  "duplicateCandidateReason": "金額が同じ・日付と店名が近い",
+  "duplicateCandidateKeep": "この明細を残す",
+  "mergeDuplicateCandidate": "1件にまとめる",
+  "keepBothDuplicateCandidates": "別々の支出として残す",
   "previousMonth": "前の月",
   "nextMonth": "次の月",
   "openSettings": "設定を開く",
-  "settingsTitle": "設定",
+  "settings": "設定",
+  "termsOfService": "利用規約",
+  "privacyPolicy": "プライバシーポリシー",
+  "specifiedCommercialTransactionAct": "特定商取引法に基づく表示",
   "accountBackupTitle": "バックアップ",
   "accountBackupNotSet": "未設定",
   "accountBackupConfigured": "設定済み",
@@ -34,5 +52,22 @@
   "categoryTransportation": "交通",
   "categorySubscription": "サブスク",
   "categorySalary": "給与",
-  "categoryOther": "その他"
+  "categoryOther": "その他",
+  "manualEntryOpen": "手動で入力",
+  "manualEntryTitle": "手動明細入力",
+  "manualEntryAmount": "金額",
+  "manualEntryAmountRequired": "1円以上の金額を入力してください",
+  "manualEntryStore": "店名・メモ",
+  "manualEntryDefaultTitle": "現金支出",
+  "manualEntryStoreRequired": "店名・メモを入力してください",
+  "manualEntryType": "収支種別",
+  "manualEntryCategory": "カテゴリ",
+  "manualEntryCategoryRequired": "カテゴリを選択してください",
+  "manualEntryDate": "日付",
+  "manualEntryRegister": "登録する",
+  "manualEntryRegistered": "明細を登録しました",
+  "transactionSourceReceipt": "レシート",
+  "transactionSourceScreenshot": "スクショ",
+  "transactionSourceManual": "手動",
+  "transactionSourceUnknown": "出所不明"
 }

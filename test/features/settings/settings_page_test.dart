@@ -8,8 +8,8 @@ import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/app_localizations_en.dart';
 import 'package:kashakeibo/provider/account.dart';
-import 'package:kashakeibo/provider/firebase_analytics.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// テスト用 Firebase ユーザーモック。
@@ -49,7 +49,6 @@ Widget buildSettingsApp({
       hasCurrentUserData ?? () async => false,
     ),
     deleteAccountProvider.overrideWithValue(deleteAccount),
-    logAnalyticsEventProvider.overrideWithValue(logAnalyticsEvent),
   ],
   child: MaterialApp(
     initialRoute: '/settings',
@@ -57,7 +56,11 @@ Widget buildSettingsApp({
     supportedLocales: AppLocalizations.supportedLocales,
     routes: {
       '/': (context) => const Scaffold(),
-      '/settings': (context) => const SettingsPage(),
+      '/settings': (context) => SettingsPage(
+        // 法務ドキュメントの外部起動は本テストの対象外のため何もしない。
+        openExternalUri: ({required uri}) async {},
+        logAnalyticsEvent: logAnalyticsEvent,
+      ),
     },
   ),
 );
@@ -84,7 +87,7 @@ void main() {
           return AccountActionResult.linked;
         },
         deleteAccount: FakeDeleteAccount(),
-        logAnalyticsEvent: ({required name}) async {
+        logAnalyticsEvent: ({required name, parameters}) async {
           analyticsEvents.add(name);
         },
       ),
@@ -126,7 +129,7 @@ void main() {
         linkOrSignInWithGoogle: () async =>
             AccountActionResult.signedInExistingAccount,
         deleteAccount: FakeDeleteAccount(),
-        logAnalyticsEvent: ({required name}) async {},
+        logAnalyticsEvent: ({required name, parameters}) async {},
       ),
     );
     await tester.pumpAndSettle();
@@ -154,7 +157,7 @@ void main() {
         linkOrSignInWithApple: () async => AccountActionResult.linked,
         linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: FakeDeleteAccount(),
-        logAnalyticsEvent: ({required name}) async {},
+        logAnalyticsEvent: ({required name, parameters}) async {},
       ),
     );
     await tester.pumpAndSettle();
@@ -186,7 +189,7 @@ void main() {
         },
         linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: FakeDeleteAccount(),
-        logAnalyticsEvent: ({required name}) async {
+        logAnalyticsEvent: ({required name, parameters}) async {
           analyticsEvents.add(name);
         },
         hasCurrentUserData: () async => true,
@@ -225,7 +228,7 @@ void main() {
         },
         linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: FakeDeleteAccount(),
-        logAnalyticsEvent: ({required name}) {
+        logAnalyticsEvent: ({required name, parameters}) {
           analyticsCount++;
           return analyticsCompleter.future;
         },
@@ -259,7 +262,7 @@ void main() {
         linkOrSignInWithApple: () async => AccountActionResult.linked,
         linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: FakeDeleteAccount(),
-        logAnalyticsEvent: ({required name}) {
+        logAnalyticsEvent: ({required name, parameters}) {
           if (name == 'delete_account_start') {
             deleteStartAnalyticsCount++;
             return analyticsCompleter.future;
@@ -299,7 +302,7 @@ void main() {
         linkOrSignInWithApple: () async => AccountActionResult.linked,
         linkOrSignInWithGoogle: () async => AccountActionResult.linked,
         deleteAccount: deleteAccount,
-        logAnalyticsEvent: ({required name}) async {
+        logAnalyticsEvent: ({required name, parameters}) async {
           analyticsEvents.add(name);
         },
       ),
