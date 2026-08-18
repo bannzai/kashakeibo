@@ -3,9 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/app_localizations_en.dart';
 import 'package:kashakeibo/provider/transaction.dart';
+
+/// Analyticsを必要としないウィジェットテスト用の記録処理。
+Future<void> discardAnalyticsEvent({
+  required String name,
+  Map<String, Object>? parameters,
+}) async {}
 
 /// テスト用の明細を組み立てる。
 Transaction buildTransaction({
@@ -79,7 +86,7 @@ void main() {
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: MonthlyPage(),
+          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
         ),
       ),
     );
@@ -105,6 +112,12 @@ void main() {
   });
 
   testWidgets('月次一覧: 明細が無い月は空メッセージを表示する', (tester) async {
+    final analyticsEvents = <String>[];
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -115,10 +128,14 @@ void main() {
             yearMonth: yearMonthFrom(dateTime: DateTime.now()),
           ).overrideWith((ref) => const []),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: MonthlyPage(),
+          home: MonthlyPage(
+            logAnalyticsEvent: ({required name, parameters}) async {
+              analyticsEvents.add(name);
+            },
+          ),
         ),
       ),
     );
@@ -128,6 +145,67 @@ void main() {
       find.text(AppLocalizationsEn().monthlyTransactionsEmpty),
       findsOneWidget,
     );
+
+    await tester.tap(find.byTooltip(AppLocalizationsEn().openSettings));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().settings), findsOneWidget);
+    expect(find.text(AppLocalizationsEn().termsOfService), findsOneWidget);
+    expect(analyticsEvents, ['settings_open']);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().settings), findsNothing);
+    expect(analyticsEvents, ['settings_open', 'settings_close']);
+  });
+
+  testWidgets('設定画面: 3つの法務ドキュメントを開ける', (tester) async {
+    final openedUris = <Uri>[];
+    final analyticsEvents = <({String name, String document})>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: SettingsPage(
+          openExternalUri: ({required uri}) async {
+            openedUris.add(uri);
+          },
+          logAnalyticsEvent: ({required name, parameters}) async {
+            analyticsEvents.add((
+              name: name,
+              document: parameters!['document']! as String,
+            ));
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().termsOfService));
+    await tester.pump();
+    await tester.tap(find.text(AppLocalizationsEn().privacyPolicy));
+    await tester.pump();
+    await tester.tap(
+      find.text(AppLocalizationsEn().specifiedCommercialTransactionAct),
+    );
+    await tester.pump();
+
+    expect(openedUris, [
+      Uri.parse('https://bannzai.github.io/kashakeibo/Terms'),
+      Uri.parse('https://bannzai.github.io/kashakeibo/PrivacyPolicy-en'),
+      Uri.parse(
+        'https://bannzai.github.io/kashakeibo/SpecifiedCommercialTransactionAct-ja',
+      ),
+    ]);
+    expect(analyticsEvents, [
+      (name: 'legal_document_open', document: 'terms'),
+      (name: 'legal_document_open', document: 'privacy_policy'),
+      (
+        name: 'legal_document_open',
+        document: 'specified_commercial_transaction_act',
+      ),
+    ]);
   });
 
   testWidgets('月次一覧: 重複候補バナーから2件を比較する確認シートを開ける', (tester) async {
@@ -165,7 +243,7 @@ void main() {
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: MonthlyPage(),
+          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
         ),
       ),
     );
@@ -247,7 +325,7 @@ void main() {
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: MonthlyPage(),
+          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
         ),
       ),
     );

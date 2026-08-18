@@ -70,6 +70,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextMonth => 'Next month';
 
   @override
+  String get openSettings => 'Open settings';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get termsOfService => 'Terms of Service';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get specifiedCommercialTransactionAct =>
+      'Commercial Transaction Disclosure';
+
+  @override
   String get categoryFood => 'Food';
 
   @override
