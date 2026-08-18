@@ -15,6 +15,21 @@ enum TransactionType {
   expense,
 }
 
+/// 明細が登録された経路。
+enum TransactionSource {
+  /// 紙レシートの撮影。
+  receipt,
+
+  /// カード明細・EC 購入履歴などのスクリーンショット。
+  screenshot,
+
+  /// ユーザーによる手動入力。
+  manual,
+
+  /// 出所フィールド追加前の明細、または将来追加された未知の出所。
+  unknown,
+}
+
 /// 明細のカテゴリ。
 ///
 /// 支出カテゴリの体系はデザイン (design_handoff_kashakeibo/README.md の
@@ -67,6 +82,16 @@ abstract class Transaction with _$Transaction {
 
     /// 明細の種別 (収入 / 支出)。月次集計・複合インデックスの絞り込みに使う。
     required TransactionType type,
+
+    /// 明細が登録された経路。
+    ///
+    /// 出所フィールド追加前の明細に誤った出所を割り当てないため、欠損値と
+    /// 未知の値は [TransactionSource.unknown] として読む。
+    @JsonKey(
+      defaultValue: TransactionSource.unknown,
+      unknownEnumValue: TransactionSource.unknown,
+    )
+    required TransactionSource source,
 
     /// 金額 (日本円、整数)。
     required int amount,

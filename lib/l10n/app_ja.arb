@@ -35,5 +35,22 @@
   "categoryTransportation": "交通",
   "categorySubscription": "サブスク",
   "categorySalary": "給与",
-  "categoryOther": "その他"
+  "categoryOther": "その他",
+  "manualEntryOpen": "手動で入力",
+  "manualEntryTitle": "手動明細入力",
+  "manualEntryAmount": "金額",
+  "manualEntryAmountRequired": "1円以上の金額を入力してください",
+  "manualEntryStore": "店名・メモ",
+  "manualEntryDefaultTitle": "現金支出",
+  "manualEntryStoreRequired": "店名・メモを入力してください",
+  "manualEntryType": "収支種別",
+  "manualEntryCategory": "カテゴリ",
+  "manualEntryCategoryRequired": "カテゴリを選択してください",
+  "manualEntryDate": "日付",
+  "manualEntryRegister": "登録する",
+  "manualEntryRegistered": "明細を登録しました",
+  "transactionSourceReceipt": "レシート",
+  "transactionSourceScreenshot": "スクショ",
+  "transactionSourceManual": "手動",
+  "transactionSourceUnknown": "出所不明"
 }

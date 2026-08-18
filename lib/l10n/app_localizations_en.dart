@@ -105,4 +105,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryOther => 'Other';
+
+  @override
+  String get manualEntryOpen => 'Enter manually';
+
+  @override
+  String get manualEntryTitle => 'Manual entry';
+
+  @override
+  String get manualEntryAmount => 'Amount';
+
+  @override
+  String get manualEntryAmountRequired => 'Enter an amount of at least 1 yen';
+
+  @override
+  String get manualEntryStore => 'Store or note';
+
+  @override
+  String get manualEntryDefaultTitle => 'Cash expense';
+
+  @override
+  String get manualEntryStoreRequired => 'Enter a store or note';
+
+  @override
+  String get manualEntryType => 'Transaction type';
+
+  @override
+  String get manualEntryCategory => 'Category';
+
+  @override
+  String get manualEntryCategoryRequired => 'Select a category';
+
+  @override
+  String get manualEntryDate => 'Date';
+
+  @override
+  String get manualEntryRegister => 'Add transaction';
+
+  @override
+  String get manualEntryRegistered => 'Transaction added';
+
+  @override
+  String get transactionSourceReceipt => 'Receipt';
+
+  @override
+  String get transactionSourceScreenshot => 'Screenshot';
+
+  @override
+  String get transactionSourceManual => 'Manual';
+
+  @override
+  String get transactionSourceUnknown => 'Unknown source';
 }

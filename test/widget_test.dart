@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
@@ -29,6 +32,7 @@ Transaction buildTransaction({
     id: id,
     userID: 'user-id',
     type: type,
+    source: TransactionSource.manual,
     amount: amount,
     category: category,
     title: title,
@@ -145,6 +149,10 @@ void main() {
       find.text(AppLocalizationsEn().monthlyTransactionsEmpty),
       findsOneWidget,
     );
+    expect(
+      tester.widget<ListView>(find.byType(ListView)).padding,
+      const EdgeInsets.only(bottom: 104),
+    );
 
     await tester.tap(find.byTooltip(AppLocalizationsEn().openSettings));
     await tester.pumpAndSettle();
@@ -158,6 +166,107 @@ void main() {
 
     expect(find.text(AppLocalizationsEn().settings), findsNothing);
     expect(analyticsEvents, ['settings_open', 'settings_close']);
+  });
+
+  testWidgets('手動入力: 必須項目を登録すると出所 manual で保存する', (tester) async {
+    final addTransaction = _RecordingAddTransaction();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [addTransactionProvider.overrideWithValue(addTransaction)],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(body: ManualEntrySheet()),
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Amount'),
+      '1280',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Store or note'),
+      'Neighborhood store',
+    );
+    await tester.tap(find.text('Food'));
+    await tester.ensureVisible(find.text('Add transaction'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add transaction'));
+    await tester.pumpAndSettle();
+
+    expect(addTransaction.type, TransactionType.expense);
+    expect(addTransaction.source, TransactionSource.manual);
+    expect(addTransaction.amount, 1280);
+    expect(addTransaction.category, TransactionCategory.food);
+    expect(addTransaction.title, 'Neighborhood store');
+    expect(addTransaction.transactionDate, DateUtils.dateOnly(DateTime.now()));
+    expect(addTransaction.excludedFromAggregation, false);
+  });
+
+  testWidgets('手動入力: 金額だけで食費の現金支出として保存する', (tester) async {
+    final addTransaction = _RecordingAddTransaction();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [addTransactionProvider.overrideWithValue(addTransaction)],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(body: ManualEntrySheet()),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '500');
+    await tester.ensureVisible(find.text('Add transaction'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add transaction'));
+    await tester.pumpAndSettle();
+
+    expect(addTransaction.category, TransactionCategory.food);
+    expect(addTransaction.title, AppLocalizationsEn().manualEntryDefaultTitle);
+  });
+
+  testWidgets('手動入力: 登録処理中は戻る操作でシートを閉じない', (tester) async {
+    final addTransaction = _PendingAddTransaction();
+    bool? result;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [addTransactionProvider.overrideWithValue(addTransaction)],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  result = await showManualEntrySheet(context: context);
+                },
+                child: const Text('Open manual entry'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open manual entry'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '500');
+    await tester.ensureVisible(find.text('Add transaction'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add transaction'));
+    await tester.pump();
+
+    expect(tester.widget<PopScope>(find.byType(PopScope)).canPop, false);
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(ManualEntrySheet), findsOneWidget);
+
+    addTransaction.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(ManualEntrySheet), findsNothing);
+    expect(result, true);
   });
 
   testWidgets('設定画面: 3つの法務ドキュメントを開ける', (tester) async {
@@ -336,4 +445,78 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+/// 手動入力 Widget テストで登録内容を記録する AddTransaction。
+class _RecordingAddTransaction extends AddTransaction {
+  _RecordingAddTransaction() : super(userID: 'user-id');
+
+  /// 登録された収支種別。
+  TransactionType? type;
+
+  /// 登録された出所。
+  TransactionSource? source;
+
+  /// 登録された金額。
+  int? amount;
+
+  /// 登録されたカテゴリ。
+  TransactionCategory? category;
+
+  /// 登録された店名・メモ。
+  String? title;
+
+  /// 登録された取引日。
+  DateTime? transactionDate;
+
+  /// 登録された集計除外フラグ。
+  bool? excludedFromAggregation;
+
+  /// Firestore へ書き込まず、手動入力画面から渡された値を記録する。
+  @override
+  Future<void> call({
+    required TransactionType type,
+    required TransactionSource source,
+    required int amount,
+    required TransactionCategory category,
+    required String title,
+    required DateTime transactionDate,
+    required bool excludedFromAggregation,
+  }) async {
+    this.type = type;
+    this.source = source;
+    this.amount = amount;
+    this.category = category;
+    this.title = title;
+    this.transactionDate = transactionDate;
+    this.excludedFromAggregation = excludedFromAggregation;
+  }
+}
+
+/// 完了タイミングをテスト側で制御する AddTransaction。
+class _PendingAddTransaction extends _RecordingAddTransaction {
+  final Completer<void> _completer = Completer<void>();
+
+  /// 保留中の登録処理を完了する。
+  void complete() => _completer.complete();
+
+  @override
+  Future<void> call({
+    required TransactionType type,
+    required TransactionSource source,
+    required int amount,
+    required TransactionCategory category,
+    required String title,
+    required DateTime transactionDate,
+    required bool excludedFromAggregation,
+  }) {
+    this.type = type;
+    this.source = source;
+    this.amount = amount;
+    this.category = category;
+    this.title = title;
+    this.transactionDate = transactionDate;
+    this.excludedFromAggregation = excludedFromAggregation;
+    return _completer.future;
+  }
 }
