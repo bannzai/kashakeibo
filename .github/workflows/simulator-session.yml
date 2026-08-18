@@ -1,13 +1,16 @@
-# GitHub Actions の iOS Simulator を simtunnel 経由で操作する caller workflow。
-# 実体は bannzai/simtunnel の reusable workflow を commit SHA 固定で呼び出す。
+# iOS Simulator セッションを張る caller workflow。実体は bannzai/simtunnel の session.yml（reusable workflow）。
+# 参照: https://github.com/bannzai/simtunnel の PROJECT.md「各アプリ repo での実行」
 name: simulator-session
+# run-name は local/simtunnel CLI が run を特定するキーのためこの形式を維持する
 run-name: "session=${{ inputs.session }} device=${{ inputs.device }}"
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # fork PR に Secrets を渡さないため workflow_dispatch のみ
+    # session / device / duration_minutes は local/simtunnel の up が常に送るため宣言必須
+    # （未定義の input を送ると dispatch が拒否される）
     inputs:
       session:
-        description: "セッション名"
+        description: "セッション名。tailnet ホスト名 simtunnel-<session> になる（小文字英数字とハイフンのみ）"
         required: true
         default: kashakeibo
       device:
@@ -19,43 +22,51 @@ on:
         required: true
         default: "60"
       serve_sim:
-        description: "ブラウザプレビューを起動する"
+        description: "serve-sim (ブラウザ preview) を起動する。runner のメモリに余裕を持たせたい時は false"
         required: false
-        default: "false"
+        default: "true"
 
 jobs:
+  # kashakeibo-dev 接続の Simulator 用 .app (debug) をビルドして artifact に上げる
   build:
     runs-on: macos-26
     timeout-minutes: 30
     permissions:
-      contents: read
+      contents: read # checkout のみ。OIDC token (id-token) は session job だけに与える
     steps:
+      # simtunnel 経路の workflow は uses を commit SHA で固定する（simtunnel PROJECT.md「リポジトリ公開に耐える安全性」）
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - name: Firebase dev 設定を復元
+      # debug ビルドの Copy GoogleService-Info.plist ビルドフェーズが参照する dev の plist を
+      # Secrets から復元する（git 管理外。.gitignore 参照）
+      - name: Restore GoogleService-Info.plist (dev)
         env:
           GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64 }}
         run: |
           mkdir -p ios/Firebase/dev
-          printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64" | base64 --decode > ios/Firebase/dev/GoogleService-Info.plist
+          printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64" | base64 -d > ios/Firebase/dev/GoogleService-Info.plist
+          # secret が空のまま進むと Xcode のコピーフェーズで分かりにくく失敗するため、ここで検査して止める
+          [ -s ios/Firebase/dev/GoogleService-Info.plist ] || { echo "Error: GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64 が空" >&2; exit 1; }
       - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
         with:
           channel: stable
-          flutter-version: "3.41.9"
+          flutter-version: '3.41.9'
       - run: flutter pub get
       - run: flutter build ios --simulator --debug
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: simulator-app
-          path: build/ios/iphonesimulator
+          path: build/ios/iphonesimulator # .app の親ディレクトリ（.app 直指定は中身が flatten される）
 
   session:
     needs: build
+    # id-token: write が必要なのは reusable workflow を呼ぶこの job だけのため、job 単位で最小権限にする
     permissions:
-      id-token: write
+      id-token: write # Tailscale の OIDC (workload identity federation) 認証に必要
       contents: read
-    uses: bannzai/simtunnel/.github/workflows/session.yml@a715305805c113d506612cfa1b15654963bf78c0
+    # タグ運用はしないため main の commit SHA で固定する（更新時は SHA を書き換える）
+    uses: bannzai/simtunnel/.github/workflows/session.yml@a715305805c113d506612cfa1b15654963bf78c0 # main 2026-08-15
     with:
       session: ${{ inputs.session }}
       device: ${{ inputs.device }}
