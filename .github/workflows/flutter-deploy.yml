@@ -1,0 +1,169 @@
+name: flutter-deploy
+
+# 手動起動の配布ワークフロー (iOS)。
+# 手動署名で IPA をビルドし TestFlight (App Store Connect) へアップロードする。
+# 構成は shoppinglist の flutter-deploy.yml を踏襲しつつ、以下を変更している:
+# - public repo のため Team ID 等の識別子は直書きせず Secrets から注入する
+# - 署名設定は project.pbxproj に持たせず、CI 実行時に Release.xcconfig へ追記する
+#   (ローカルビルドは Automatic 署名のまま変わらない)
+# - Android (Google Play) は release keystore / Play Console の整備後に追加する
+on:
+  workflow_dispatch:
+
+env:
+  # ビルド番号 = github.run_number + offset。配布実績に合わせて必要なら増やす。
+  BUILD_NUMBER_OFFSET: 0
+  # ASC API で作成済みの App Store 配布 profile 名 (IOS_PROVISIONING_PROFILE_BASE64 の実体と一致させる)
+  IOS_RUNNER_PROFILE_NAME: 'Kashakeibo Prod AppStore'
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
+        with:
+          channel: stable
+          flutter-version: '3.41.9'
+
+      # git 管理外の Firebase クライアント設定を Secrets から復元する
+      # (release ビルドは prod の plist を同梱するが、Xcode の build phase が
+      # dev / prod を選択するため両方を復元する)
+      - name: Restore Firebase configs
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64 }}
+        run: |
+          echo -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > ios/Firebase/prod/GoogleService-Info.plist
+          echo -n "$GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64" | base64 --decode > ios/Firebase/dev/GoogleService-Info.plist
+          for f in ios/Firebase/prod/GoogleService-Info.plist ios/Firebase/dev/GoogleService-Info.plist; do
+            SIZE=$(wc -c < "$f")
+            if [ "$SIZE" -lt 100 ]; then
+              echo "::error::$f is suspiciously small ($SIZE bytes). Secrets の base64 が壊れている可能性があります。"
+              exit 1
+            fi
+          done
+
+      - run: flutter pub get
+
+      # P12 証明書インポート (apple-actions で自動キーチェーン管理)
+      - name: Import code signing certificate
+        uses: apple-actions/import-codesign-certs@63fff01cd422d4b7b855d40ca1e9d34d2de9427d # v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_P12_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+
+      # Provisioning Profile インストール
+      - name: Install Provisioning Profile
+        env:
+          RUNNER_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PROFILE_DIR=~/Library/MobileDevice/Provisioning\ Profiles
+          mkdir -p "$PROFILE_DIR"
+          echo -n "$RUNNER_PROFILE_BASE64" | base64 --decode > "$PROFILE_DIR/runner.mobileprovision"
+
+      # バージョン解決 (app_version = pubspec.yaml、build number = run_number + offset)
+      - name: Resolve app version
+        id: version
+        run: |
+          APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *\([^+]*\).*/\1/')
+          APP_BUILD_NUMBER=$((${GITHUB_RUN_NUMBER} + ${BUILD_NUMBER_OFFSET}))
+          echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "app_build_number=${APP_BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      # 手動署名設定を CI 実行時のみ Release.xcconfig へ注入する。
+      # リポジトリの pbxproj は Automatic 署名のままにし、識別子も残さない。
+      - name: Inject manual signing settings
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          [ -n "$APPLE_TEAM_ID" ] || { echo "::error::APPLE_TEAM_ID is empty"; exit 1; }
+          cat >> ios/Flutter/Release.xcconfig <<XCCONFIG
+          CODE_SIGN_STYLE = Manual
+          DEVELOPMENT_TEAM[sdk=iphoneos*] = ${APPLE_TEAM_ID}
+          CODE_SIGN_IDENTITY[sdk=iphoneos*] = iPhone Distribution
+          PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*] = ${IOS_RUNNER_PROFILE_NAME}
+          XCCONFIG
+
+      # ExportOptions.plist を Secrets / env から生成
+      - name: Generate ExportOptions.plist
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cat > ios/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.bannzai.kashakeibo</key>
+              <string>${IOS_RUNNER_PROFILE_NAME}</string>
+            </dict>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>destination</key>
+            <string>export</string>
+          </dict>
+          </plist>
+          PLIST
+
+      # Prebuild (flutter build ipa の Dart defines 関連バグ回避のため一度 no-codesign でビルド)
+      - name: Prebuild iOS
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name=${{ steps.version.outputs.app_version }} \
+            --build-number=${{ steps.version.outputs.app_build_number }}
+
+      # IPA ビルド (手動署名 + ExportOptions.plist)
+      - name: Build IPA
+        run: |
+          flutter build ipa --release \
+            --build-name=${{ steps.version.outputs.app_version }} \
+            --build-number=${{ steps.version.outputs.app_build_number }} \
+            --export-options-plist=ios/ExportOptions.plist
+
+      # シンボル除去 (アップロードサイズ削減。失敗しても続行)
+      - name: Remove symbols from IPA
+        run: find build/ios/ipa -name "*.ipa" -exec zip -d {} "Symbols/*" \; || true
+
+      # TestFlight アップロード (App Store Connect API Key 認証)
+      - name: Upload to TestFlight
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_KEY_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "$ASC_API_KEY_P8_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
+          xcrun altool --upload-app \
+            -f build/ios/ipa/*.ipa \
+            -t ios \
+            --apiKey "$ASC_API_KEY_ID" \
+            --apiIssuer "$ASC_API_KEY_ISSUER_ID"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-ipa
+          path: build/ios/ipa/*.ipa
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/Library/MobileDevice/Provisioning\ Profiles/runner.mobileprovision || true
+          rm -f ~/.appstoreconnect/private_keys/AuthKey_*.p8 || true
