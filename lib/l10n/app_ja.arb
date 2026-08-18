@@ -7,6 +7,21 @@
   "categoryBreakdown": "カテゴリ内訳",
   "monthlyTransactionsEmpty": "今月の明細はまだありません",
   "excludedFromAggregation": "計算対象外",
+  "duplicateCandidateCount": "重複の可能性が{count}件あります",
+  "@duplicateCandidateCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "duplicateCandidateReviewHint": "タップして確認",
+  "duplicateCandidateTitle": "重複候補の確認",
+  "duplicateCandidateDescription": "金額・日付・店名が近い明細です。同じ支出か確認してください。",
+  "duplicateCandidateReason": "金額が同じ・日付と店名が近い",
+  "duplicateCandidateKeep": "この明細を残す",
+  "mergeDuplicateCandidate": "1件にまとめる",
+  "keepBothDuplicateCandidates": "別々の支出として残す",
   "previousMonth": "前の月",
   "nextMonth": "次の月",
   "openSettings": "設定を開く",

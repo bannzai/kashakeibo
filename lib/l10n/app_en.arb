@@ -28,6 +28,43 @@
   "@excludedFromAggregation": {
     "description": "Note on a transaction excluded from aggregation totals"
   },
+  "duplicateCandidateCount": "{count, plural, =1{1 possible duplicate} other{{count} possible duplicates}}",
+  "@duplicateCandidateCount": {
+    "description": "Number of unresolved possible duplicate transaction pairs",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "duplicateCandidateReviewHint": "Tap to review",
+  "@duplicateCandidateReviewHint": {
+    "description": "Hint shown below the duplicate candidate banner"
+  },
+  "duplicateCandidateTitle": "Review possible duplicate",
+  "@duplicateCandidateTitle": {
+    "description": "Title of the duplicate candidate confirmation sheet"
+  },
+  "duplicateCandidateDescription": "These transactions have similar amounts, dates, and store names. Check whether they are the same expense.",
+  "@duplicateCandidateDescription": {
+    "description": "Explanation shown above a possible duplicate pair"
+  },
+  "duplicateCandidateReason": "Same amount with nearby dates and similar store names",
+  "@duplicateCandidateReason": {
+    "description": "Reason why two transactions were detected as possible duplicates"
+  },
+  "duplicateCandidateKeep": "Keep this transaction",
+  "@duplicateCandidateKeep": {
+    "description": "Label on the transaction selected to remain after merging"
+  },
+  "mergeDuplicateCandidate": "Merge into one",
+  "@mergeDuplicateCandidate": {
+    "description": "Button that merges two duplicate transactions"
+  },
+  "keepBothDuplicateCandidates": "Keep as separate expenses",
+  "@keepBothDuplicateCandidates": {
+    "description": "Button that confirms two transactions are not duplicates"
+  },
   "previousMonth": "Previous month",
   "@previousMonth": {
     "description": "Tooltip for the previous month button"
