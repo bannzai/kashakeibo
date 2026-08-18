@@ -66,6 +66,7 @@ class AddTransaction {
   /// 両フィールドの食い違いを構造的に防ぐため。
   Future<void> call({
     required TransactionType type,
+    required TransactionSource source,
     required int amount,
     required TransactionCategory category,
     required String title,
@@ -78,6 +79,7 @@ class AddTransaction {
         id: documentReference.id,
         userID: userID,
         type: type,
+        source: source,
         amount: amount,
         category: category,
         title: title,

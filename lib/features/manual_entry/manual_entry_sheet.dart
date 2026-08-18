@@ -1,0 +1,285 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/l10n/app_localizations.dart';
+import 'package:kashakeibo/l10n/transaction_labels.dart';
+import 'package:kashakeibo/provider/transaction.dart';
+import 'package:kashakeibo/style/tokens.dart';
+
+/// 手動明細入力シートを表示し、登録完了時は true を返す。
+Future<bool?> showManualEntrySheet({required BuildContext context}) =>
+    showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => const ManualEntrySheet(),
+    );
+
+/// 金額・日付・店名・カテゴリ・収支種別を入力して明細を登録するシート。
+class ManualEntrySheet extends HookConsumerWidget {
+  const ManualEntrySheet({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final addTransaction = ref.watch(addTransactionProvider);
+    final formKey = useMemoized(GlobalKey<FormState>.new);
+    final amountController = useTextEditingController();
+    final titleController = useTextEditingController();
+    // 現金支出のクイック入力が主用途なので、収支種別は支出を初期選択する。
+    final transactionType = useState(TransactionType.expense);
+    final transactionCategory = useState<TransactionCategory?>(null);
+    // デザイン仕様で日付の初期値は今日と定義されているため。
+    final transactionDate = useState(DateUtils.dateOnly(DateTime.now()));
+    final categoryErrorVisible = useState(false);
+    final submitting = useState(false);
+    final registrationError = useState<Object?>(null);
+    final l10n = AppLocalizations.of(context);
+    final availableCategories = switch (transactionType.value) {
+      TransactionType.expense => const [
+        TransactionCategory.food,
+        TransactionCategory.eatingOut,
+        TransactionCategory.dailyGoods,
+        TransactionCategory.transportation,
+        TransactionCategory.subscription,
+        TransactionCategory.other,
+      ],
+      TransactionType.income => const [
+        TransactionCategory.salary,
+        TransactionCategory.other,
+      ],
+    };
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        MediaQuery.viewInsetsOf(context).bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.manualEntryTitle,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).closeButtonTooltip,
+                    onPressed: submitting.value
+                        ? null
+                        : () => Navigator.of(context).pop(false),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: amountController,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: l10n.manualEntryAmount,
+                  prefixText: '¥ ',
+                  border: const OutlineInputBorder(),
+                ),
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+                validator: (value) {
+                  final amount = int.tryParse(value ?? '');
+                  if (amount == null || amount <= 0) {
+                    return l10n.manualEntryAmountRequired;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: l10n.manualEntryStore,
+                  border: const OutlineInputBorder(),
+                ),
+                textInputAction: TextInputAction.done,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? l10n.manualEntryStoreRequired
+                    : null,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                l10n.manualEntryType,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<TransactionType>(
+                segments: [
+                  ButtonSegment(
+                    value: TransactionType.expense,
+                    label: Text(l10n.monthlyExpense),
+                  ),
+                  ButtonSegment(
+                    value: TransactionType.income,
+                    label: Text(l10n.monthlyIncome),
+                  ),
+                ],
+                selected: {transactionType.value},
+                onSelectionChanged: submitting.value
+                    ? null
+                    : (selection) {
+                        transactionType.value = selection.single;
+                        transactionCategory.value = null;
+                        categoryErrorVisible.value = false;
+                      },
+              ),
+              const SizedBox(height: 18),
+              Text(
+                l10n.manualEntryCategory,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final category in availableCategories)
+                    ChoiceChip(
+                      label: Text(
+                        categoryLabel(category: category, l10n: l10n),
+                      ),
+                      selected: transactionCategory.value == category,
+                      onSelected: submitting.value
+                          ? null
+                          : (selected) {
+                              transactionCategory.value = selected
+                                  ? category
+                                  : null;
+                              categoryErrorVisible.value = false;
+                            },
+                    ),
+                ],
+              ),
+              if (categoryErrorVisible.value)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 12),
+                  child: Text(
+                    l10n.manualEntryCategoryRequired,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 18),
+              Text(
+                l10n.manualEntryDate,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: submitting.value
+                    ? null
+                    : () async {
+                        final selectedDate = await showDatePicker(
+                          context: context,
+                          initialDate: transactionDate.value,
+                          // 家計簿の手動入力で扱う十分な範囲として、過去100年から
+                          // 未来1年までを選択可能にする。
+                          firstDate: DateTime(DateTime.now().year - 100),
+                          lastDate: DateTime(DateTime.now().year + 1, 12, 31),
+                        );
+                        if (context.mounted && selectedDate != null) {
+                          transactionDate.value = selectedDate;
+                        }
+                      },
+                icon: const Icon(Icons.calendar_today),
+                label: Text(
+                  DateFormat.yMMMd(
+                    Localizations.localeOf(context).toString(),
+                  ).format(transactionDate.value),
+                ),
+              ),
+              if (registrationError.value != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    registrationError.value.toString(),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: submitting.value
+                    ? null
+                    : () async {
+                        categoryErrorVisible.value =
+                            transactionCategory.value == null;
+                        if (!formKey.currentState!.validate() ||
+                            transactionCategory.value == null) {
+                          return;
+                        }
+                        submitting.value = true;
+                        registrationError.value = null;
+                        try {
+                          await addTransaction.call(
+                            type: transactionType.value,
+                            source: TransactionSource.manual,
+                            amount: int.parse(amountController.text),
+                            category: transactionCategory.value!,
+                            title: titleController.text.trim(),
+                            transactionDate: transactionDate.value,
+                            excludedFromAggregation: false,
+                          );
+                          if (context.mounted) {
+                            Navigator.of(context).pop(true);
+                          }
+                        } catch (error) {
+                          if (!context.mounted) {
+                            return;
+                          }
+                          registrationError.value = error;
+                          submitting.value = false;
+                        }
+                      },
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
+                ),
+                child: submitting.value
+                    ? const SizedBox.square(
+                        dimension: 22,
+                        child: CircularProgressIndicator(
+                          color: AppColors.onPrimary,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(l10n.manualEntryRegister),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

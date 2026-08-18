@@ -10,6 +10,13 @@ _Transaction _$TransactionFromJson(Map<String, dynamic> json) => _Transaction(
   id: json['id'] as String,
   userID: json['userID'] as String,
   type: $enumDecode(_$TransactionTypeEnumMap, json['type']),
+  source:
+      $enumDecodeNullable(
+        _$TransactionSourceEnumMap,
+        json['source'],
+        unknownValue: TransactionSource.unknown,
+      ) ??
+      TransactionSource.unknown,
   amount: (json['amount'] as num).toInt(),
   category: $enumDecode(
     _$TransactionCategoryEnumMap,
@@ -37,6 +44,7 @@ Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
       'id': instance.id,
       'userID': instance.userID,
       'type': _$TransactionTypeEnumMap[instance.type]!,
+      'source': _$TransactionSourceEnumMap[instance.source]!,
       'amount': instance.amount,
       'category': _$TransactionCategoryEnumMap[instance.category]!,
       'title': instance.title,
@@ -58,6 +66,13 @@ Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
 const _$TransactionTypeEnumMap = {
   TransactionType.income: 'income',
   TransactionType.expense: 'expense',
+};
+
+const _$TransactionSourceEnumMap = {
+  TransactionSource.receipt: 'receipt',
+  TransactionSource.screenshot: 'screenshot',
+  TransactionSource.manual: 'manual',
+  TransactionSource.unknown: 'unknown',
 };
 
 const _$TransactionCategoryEnumMap = {

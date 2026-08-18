@@ -193,6 +193,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get categoryOther;
+
+  /// No description provided for @manualEntryOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter manually'**
+  String get manualEntryOpen;
+
+  /// No description provided for @manualEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual entry'**
+  String get manualEntryTitle;
+
+  /// No description provided for @manualEntryAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get manualEntryAmount;
+
+  /// No description provided for @manualEntryAmountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount of at least 1 yen'**
+  String get manualEntryAmountRequired;
+
+  /// No description provided for @manualEntryStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Store or note'**
+  String get manualEntryStore;
+
+  /// No description provided for @manualEntryStoreRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a store or note'**
+  String get manualEntryStoreRequired;
+
+  /// No description provided for @manualEntryType.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction type'**
+  String get manualEntryType;
+
+  /// No description provided for @manualEntryCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get manualEntryCategory;
+
+  /// No description provided for @manualEntryCategoryRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a category'**
+  String get manualEntryCategoryRequired;
+
+  /// No description provided for @manualEntryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get manualEntryDate;
+
+  /// No description provided for @manualEntryRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Add transaction'**
+  String get manualEntryRegister;
+
+  /// No description provided for @manualEntryRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction added'**
+  String get manualEntryRegistered;
+
+  /// No description provided for @transactionSourceReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt'**
+  String get transactionSourceReceipt;
+
+  /// No description provided for @transactionSourceScreenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot'**
+  String get transactionSourceScreenshot;
+
+  /// No description provided for @transactionSourceManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get transactionSourceManual;
+
+  /// No description provided for @transactionSourceUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown source'**
+  String get transactionSourceUnknown;
 }
 
 class _AppLocalizationsDelegate
