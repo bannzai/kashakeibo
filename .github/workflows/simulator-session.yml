@@ -5,6 +5,11 @@ name: simulator-session
 run-name: "session=${{ inputs.session }} device=${{ inputs.device }}"
 
 on:
+  # 一時トリガー (issue-35-verify のみ): workflow_dispatch 専用 workflow は一度も実行されるまで
+  # Actions API に登録されず dispatch が 404 になるため、push で空 run を作って登録させる。
+  # 参照: https://thomaslevesque.com/2024/04/25/running-a-github-actions-workflow-that-doesnt-exist-yet-on-the-default-branch/
+  push:
+    branches: [issue-35-verify]
   workflow_dispatch: # fork PR に Secrets を渡さないため workflow_dispatch のみ
     # session / device / duration_minutes は local/simtunnel の up が常に送るため宣言必須
     # （未定義の input を送ると dispatch が拒否される）
@@ -29,6 +34,8 @@ on:
 jobs:
   # kashakeibo-dev 接続の Simulator 用 .app (debug) をビルドして artifact に上げる
   build:
+    # push (登録用の一時トリガー) では何もビルドしない。dispatch の時だけ実行する
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-26
     timeout-minutes: 30
     permissions:
