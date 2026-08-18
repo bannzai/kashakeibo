@@ -18,4 +18,4 @@ Kashakeibo does not connect to your bank accounts. No broken integrations, no cr
 The free plan includes a monthly allowance of AI scans. Premium unlocks unlimited scans and full history.
 
 Terms of Service: https://bannzai.github.io/kashakeibo/Terms
-Privacy Policy: https://bannzai.github.io/kashakeibo/PrivacyPolicy
+Privacy Policy: https://bannzai.github.io/kashakeibo/PrivacyPolicy-en

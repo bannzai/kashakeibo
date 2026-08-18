@@ -39,6 +39,42 @@ Stream<List<Transaction>> monthlyTransactions(
       .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
 }
 
+/// 表示月と隣接月の明細から、表示月に関係する重複候補を返す。
+///
+/// 月末と翌月初の明細も前後 3 日以内の判定対象に含めるため、前月・当月・翌月を購読する。
+@riverpod
+List<DuplicateCandidate> monthlyDuplicateCandidates(
+  Ref ref, {
+  required String yearMonth,
+}) {
+  final monthStart = DateTime.parse('$yearMonth-01');
+  final transactions = <Transaction>[];
+  for (final monthOffset in const [-1, 0, 1]) {
+    final queryMonth = DateTime(
+      monthStart.year,
+      monthStart.month + monthOffset,
+    );
+    transactions.addAll(
+      ref
+              .watch(
+                monthlyTransactionsProvider(
+                  yearMonth: yearMonthFrom(dateTime: queryMonth),
+                ),
+              )
+              .value ??
+          const [],
+    );
+  }
+
+  return duplicateCandidates(transactions: transactions)
+      .where(
+        (candidate) =>
+            candidate.primaryTransaction.yearMonth == yearMonth ||
+            candidate.duplicateTransaction.yearMonth == yearMonth,
+      )
+      .toList();
+}
+
 /// 明細を新規作成する機能 Provider。
 @riverpod
 AddTransaction addTransaction(Ref ref) {
@@ -101,5 +137,167 @@ class AddTransaction {
     // set の Future はオフライン中にサーバー同期を待ち続ける。ローカルキャッシュへの
     // 反映を登録完了として扱い、サーバー同期は Firestore の永続キューに委ねる。
     await Future.any([serverWrite, localWrite]);
+  }
+}
+
+/// 重複候補 2 件を 1 件へ統合する機能 Provider。
+@riverpod
+MergeDuplicateTransactions mergeDuplicateTransactions(Ref ref) =>
+    const MergeDuplicateTransactions();
+
+/// 重複候補 2 件を Firestore トランザクションで 1 件へ統合する。
+class MergeDuplicateTransactions {
+  const MergeDuplicateTransactions();
+
+  /// [primaryTransaction] を残し、[duplicateTransaction] を削除する。
+  ///
+  /// 同じ操作が再実行され、削除対象が存在しない場合は成功済みとして終了するため冪等。
+  /// 逆向きのマージや「別物として残す」が別端末から同時実行された場合も、
+  /// Firestore の競合検知後に最新状態で再試行され、両方を削除しない。
+  Future<void> call({
+    required Transaction primaryTransaction,
+    required Transaction duplicateTransaction,
+  }) async {
+    _validateDifferentTransactions(
+      firstTransaction: primaryTransaction,
+      secondTransaction: duplicateTransaction,
+    );
+    final primaryReference = transactionsReference(
+      userID: primaryTransaction.userID,
+    ).doc(primaryTransaction.id);
+    final duplicateReference = transactionsReference(
+      userID: duplicateTransaction.userID,
+    ).doc(duplicateTransaction.id);
+
+    await FirebaseFirestore.instance.runTransaction((
+      firestoreTransaction,
+    ) async {
+      final primarySnapshot = await firestoreTransaction.get(primaryReference);
+      final duplicateSnapshot = await firestoreTransaction.get(
+        duplicateReference,
+      );
+      final latestPrimaryTransaction = primarySnapshot.data();
+      final latestDuplicateTransaction = duplicateSnapshot.data();
+
+      // 同じ向きの再実行、または逆向きのマージが先に完了した状態。
+      if (latestPrimaryTransaction == null ||
+          latestDuplicateTransaction == null) {
+        return;
+      }
+      if (!isDuplicateCandidate(
+        firstTransaction: latestPrimaryTransaction,
+        secondTransaction: latestDuplicateTransaction,
+      )) {
+        throw StateError('明細が更新されたため、重複候補ではなくなりました');
+      }
+
+      final confirmedDistinctTransactionIDs =
+          <String>{
+              ...latestPrimaryTransaction.confirmedDistinctTransactionIDs,
+              ...latestDuplicateTransaction.confirmedDistinctTransactionIDs,
+            }
+            ..remove(latestPrimaryTransaction.id)
+            ..remove(latestDuplicateTransaction.id);
+      firestoreTransaction.set(
+        primaryReference,
+        latestPrimaryTransaction.copyWith(
+          confirmedDistinctTransactionIDs:
+              confirmedDistinctTransactionIDs.toList()..sort(),
+        ),
+        SetOptions(merge: true),
+      );
+      firestoreTransaction.delete(duplicateReference);
+    });
+  }
+}
+
+/// 重複候補 2 件を別々の明細として残す機能 Provider。
+@riverpod
+KeepBothTransactions keepBothTransactions(Ref ref) =>
+    const KeepBothTransactions();
+
+/// 重複候補 2 件へ相互の ID を記録し、同じ候補を再提示しないようにする。
+class KeepBothTransactions {
+  const KeepBothTransactions();
+
+  /// 2 件を「別物として残す」と Firestore トランザクションで確定する。
+  ///
+  /// 相互の ID が既に記録されていれば書き込まず終了するため冪等。
+  Future<void> call({
+    required Transaction firstTransaction,
+    required Transaction secondTransaction,
+  }) async {
+    _validateDifferentTransactions(
+      firstTransaction: firstTransaction,
+      secondTransaction: secondTransaction,
+    );
+    final firstReference = transactionsReference(
+      userID: firstTransaction.userID,
+    ).doc(firstTransaction.id);
+    final secondReference = transactionsReference(
+      userID: secondTransaction.userID,
+    ).doc(secondTransaction.id);
+
+    await FirebaseFirestore.instance.runTransaction((
+      firestoreTransaction,
+    ) async {
+      final firstSnapshot = await firestoreTransaction.get(firstReference);
+      final secondSnapshot = await firestoreTransaction.get(secondReference);
+      final latestFirstTransaction = firstSnapshot.data();
+      final latestSecondTransaction = secondSnapshot.data();
+
+      // マージが先に完了した場合は、残った 1 件をそのまま正とする。
+      if (latestFirstTransaction == null || latestSecondTransaction == null) {
+        return;
+      }
+      final firstAlreadyConfirmed = latestFirstTransaction
+          .confirmedDistinctTransactionIDs
+          .contains(latestSecondTransaction.id);
+      final secondAlreadyConfirmed = latestSecondTransaction
+          .confirmedDistinctTransactionIDs
+          .contains(latestFirstTransaction.id);
+      if (firstAlreadyConfirmed && secondAlreadyConfirmed) {
+        return;
+      }
+      if (!isDuplicateCandidate(
+        firstTransaction: latestFirstTransaction,
+        secondTransaction: latestSecondTransaction,
+      )) {
+        throw StateError('明細が更新されたため、重複候補ではなくなりました');
+      }
+
+      firestoreTransaction.set(
+        firstReference,
+        latestFirstTransaction.copyWith(
+          confirmedDistinctTransactionIDs: <String>{
+            ...latestFirstTransaction.confirmedDistinctTransactionIDs,
+            latestSecondTransaction.id,
+          }.toList()..sort(),
+        ),
+        SetOptions(merge: true),
+      );
+      firestoreTransaction.set(
+        secondReference,
+        latestSecondTransaction.copyWith(
+          confirmedDistinctTransactionIDs: <String>{
+            ...latestSecondTransaction.confirmedDistinctTransactionIDs,
+            latestFirstTransaction.id,
+          }.toList()..sort(),
+        ),
+        SetOptions(merge: true),
+      );
+    });
+  }
+}
+
+void _validateDifferentTransactions({
+  required Transaction firstTransaction,
+  required Transaction secondTransaction,
+}) {
+  if (firstTransaction.id == secondTransaction.id) {
+    throw ArgumentError('同じ明細同士は重複候補として操作できません');
+  }
+  if (firstTransaction.userID != secondTransaction.userID) {
+    throw ArgumentError('異なるユーザーの明細同士は操作できません');
   }
 }
