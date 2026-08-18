@@ -30,7 +30,7 @@ last_verified_at: null
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [ ] **日付の変更**: 日付ボタンからデートピッカーで過去日を選ぶと、選んだ日付で登録され一覧の該当日グループに表示される。日付の初期値は今日
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [ ] **店名の省略**: 店名を空のまま登録すると、既定タイトル (l10n の manualEntryDefaultTitle) で登録される
+- [ ] **店名の省略**: 店名を空のまま登録すると、既定タイトル「現金支出」(l10n の manualEntryDefaultTitle) で登録される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 
 #### 動作確認
@@ -69,7 +69,7 @@ last_verified_at: null
 
 </details>
 
-### **店名の省略**: 店名を空のまま登録すると、既定タイトル (l10n の manualEntryDefaultTitle) で登録される
+### **店名の省略**: 店名を空のまま登録すると、既定タイトル「現金支出」(l10n の manualEntryDefaultTitle) で登録される
 
 <details><summary>動作確認スクショ</summary>
 
