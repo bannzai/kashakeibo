@@ -69,6 +69,7 @@
   "manualEntryAmount": "Amount",
   "manualEntryAmountRequired": "Enter an amount of at least 1 yen",
   "manualEntryStore": "Store or note",
+  "manualEntryDefaultTitle": "Cash expense",
   "manualEntryStoreRequired": "Enter a store or note",
   "manualEntryType": "Transaction type",
   "manualEntryCategory": "Category",

@@ -30,11 +30,11 @@ class ManualEntrySheet extends HookConsumerWidget {
     final titleController = useTextEditingController();
     // 現金支出のクイック入力が主用途なので、収支種別は支出を初期選択する。
     final transactionType = useState(TransactionType.expense);
-    final transactionCategory = useState<TransactionCategory?>(null);
+    final transactionCategory = useState(TransactionCategory.food);
     // デザイン仕様で日付の初期値は今日と定義されているため。
     final transactionDate = useState(DateUtils.dateOnly(DateTime.now()));
-    final categoryErrorVisible = useState(false);
     final submitting = useState(false);
+    final registrationComplete = useState(false);
     final registrationError = useState<Object?>(null);
     final l10n = AppLocalizations.of(context);
     final availableCategories = switch (transactionType.value) {
@@ -52,7 +52,7 @@ class ManualEntrySheet extends HookConsumerWidget {
       ],
     };
 
-    return Padding(
+    final content = Padding(
       padding: EdgeInsets.fromLTRB(
         20,
         16,
@@ -120,9 +120,6 @@ class ManualEntrySheet extends HookConsumerWidget {
                   border: const OutlineInputBorder(),
                 ),
                 textInputAction: TextInputAction.done,
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? l10n.manualEntryStoreRequired
-                    : null,
               ),
               const SizedBox(height: 18),
               Text(
@@ -146,8 +143,10 @@ class ManualEntrySheet extends HookConsumerWidget {
                     ? null
                     : (selection) {
                         transactionType.value = selection.single;
-                        transactionCategory.value = null;
-                        categoryErrorVisible.value = false;
+                        transactionCategory.value = switch (selection.single) {
+                          TransactionType.expense => TransactionCategory.food,
+                          TransactionType.income => TransactionCategory.salary,
+                        };
                       },
               ),
               const SizedBox(height: 18),
@@ -168,26 +167,12 @@ class ManualEntrySheet extends HookConsumerWidget {
                       selected: transactionCategory.value == category,
                       onSelected: submitting.value
                           ? null
-                          : (selected) {
-                              transactionCategory.value = selected
-                                  ? category
-                                  : null;
-                              categoryErrorVisible.value = false;
+                          : (_) {
+                              transactionCategory.value = category;
                             },
                     ),
                 ],
               ),
-              if (categoryErrorVisible.value)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8, left: 12),
-                  child: Text(
-                    l10n.manualEntryCategoryRequired,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
               const SizedBox(height: 18),
               Text(
                 l10n.manualEntryDate,
@@ -232,10 +217,7 @@ class ManualEntrySheet extends HookConsumerWidget {
                 onPressed: submitting.value
                     ? null
                     : () async {
-                        categoryErrorVisible.value =
-                            transactionCategory.value == null;
-                        if (!formKey.currentState!.validate() ||
-                            transactionCategory.value == null) {
+                        if (!formKey.currentState!.validate()) {
                           return;
                         }
                         submitting.value = true;
@@ -245,11 +227,19 @@ class ManualEntrySheet extends HookConsumerWidget {
                             type: transactionType.value,
                             source: TransactionSource.manual,
                             amount: int.parse(amountController.text),
-                            category: transactionCategory.value!,
-                            title: titleController.text.trim(),
+                            category: transactionCategory.value,
+                            title: titleController.text.trim().isEmpty
+                                ? l10n.manualEntryDefaultTitle
+                                : titleController.text.trim(),
                             transactionDate: transactionDate.value,
                             excludedFromAggregation: false,
                           );
+                          if (context.mounted) {
+                            // PopScope が送信中の外部 dismiss を防ぐ一方、登録完了後の
+                            // この pop は許可するため、更新後のフレームを待つ。
+                            registrationComplete.value = true;
+                            await WidgetsBinding.instance.endOfFrame;
+                          }
                           if (context.mounted) {
                             Navigator.of(context).pop(true);
                           }
@@ -280,6 +270,10 @@ class ManualEntrySheet extends HookConsumerWidget {
           ),
         ),
       ),
+    );
+    return PopScope(
+      canPop: !submitting.value || registrationComplete.value,
+      child: content,
     );
   }
 }

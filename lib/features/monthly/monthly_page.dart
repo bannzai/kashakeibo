@@ -78,7 +78,8 @@ class MonthlyPage extends HookConsumerWidget {
                   ),
                 ),
                 data: (transactions) => ListView(
-                  padding: const EdgeInsets.only(bottom: 24),
+                  // 最終明細の金額が extended FAB に隠れない余白を確保する。
+                  padding: const EdgeInsets.only(bottom: 104),
                   children: [
                     _MonthlySummaryCard(transactions: transactions),
                     _CategoryBreakdownSection(transactions: transactions),

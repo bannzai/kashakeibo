@@ -72,6 +72,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manualEntryStore => 'Store or note';
 
   @override
+  String get manualEntryDefaultTitle => 'Cash expense';
+
+  @override
   String get manualEntryStoreRequired => 'Enter a store or note';
 
   @override

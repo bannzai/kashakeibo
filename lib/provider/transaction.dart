@@ -74,7 +74,7 @@ class AddTransaction {
     required bool excludedFromAggregation,
   }) async {
     final documentReference = transactionsReference(userID: userID).doc();
-    await documentReference.set(
+    final serverWrite = documentReference.set(
       Transaction(
         id: documentReference.id,
         userID: userID,
@@ -94,5 +94,12 @@ class AddTransaction {
         excludedFromAggregation: excludedFromAggregation,
       ),
     );
+    final localWrite = documentReference
+        .snapshots(includeMetadataChanges: true)
+        .firstWhere((snapshot) => snapshot.exists)
+        .then<void>((_) {});
+    // set の Future はオフライン中にサーバー同期を待ち続ける。ローカルキャッシュへの
+    // 反映を登録完了として扱い、サーバー同期は Firestore の永続キューに委ねる。
+    await Future.any([serverWrite, localWrite]);
   }
 }

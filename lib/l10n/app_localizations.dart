@@ -224,6 +224,12 @@ abstract class AppLocalizations {
   /// **'Store or note'**
   String get manualEntryStore;
 
+  /// No description provided for @manualEntryDefaultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash expense'**
+  String get manualEntryDefaultTitle;
+
   /// No description provided for @manualEntryStoreRequired.
   ///
   /// In en, this message translates to:

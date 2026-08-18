@@ -21,6 +21,7 @@
   "manualEntryAmount": "金額",
   "manualEntryAmountRequired": "1円以上の金額を入力してください",
   "manualEntryStore": "店名・メモ",
+  "manualEntryDefaultTitle": "現金支出",
   "manualEntryStoreRequired": "店名・メモを入力してください",
   "manualEntryType": "収支種別",
   "manualEntryCategory": "カテゴリ",

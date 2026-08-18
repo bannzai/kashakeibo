@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -124,6 +126,10 @@ void main() {
       find.text(AppLocalizationsEn().monthlyTransactionsEmpty),
       findsOneWidget,
     );
+    expect(
+      tester.widget<ListView>(find.byType(ListView)).padding,
+      const EdgeInsets.only(bottom: 104),
+    );
   });
 
   testWidgets('手動入力: 必須項目を登録すると出所 manual で保存する', (tester) async {
@@ -160,6 +166,71 @@ void main() {
     expect(addTransaction.title, 'Neighborhood store');
     expect(addTransaction.transactionDate, DateUtils.dateOnly(DateTime.now()));
     expect(addTransaction.excludedFromAggregation, false);
+  });
+
+  testWidgets('手動入力: 金額だけで食費の現金支出として保存する', (tester) async {
+    final addTransaction = _RecordingAddTransaction();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [addTransactionProvider.overrideWithValue(addTransaction)],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(body: ManualEntrySheet()),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '500');
+    await tester.ensureVisible(find.text('Add transaction'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add transaction'));
+    await tester.pumpAndSettle();
+
+    expect(addTransaction.category, TransactionCategory.food);
+    expect(addTransaction.title, AppLocalizationsEn().manualEntryDefaultTitle);
+  });
+
+  testWidgets('手動入力: 登録処理中は戻る操作でシートを閉じない', (tester) async {
+    final addTransaction = _PendingAddTransaction();
+    bool? result;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [addTransactionProvider.overrideWithValue(addTransaction)],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  result = await showManualEntrySheet(context: context);
+                },
+                child: const Text('Open manual entry'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open manual entry'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '500');
+    await tester.ensureVisible(find.text('Add transaction'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add transaction'));
+    await tester.pump();
+
+    expect(tester.widget<PopScope>(find.byType(PopScope)).canPop, false);
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(ManualEntrySheet), findsOneWidget);
+
+    addTransaction.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(ManualEntrySheet), findsNothing);
+    expect(result, true);
   });
 }
 
@@ -206,5 +277,33 @@ class _RecordingAddTransaction extends AddTransaction {
     this.title = title;
     this.transactionDate = transactionDate;
     this.excludedFromAggregation = excludedFromAggregation;
+  }
+}
+
+/// 完了タイミングをテスト側で制御する AddTransaction。
+class _PendingAddTransaction extends _RecordingAddTransaction {
+  final Completer<void> _completer = Completer<void>();
+
+  /// 保留中の登録処理を完了する。
+  void complete() => _completer.complete();
+
+  @override
+  Future<void> call({
+    required TransactionType type,
+    required TransactionSource source,
+    required int amount,
+    required TransactionCategory category,
+    required String title,
+    required DateTime transactionDate,
+    required bool excludedFromAggregation,
+  }) {
+    this.type = type;
+    this.source = source;
+    this.amount = amount;
+    this.category = category;
+    this.title = title;
+    this.transactionDate = transactionDate;
+    this.excludedFromAggregation = excludedFromAggregation;
+    return _completer.future;
   }
 }

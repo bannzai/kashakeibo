@@ -72,6 +72,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get manualEntryStore => '店名・メモ';
 
   @override
+  String get manualEntryDefaultTitle => '現金支出';
+
+  @override
   String get manualEntryStoreRequired => '店名・メモを入力してください';
 
   @override
