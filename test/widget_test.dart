@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -9,7 +10,10 @@ import 'package:kashakeibo/features/monthly/monthly_page.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/app_localizations_en.dart';
+import 'package:kashakeibo/provider/account.dart';
+import 'package:kashakeibo/provider/firebase_user.dart';
 import 'package:kashakeibo/provider/transaction.dart';
+import 'package:mocktail/mocktail.dart';
 
 /// Analyticsを必要としないウィジェットテスト用の記録処理。
 Future<void> discardAnalyticsEvent({
@@ -46,6 +50,35 @@ Transaction buildTransaction({
     yearMonth: yearMonthFrom(dateTime: now),
     excludedFromAggregation: excludedFromAggregation,
   );
+}
+
+/// テスト用 Firebase ユーザーモック。
+class MockFirebaseUser extends Mock implements User {}
+
+/// 何もしないアカウント削除機能。設定画面の表示テストで Firebase への接続を避ける。
+class NoopDeleteAccount implements DeleteAccount {
+  @override
+  Future<void> call() async {}
+}
+
+/// 設定画面が依存する Firebase Auth の Provider を匿名ユーザー相当へ差し替える。
+List<Override> anonymousUserOverrides() {
+  final firebaseUser = MockFirebaseUser();
+  when(() => firebaseUser.isAnonymous).thenReturn(true);
+  when(() => firebaseUser.providerData).thenReturn(const []);
+  return [
+    firebaseUserChangesProvider.overrideWith(
+      (ref) => Stream.value(firebaseUser),
+    ),
+    linkOrSignInWithAppleProvider.overrideWithValue(
+      () async => AccountActionResult.linked,
+    ),
+    linkOrSignInWithGoogleProvider.overrideWithValue(
+      () async => AccountActionResult.linked,
+    ),
+    hasCurrentUserDataProvider.overrideWithValue(() async => false),
+    deleteAccountProvider.overrideWithValue(NoopDeleteAccount()),
+  ];
 }
 
 void main() {
@@ -131,6 +164,7 @@ void main() {
           monthlyDuplicateCandidatesProvider(
             yearMonth: yearMonthFrom(dateTime: DateTime.now()),
           ).overrideWith((ref) => const []),
+          ...anonymousUserOverrides(),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -274,22 +308,27 @@ void main() {
     final analyticsEvents = <({String name, String document})>[];
 
     await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: SettingsPage(
-          openExternalUri: ({required uri}) async {
-            openedUris.add(uri);
-          },
-          logAnalyticsEvent: ({required name, parameters}) async {
-            analyticsEvents.add((
-              name: name,
-              document: parameters!['document']! as String,
-            ));
-          },
+      ProviderScope(
+        overrides: anonymousUserOverrides(),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SettingsPage(
+            openExternalUri: ({required uri}) async {
+              openedUris.add(uri);
+            },
+            logAnalyticsEvent: ({required name, parameters}) async {
+              analyticsEvents.add((
+                name: name,
+                document: parameters!['document']! as String,
+              ));
+            },
+          ),
         ),
       ),
     );
+    // Firebase ユーザーの Stream が流れてから設定画面本体が描画される。
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text(AppLocalizationsEn().termsOfService));
     await tester.pump();

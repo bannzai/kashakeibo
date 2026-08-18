@@ -86,6 +86,61 @@ class AppLocalizationsEn extends AppLocalizations {
       'Commercial Transaction Disclosure';
 
   @override
+  String get accountBackupTitle => 'Backup';
+
+  @override
+  String get accountBackupNotSet => 'Not set';
+
+  @override
+  String get accountBackupConfigured => 'Set up';
+
+  @override
+  String get accountBackupDescription =>
+      'Link an account to keep your data when you change devices.';
+
+  @override
+  String get accountBackupConfiguredDescription =>
+      'Choose the same account on another device to access your saved data.';
+
+  @override
+  String get linkOrSignInWithApple => 'Link with Apple';
+
+  @override
+  String get linkOrSignInWithGoogle => 'Link with Google';
+
+  @override
+  String get accountLinked => 'Account linked';
+
+  @override
+  String get existingAccountSignedIn => 'Switched to your existing account';
+
+  @override
+  String get accountSwitchWarningTitle => 'Check this device\'s data';
+
+  @override
+  String get accountSwitchWarningMessage =>
+      'If the account you choose is already used on another device, this device\'s anonymous data will no longer be accessible. Review any transactions you need before continuing.';
+
+  @override
+  String get continueAccountLink => 'Continue';
+
+  @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get deleteAccountConfirmationTitle => 'Delete your account?';
+
+  @override
+  String get deleteAccountConfirmationMessage =>
+      'Your account and saved transactions will be permanently deleted. This cannot be undone.';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
   String get categoryFood => 'Food';
 
   @override

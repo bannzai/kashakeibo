@@ -4,6 +4,22 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'firebase_user.g.dart';
 
+/// 未サインイン時に匿名認証を保証する操作。
+typedef EnsureAnonymousSignIn = Future<void> Function();
+
+/// 未サインイン時の匿名認証操作。
+final ensureAnonymousSignInProvider = Provider<EnsureAnonymousSignIn>(
+  (ref) => ensureAnonymousSignIn,
+);
+
+/// Firebase Auth が未サインインなら匿名認証する。
+Future<void> ensureAnonymousSignIn() async {
+  if (FirebaseAuth.instance.currentUser != null) {
+    return;
+  }
+  await FirebaseAuth.instance.signInAnonymously();
+}
+
 /// Firebase Auth のユーザー状態 (サインイン・サインアウト・トークン更新) のストリーム。
 @Riverpod(keepAlive: true)
 Stream<User?> firebaseUserChanges(Ref ref) =>

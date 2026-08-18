@@ -203,6 +203,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				DBDA4A94D4A8EEB03BA63085 /* [CP] Embed Pods Frameworks */,
+				F83D6C1E486CA8E49B68EE36 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -230,6 +231,11 @@
 					97C146ED1CF9000F007C117D = {
 						CreatedOnToolsVersion = 7.3.1;
 						LastSwiftMigration = 1100;
+						SystemCapabilities = {
+							com.apple.SignInWithApple = {
+								enabled = 1;
+							};
+						};
 					};
 				};
 			};
@@ -362,7 +368,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# debug ビルドは kashakeibo-dev、release / profile ビルドは kashakeibo-prod の\n# GoogleService-Info.plist をアプリバンドルへコピーする (issue #3)。\ncase \"${CONFIGURATION}\" in\n  *Debug*) FIREBASE_ENV=dev ;;\n  *) FIREBASE_ENV=prod ;;\nesac\ncp \"${PROJECT_DIR}/Firebase/${FIREBASE_ENV}/GoogleService-Info.plist\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/GoogleService-Info.plist\"\n";
+			shellScript = "# debug ビルドは kashakeibo-dev、release / profile ビルドは kashakeibo-prod の\n# GoogleService-Info.plist をアプリバンドルへコピーする (issue #3)。\ncase \"${CONFIGURATION}\" in\n  *Debug*) FIREBASE_ENV=dev ;;\n  *) FIREBASE_ENV=prod ;;\nesac\nFIREBASE_PLIST=\"${PROJECT_DIR}/Firebase/${FIREBASE_ENV}/GoogleService-Info.plist\"\nAPP_FIREBASE_PLIST=\"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/GoogleService-Info.plist\"\nAPP_INFO_PLIST=\"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Info.plist\"\ncp \"${FIREBASE_PLIST}\" \"${APP_FIREBASE_PLIST}\"\n\n# Google Sign-In を Firebase の環境別 OAuth クライアントへ向ける。プロバイダ有効化前の\n# plist には両キーが無いため、その状態でも匿名認証ビルドは継続できるよう条件付きで追加する。\nif GOOGLE_CLIENT_ID=$(/usr/libexec/PlistBuddy -c \"Print :CLIENT_ID\" \"${FIREBASE_PLIST}\" 2>/dev/null); then\n  /usr/libexec/PlistBuddy -c \"Set :GIDClientID ${GOOGLE_CLIENT_ID}\" \"${APP_INFO_PLIST}\" 2>/dev/null || \\\n    /usr/libexec/PlistBuddy -c \"Add :GIDClientID string ${GOOGLE_CLIENT_ID}\" \"${APP_INFO_PLIST}\"\nfi\nif GOOGLE_REVERSED_CLIENT_ID=$(/usr/libexec/PlistBuddy -c \"Print :REVERSED_CLIENT_ID\" \"${FIREBASE_PLIST}\" 2>/dev/null); then\n  if ! /usr/libexec/PlistBuddy -c \"Print :CFBundleURLTypes\" \"${APP_INFO_PLIST}\" 2>/dev/null | grep -Fq \"${GOOGLE_REVERSED_CLIENT_ID}\"; then\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0 dict\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleTypeRole string Editor\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleURLSchemes array\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string ${GOOGLE_REVERSED_CLIENT_ID}\" \"${APP_INFO_PLIST}\"\n  fi\nfi\n";
 		};
 		DBDA4A94D4A8EEB03BA63085 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -379,6 +385,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		F83D6C1E486CA8E49B68EE36 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -490,6 +513,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = TQPN82UBBY;
 				ENABLE_BITCODE = NO;
@@ -498,7 +522,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bannzai.kashakeibo;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -673,6 +697,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = TQPN82UBBY;
 				ENABLE_BITCODE = NO;
@@ -681,7 +706,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bannzai.kashakeibo;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -696,6 +721,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = TQPN82UBBY;
 				ENABLE_BITCODE = NO;
@@ -704,7 +730,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bannzai.kashakeibo;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

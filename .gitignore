@@ -61,3 +61,6 @@ fastlane/screenshots
 /ios/Firebase/prod/GoogleService-Info.plist
 /android/app/google-services.json
 /android/app/src/debug/google-services.json
+
+# 配布ワークフロー (flutter-deploy.yml) が CI 実行時に生成する。Team ID を含むため git 管理外
+/ios/ExportOptions.plist

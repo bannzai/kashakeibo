@@ -93,6 +93,77 @@
   "@specifiedCommercialTransactionAct": {
     "description": "Link label for the disclosure required by Japan's Specified Commercial Transactions Act"
   },
+  "@openSettings": {
+    "description": "Tooltip for the settings button"
+  },
+  "accountBackupTitle": "Backup",
+  "@accountBackupTitle": {
+    "description": "Title of the account backup card"
+  },
+  "accountBackupNotSet": "Not set",
+  "@accountBackupNotSet": {
+    "description": "Status shown while an anonymous account has no linked sign-in provider"
+  },
+  "accountBackupConfigured": "Set up",
+  "@accountBackupConfigured": {
+    "description": "Status shown after an account has a linked sign-in provider"
+  },
+  "accountBackupDescription": "Link an account to keep your data when you change devices.",
+  "@accountBackupDescription": {
+    "description": "Explanation shown before account linking"
+  },
+  "accountBackupConfiguredDescription": "Choose the same account on another device to access your saved data.",
+  "@accountBackupConfiguredDescription": {
+    "description": "Explanation shown after account linking"
+  },
+  "linkOrSignInWithApple": "Link with Apple",
+  "@linkOrSignInWithApple": {
+    "description": "Button that links Apple or signs in to an existing Apple-linked account"
+  },
+  "linkOrSignInWithGoogle": "Link with Google",
+  "@linkOrSignInWithGoogle": {
+    "description": "Button that links Google or signs in to an existing Google-linked account"
+  },
+  "accountLinked": "Account linked",
+  "@accountLinked": {
+    "description": "Message shown after account linking succeeds"
+  },
+  "existingAccountSignedIn": "Switched to your existing account",
+  "@existingAccountSignedIn": {
+    "description": "Message shown after signing in to an account that was already linked on another device"
+  },
+  "accountSwitchWarningTitle": "Check this device's data",
+  "@accountSwitchWarningTitle": {
+    "description": "Title shown before linking when the anonymous user already has data"
+  },
+  "accountSwitchWarningMessage": "If the account you choose is already used on another device, this device's anonymous data will no longer be accessible. Review any transactions you need before continuing.",
+  "@accountSwitchWarningMessage": {
+    "description": "Warning that switching to an existing account cannot carry over anonymous data"
+  },
+  "continueAccountLink": "Continue",
+  "@continueAccountLink": {
+    "description": "Button that accepts the anonymous data warning and continues account linking"
+  },
+  "deleteAccount": "Delete account",
+  "@deleteAccount": {
+    "description": "Button that starts account deletion"
+  },
+  "deleteAccountConfirmationTitle": "Delete your account?",
+  "@deleteAccountConfirmationTitle": {
+    "description": "Title of the account deletion confirmation dialog"
+  },
+  "deleteAccountConfirmationMessage": "Your account and saved transactions will be permanently deleted. This cannot be undone.",
+  "@deleteAccountConfirmationMessage": {
+    "description": "Warning shown before account deletion"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Button that cancels a destructive confirmation"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Button that confirms account deletion"
+  },
   "categoryFood": "Food",
   "@categoryFood": {
     "description": "Transaction category: food (groceries)"

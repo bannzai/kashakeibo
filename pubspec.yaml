@@ -45,9 +45,10 @@ dependencies:
 
   firebase_core: ^4.13.0
   firebase_auth: ^6.5.7
+  firebase_analytics: ^12.4.6
   cloud_firestore: ^6.8.0
   firebase_app_check: ^0.4.6
-  firebase_analytics: ^12.4.5
+  google_sign_in: ^7.2.0
 
   hooks_riverpod: ^2.6.1
   riverpod_annotation: ^2.6.1
@@ -70,6 +71,8 @@ dev_dependencies:
   freezed: ^3.1.0
   json_serializable: ^6.3.2
   riverpod_generator: ^2.6.5
+  fake_cloud_firestore: ^4.0.2
+  mocktail: ^1.0.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
