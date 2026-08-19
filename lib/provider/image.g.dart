@@ -178,5 +178,27 @@ class _StoredImageProviderElement
   String get imageObjectKey => (origin as StoredImageProvider).imageObjectKey;
 }
 
+String _$monthlyScanQuotaHash() => r'52450429b218617c4c16143f61721dc004b9fcd2';
+
+/// 今月のスキャン回数と無料枠 (残量チップ・ペイウォールの表示判定に使う)。
+///
+/// サインイン中のユーザーが変わると取り直す。解析のたびに Worker 側の回数が進むため、
+/// 撮影フローの終了後などに [refresh] で取り直す (画面が unmount され得るコールバックから
+/// 呼べるよう keepAlive にし、notifier を build 時に確保して使う。`.claude/rules/riverpod-rules.md`)。
+///
+/// Copied from [MonthlyScanQuota].
+@ProviderFor(MonthlyScanQuota)
+final monthlyScanQuotaProvider =
+    AsyncNotifierProvider<MonthlyScanQuota, image_analysis.ScanQuota>.internal(
+      MonthlyScanQuota.new,
+      name: r'monthlyScanQuotaProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$monthlyScanQuotaHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$MonthlyScanQuota = AsyncNotifier<image_analysis.ScanQuota>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
