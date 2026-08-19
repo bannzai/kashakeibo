@@ -18,7 +18,7 @@ last_verified_at: 2026-08-19
 |----|---------|---------|
 | S1 | https://bannzai.github.io/kashakeibo/ で index・Terms・PrivacyPolicy・SpecifiedCommercialTransactionAct-ja・AccountDeletion が 200 を返す | 法務ページの配信確認 |
 | S2 | 設定画面に利用規約・プライバシーポリシー・特商法表記へのリンクがある | 設定画面の表示 / 法務ドキュメントを開く |
-| S3 | en-US ストアメタデータの privacy_url 用に英語版法務ページを用意する | 英語環境のプライバシーポリシー |
+| S3 | en-US ストアメタデータの privacy_url 用に英語版法務ページを用意する | 英語環境のプライバシーポリシー / ストアメタデータの privacy_url |
 
 ## 1. 設定画面
 
@@ -136,6 +136,8 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 - [x] **法務ページの配信確認**: https://bannzai.github.io/kashakeibo/ の index・Terms・PrivacyPolicy・PrivacyPolicy-en・SpecifiedCommercialTransactionAct-ja・AccountDeletion が HTTP 200 を返す
   - 自動化: manual (curl での機械確認が可能。Maestro ではなくコマンド実行で確認する)
+- [x] **ストアメタデータの privacy_url**: fastlane/metadata/en-US/privacy_url.txt が PrivacyPolicy-en を、fastlane/metadata/ja/privacy_url.txt が PrivacyPolicy を指し、en-US 側の URL が HTTP 200 で英語版本文を返す
+  - 自動化: manual (ファイル内容と curl での機械確認が可能。コマンド実行で確認する)
 
 #### 動作確認
 <details>
@@ -163,6 +165,29 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 ```
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/78fa607a-9ccd-43fc-8fca-b3742196eb0a.png" width="320">
+
+</details>
+
+### **ストアメタデータの privacy_url**: fastlane/metadata/en-US/privacy_url.txt が PrivacyPolicy-en を、fastlane/metadata/ja/privacy_url.txt が PrivacyPolicy を指し、en-US 側の URL が HTTP 200 で英語版本文を返す
+
+<details><summary>動作確認スクショ</summary>
+
+**確認日: 2026-08-19**
+
+この項目はファイル内容と curl での確認のため、コマンド出力を画像化して貼る。
+
+```text
+$ cat fastlane/metadata/en-US/privacy_url.txt fastlane/metadata/ja/privacy_url.txt
+https://bannzai.github.io/kashakeibo/PrivacyPolicy-en
+https://bannzai.github.io/kashakeibo/PrivacyPolicy
+
+$ curl -s -o /dev/null -w '%{http_code} %{url_effective}\n' $(cat fastlane/metadata/en-US/privacy_url.txt)
+200 https://bannzai.github.io/kashakeibo/PrivacyPolicy-en
+$ curl -s https://bannzai.github.io/kashakeibo/PrivacyPolicy-en | grep -o '<h1[^>]*>[^<]*</h1>' | head -1
+<h1 id="privacy-policy">Privacy Policy</h1>
+```
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/e160fa0e-df31-4803-96ab-f4dec8638cc1.png" width="320">
 
 </details>
 
