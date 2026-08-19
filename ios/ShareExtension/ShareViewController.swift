@@ -128,14 +128,19 @@ class ShareViewController: UIViewController {
       return
     }
     // -[UIApplication openURL:options:completionHandler:] (iOS 10+)。iOS 18 では旧来の openURL: が効かないためこちらを使う。
-    // C 呼び出しでは Swift の URL が NSURL へ自動ブリッジされないため、NSURL に明示変換して渡す。
+    // 送信先は UIApplication に限定する (UIScene も同名セレクタに応答すると答えるが、内部転送で
+    // doesNotRecognizeSelector 例外になる。実測)。C 呼び出しでは Swift の URL が NSURL へ
+    // 自動ブリッジされないため、NSURL に明示変換して渡す。
     let openURLSelector = NSSelectorFromString("openURL:options:completionHandler:")
     typealias OpenURLFunction = @convention(c) (AnyObject, Selector, NSURL, NSDictionary, Any?) -> Void
     var responder: UIResponder? = self
     while let currentResponder = responder {
-      if currentResponder.responds(to: openURLSelector), let openURLMethod = currentResponder.method(for: openURLSelector) {
+      if let application = currentResponder as? UIApplication,
+        application.responds(to: openURLSelector),
+        let openURLMethod = application.method(for: openURLSelector)
+      {
         unsafeBitCast(openURLMethod, to: OpenURLFunction.self)(
-          currentResponder,
+          application,
           openURLSelector,
           hostAppURL as NSURL,
           [:],
