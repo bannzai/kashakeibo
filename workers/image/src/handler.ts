@@ -1,8 +1,10 @@
-// 画像アップロード (POST /images)・取得 (GET /images/{objectKey})・
-// アカウント削除時の全消去 (DELETE /images) のリクエスト処理本体。
+// 画像アップロード (POST /images)・取得 (GET /images/{objectKey})・個別削除 (DELETE /images/{objectKey})・
+// アカウント削除時の全消去 (DELETE /images)・Gemini による明細抽出 (POST /analyses) のリクエスト処理本体。
 // Firebase ID token の検証手段を verifyFirebaseIdToken として注入する構造にし、
 // テストでは実際の Google JWK 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
 // (実際の検証器の組み立ては index.ts を参照)。
+import type { ImageAnalysisResult } from "./analysis";
+import { analyzeImageWithGemini, GeminiRequestError } from "./analysis";
 import type { DailyUploadCounter } from "./upload_counter";
 
 /** Firebase ID token の検証を通ったユーザー。 */
@@ -26,6 +28,10 @@ export interface ImageWorkerEnv {
   FIREBASE_PROJECT_ID: string;
   /** JWK キャッシュの KV キー名。 */
   PUBLIC_JWK_CACHE_KEY: string;
+  /** Gemini API キー (wrangler secret。クライアントへ配布しない)。 */
+  GEMINI_API_KEY: string;
+  /** 明細抽出に使う Gemini のモデル ID。 */
+  GEMINI_MODEL: string;
 }
 
 // アップロードを許可する画像形式と、オブジェクトキーに使う拡張子の対応。
@@ -58,6 +64,18 @@ export const maxDailyUploadCountPerIpAddress = 300;
 // 攻撃で上限に達すると正規ユーザーも 429 になるトレードオフは、機微画像ストレージの
 // 費用暴走防止を可用性より優先して受け入れる (恒久対策は App Check 検証 issue #24)
 export const maxDailyUploadCountTotal = 5000;
+
+// 解析 1 回あたりの Gemini 呼び出し (LLM 原価) を、匿名 token の乱用から守る日次上限。
+// 正規の利用は無料枠が月10スキャン (documents/PROJECT.md の課金設計) で、プレミアムでも 1 日数十回が現実的な上限のため、
+// アップロードと同じ 3 層 (uid 別・接続元 IP 別・全体) の値をそのまま使う。月次の無料枠と entitlement の判定は
+// 課金 (issue #12) のスコープで、本上限はそれとは独立した費用暴走の歯止め
+export const maxDailyAnalysisCountPerUser = maxDailyUploadCountPerUser;
+export const maxDailyAnalysisCountPerIpAddress = maxDailyUploadCountPerIpAddress;
+export const maxDailyAnalysisCountTotal = maxDailyUploadCountTotal;
+
+// Gemini にインラインで渡せるリクエスト全体の上限は 20MB で、base64 化で 4/3 倍になるため、
+// 元画像はその範囲に収まるサイズまでしか解析しない (クライアントは撮影時に長辺を縮小してから送る)
+export const maxAnalysisImageBytes = 14 * 1024 * 1024;
 
 const imageObjectPathPrefix = "/images/";
 
@@ -96,6 +114,12 @@ export async function handleImageRequest(
   }
   if (request.method === "DELETE" && requestUrl.pathname === "/images") {
     return handleAllImagesDelete(env, verifiedFirebaseUser);
+  }
+  if (request.method === "DELETE" && requestUrl.pathname.startsWith(imageObjectPathPrefix)) {
+    return handleImageDelete(requestUrl, env, verifiedFirebaseUser);
+  }
+  if (request.method === "POST" && requestUrl.pathname === "/analyses") {
+    return handleImageAnalysis(request, env, verifiedFirebaseUser);
   }
   return jsonResponse(404, { error: "not found" });
 }
@@ -157,20 +181,16 @@ async function handleImageUpload(
     return jsonResponse(201, { imageObjectKey });
   }
 
-  // 日次アップロード回数制限を uid 別・接続元 IP 別・全体の3層で判定する。
-  // uid 別だけでは匿名認証の uid 作り直しで迂回できるため、uid を跨ぐ IP 別・全体上限を併用する。
-  // 判定と加算は日次シングルトンの Durable Object で直列化し、並行リクエストが同じ旧値を読んで
-  // 上限判定をすり抜けることを防ぐ。CF-Connecting-IP は Cloudflare が付与する接続元 IP で、
-  // 本番では常に存在する (存在しない実行環境ではひとつのバケットにまとめて数える)
-  const uploadDateText = new Date().toISOString().slice(0, 10);
-  const clientIpAddress = request.headers.get("CF-Connecting-IP") ?? "unknown";
-  const withinUploadLimits = await env.DAILY_UPLOAD_COUNTER.get(
-    env.DAILY_UPLOAD_COUNTER.idFromName(uploadDateText),
-  ).incrementIfWithinLimits([
-    { counterKey: `uid:${verifiedFirebaseUser.uid}`, maxDailyUploadCount: maxDailyUploadCountPerUser },
-    { counterKey: `ip:${clientIpAddress}`, maxDailyUploadCount: maxDailyUploadCountPerIpAddress },
-    { counterKey: "total", maxDailyUploadCount: maxDailyUploadCountTotal },
-  ]);
+  // 日次アップロード回数制限を uid 別・接続元 IP 別・全体の3層で判定する
+  const withinUploadLimits = await incrementDailyCountIfWithinLimits({
+    request,
+    env,
+    verifiedFirebaseUser,
+    counterKeyPrefix: "",
+    maxDailyCountPerUser: maxDailyUploadCountPerUser,
+    maxDailyCountPerIpAddress: maxDailyUploadCountPerIpAddress,
+    maxDailyCountTotal: maxDailyUploadCountTotal,
+  });
   if (!withinUploadLimits) {
     return jsonResponse(429, { error: "1日のアップロード回数の上限に達しました" });
   }
@@ -190,24 +210,12 @@ async function handleImageGet(
   env: ImageWorkerEnv,
   verifiedFirebaseUser: VerifiedFirebaseUser,
 ): Promise<Response> {
-  let imageObjectKey: string;
-  try {
-    imageObjectKey = decodeURIComponent(requestUrl.pathname.slice(imageObjectPathPrefix.length));
-  } catch (error) {
-    // 不正な percent-encoding ("%GG" 等) は URIError になるため 500 にせず 400 で返す
-    return jsonResponse(400, { error: "不正なオブジェクトキーです" });
+  const resolvedKey = resolveOwnImageObjectKey(requestUrl, verifiedFirebaseUser);
+  if ("errorResponse" in resolvedKey) {
+    return resolvedKey.errorResponse;
   }
 
-  // URL クラスが正規化しない percent-encoding 経由の ".." もここで拒否する
-  if (imageObjectKey.includes("..")) {
-    return jsonResponse(400, { error: "不正なオブジェクトキーです" });
-  }
-  // 本人の uid 配下以外のキーは、存在有無を問わず拒否する (他人のレシート画像への横アクセス防止)
-  if (!imageObjectKey.startsWith(`users/${verifiedFirebaseUser.uid}/`)) {
-    return jsonResponse(403, { error: "このオブジェクトキーへのアクセス権限がありません" });
-  }
-
-  const imageObject = await env.IMAGE_BUCKET.get(imageObjectKey);
+  const imageObject = await env.IMAGE_BUCKET.get(resolvedKey.imageObjectKey);
   if (imageObject === null) {
     return jsonResponse(404, { error: "not found" });
   }
@@ -243,8 +251,167 @@ async function handleAllImagesDelete(
   }
 }
 
+/**
+ * 日次回数制限を uid 別・接続元 IP 別・全体の3層で判定し、すべて上限未満なら加算して true を返す。
+ * uid 別だけでは匿名認証の uid 作り直しで迂回できるため、uid を跨ぐ IP 別・全体上限を併用する。
+ * 判定と加算は日次シングルトンの Durable Object で直列化し、並行リクエストが同じ旧値を読んで
+ * 上限判定をすり抜けることを防ぐ。CF-Connecting-IP は Cloudflare が付与する接続元 IP で、
+ * 本番では常に存在する (存在しない実行環境ではひとつのバケットにまとめて数える)。
+ * counterKeyPrefix でアップロード (空文字) と解析 ("analysis:") のカウンターを分ける。
+ */
+async function incrementDailyCountIfWithinLimits({
+  request,
+  env,
+  verifiedFirebaseUser,
+  counterKeyPrefix,
+  maxDailyCountPerUser,
+  maxDailyCountPerIpAddress,
+  maxDailyCountTotal,
+}: {
+  request: Request;
+  env: ImageWorkerEnv;
+  verifiedFirebaseUser: VerifiedFirebaseUser;
+  counterKeyPrefix: string;
+  maxDailyCountPerUser: number;
+  maxDailyCountPerIpAddress: number;
+  maxDailyCountTotal: number;
+}): Promise<boolean> {
+  const dateText = new Date().toISOString().slice(0, 10);
+  const clientIpAddress = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  return env.DAILY_UPLOAD_COUNTER.get(env.DAILY_UPLOAD_COUNTER.idFromName(dateText)).incrementIfWithinLimits([
+    { counterKey: `${counterKeyPrefix}uid:${verifiedFirebaseUser.uid}`, maxDailyUploadCount: maxDailyCountPerUser },
+    { counterKey: `${counterKeyPrefix}ip:${clientIpAddress}`, maxDailyUploadCount: maxDailyCountPerIpAddress },
+    { counterKey: `${counterKeyPrefix}total`, maxDailyUploadCount: maxDailyCountTotal },
+  ]);
+}
+
+/**
+ * URL パスからオブジェクトキーを取り出し、本人の uid 配下のキーだけを返す。
+ * 不正な percent-encoding・".." を含むキーは 400、他人の uid 配下は 403 のレスポンスを返す。
+ */
+function resolveOwnImageObjectKey(
+  requestUrl: URL,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): { imageObjectKey: string } | { errorResponse: Response } {
+  let imageObjectKey: string;
+  try {
+    imageObjectKey = decodeURIComponent(requestUrl.pathname.slice(imageObjectPathPrefix.length));
+  } catch (error) {
+    // 不正な percent-encoding ("%GG" 等) は URIError になるため 500 にせず 400 で返す
+    return { errorResponse: jsonResponse(400, { error: "不正なオブジェクトキーです" }) };
+  }
+  return validateOwnImageObjectKey(imageObjectKey, verifiedFirebaseUser);
+}
+
+// GET / DELETE / POST /analyses に共通する、本人の uid 配下のキーかどうかの判定
+function validateOwnImageObjectKey(
+  imageObjectKey: string,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): { imageObjectKey: string } | { errorResponse: Response } {
+  // URL クラスが正規化しない percent-encoding 経由の ".." もここで拒否する
+  if (imageObjectKey.includes("..")) {
+    return { errorResponse: jsonResponse(400, { error: "不正なオブジェクトキーです" }) };
+  }
+  // 本人の uid 配下以外のキーは、存在有無を問わず拒否する (他人のレシート画像への横アクセス防止)
+  if (!imageObjectKey.startsWith(`users/${verifiedFirebaseUser.uid}/`)) {
+    return { errorResponse: jsonResponse(403, { error: "このオブジェクトキーへのアクセス権限がありません" }) };
+  }
+  return { imageObjectKey };
+}
+
+/**
+ * 画像 1 件の削除 (明細から画像だけを外す・明細ごと削除する時に使う)。本人の uid 配下のキーだけを許可する。
+ * 冪等: 対象が既に無い場合も 200 を返す。
+ */
+async function handleImageDelete(
+  requestUrl: URL,
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<Response> {
+  const resolvedKey = resolveOwnImageObjectKey(requestUrl, verifiedFirebaseUser);
+  if ("errorResponse" in resolvedKey) {
+    return resolvedKey.errorResponse;
+  }
+  await env.IMAGE_BUCKET.delete(resolvedKey.imageObjectKey);
+  return jsonResponse(200, { imageObjectKey: resolvedKey.imageObjectKey });
+}
+
+/**
+ * アップロード済み画像を Gemini で解析し、抽出した明細を返す (POST /analyses)。
+ * リクエスト本体は `{"imageObjectKey": "users/{uid}/..."}`。画像はクライアントから再送させず R2 から読む。
+ * 本人の uid 配下のキーだけを許可し、解析回数は日次上限 (maxDailyAnalysisCount*) で守る。
+ * 冪等 (副作用は日次カウンターの加算のみ)。
+ */
+async function handleImageAnalysis(
+  request: Request,
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<Response> {
+  let requestBody: { imageObjectKey?: unknown };
+  try {
+    requestBody = (await request.json()) as { imageObjectKey?: unknown };
+  } catch (error) {
+    return jsonResponse(400, { error: "JSON のリクエストボディが必要です" });
+  }
+  if (typeof requestBody.imageObjectKey !== "string" || requestBody.imageObjectKey === "") {
+    return jsonResponse(400, { error: "imageObjectKey が必要です" });
+  }
+  const resolvedKey = validateOwnImageObjectKey(requestBody.imageObjectKey, verifiedFirebaseUser);
+  if ("errorResponse" in resolvedKey) {
+    return resolvedKey.errorResponse;
+  }
+
+  // 本文は Gemini 呼び出しの直前まで読まず、メタデータ (head) だけで事前検査する
+  const imageObjectMetadata = await env.IMAGE_BUCKET.head(resolvedKey.imageObjectKey);
+  if (imageObjectMetadata === null) {
+    return jsonResponse(404, { error: "not found" });
+  }
+  if (imageObjectMetadata.size > maxAnalysisImageBytes) {
+    return jsonResponse(413, { error: `解析できる画像サイズの上限 (${maxAnalysisImageBytes} bytes) を超えています` });
+  }
+  const imageContentType = imageObjectMetadata.httpMetadata?.contentType;
+  if (imageContentType === undefined) {
+    return jsonResponse(415, { error: "画像の Content-Type が不明なため解析できません" });
+  }
+
+  // 上限判定は Gemini 呼び出し (課金) の直前で行い、上限超過時に LLM 原価を発生させない
+  const withinAnalysisLimits = await incrementDailyCountIfWithinLimits({
+    request,
+    env,
+    verifiedFirebaseUser,
+    counterKeyPrefix: "analysis:",
+    maxDailyCountPerUser: maxDailyAnalysisCountPerUser,
+    maxDailyCountPerIpAddress: maxDailyAnalysisCountPerIpAddress,
+    maxDailyCountTotal: maxDailyAnalysisCountTotal,
+  });
+  if (!withinAnalysisLimits) {
+    return jsonResponse(429, { error: "1日の解析回数の上限に達しました" });
+  }
+
+  const imageObject = await env.IMAGE_BUCKET.get(resolvedKey.imageObjectKey);
+  if (imageObject === null) {
+    // head の直後に削除された競合。カウンターは消費済みだが、稀なケースとして許容する
+    return jsonResponse(404, { error: "not found" });
+  }
+  let imageAnalysisResult: ImageAnalysisResult;
+  try {
+    imageAnalysisResult = await analyzeImageWithGemini({
+      imageBytes: await imageObject.arrayBuffer(),
+      imageContentType,
+      geminiApiKey: env.GEMINI_API_KEY,
+      geminiModel: env.GEMINI_MODEL,
+    });
+  } catch (error) {
+    // 解析失敗の詳細はログに残しつつ、クライアントには 502 として伝える (クライアントは手動入力へフォールバックする)
+    console.warn("Gemini による画像解析に失敗", error);
+    const errorMessage = error instanceof GeminiRequestError ? error.message : `画像の解析に失敗しました: ${String(error)}`;
+    return jsonResponse(502, { error: errorMessage });
+  }
+  return jsonResponse(200, imageAnalysisResult);
+}
+
 /** エラー・結果を application/json で返すためのレスポンス組み立て。 */
-function jsonResponse(status: number, body: Record<string, string>): Response {
+function jsonResponse(status: number, body: object): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json" },
