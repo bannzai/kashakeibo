@@ -1,0 +1,6 @@
+// 共有 Extension (ShareExtension ターゲット) の Debug 設定。
+// Generated.xcconfig からアプリと同じバージョン (FLUTTER_BUILD_NAME / FLUTTER_BUILD_NUMBER) を、
+// AppBundleIdentifier-Debug.xcconfig からホストアプリの bundle ID を取り込む。
+// Pods の設定は含めない (Extension は Flutter プラグインをリンクしない)。
+#include "Generated.xcconfig"
+#include "AppBundleIdentifier-Debug.xcconfig"

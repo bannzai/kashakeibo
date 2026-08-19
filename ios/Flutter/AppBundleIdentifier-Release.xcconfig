@@ -1,0 +1,6 @@
+// debug ビルドと release / profile ビルドで bundle ID を分け、dev / prod の
+// Firebase Auth Keychain の状態が同一端末で混ざらないようにする。Release config に加え、
+// Release.xcconfig を継承する Profile config もこの prod 値を使う。
+// Runner (Release.xcconfig) と ShareExtension (ShareExtension-Release.xcconfig) の両ターゲットが
+// このファイルを include し、共有 Extension の bundle ID・App Group ID・URL スキームを同じ値から導出する。
+APP_BUNDLE_IDENTIFIER = com.bannzai.kashakeibo

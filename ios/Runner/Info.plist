@@ -27,6 +27,21 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<!-- 共有 Extension がホストアプリを開く URL スキーム (ios/Shared/SharedImageInboxLocation.swift の hostAppURL と一致させる)。
+	     dev / prod で異なる bundle ID を含め、同一端末に両方入っていても別のアプリが開かないようにする -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>$(APP_BUNDLE_IDENTIFIER).share</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kashakeibo-share-$(APP_BUNDLE_IDENTIFIER)</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSCameraUsageDescription</key>
