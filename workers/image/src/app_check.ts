@@ -31,7 +31,8 @@ export const firebaseAppCheckJwksUrl = "https://firebaseappcheck.googleapis.com/
 // プロジェクトの一致は aud (プロジェクト ID) で判定し、iss はプレフィックスだけを確認する
 const firebaseAppCheckIssuerPrefix = "https://firebaseappcheck.googleapis.com/";
 
-// JWKS の Cache-Control に max-age が無い場合のキャッシュ秒数 (実測の max-age=21600 と同じ 6 時間)
+// JWKS の Cache-Control に max-age が無い場合のキャッシュ秒数 (実測の max-age=21600 と同じ 6 時間)。
+// max-age がある場合はその値を優先し、60 秒未満なら KV に書かない (findPublicJwk 参照)
 const defaultJwksCacheTtlSeconds = 21600;
 
 // RSASSA-PKCS1-v1_5 / SHA-256 (RS256)
@@ -102,7 +103,7 @@ export function createFirebaseAppCheckTokenVerifier({
       throw new Error("App Check token の iat が未来です");
     }
 
-    const publicJwk = await findPublicJwk(header.kid, jwksCache, fetchJwks);
+    const publicJwk = await findPublicJwk(header.kid, jwksCache, fetchJwks, now);
     if (publicJwk === null) {
       throw new Error(`App Check token の kid に一致する公開鍵がありません: ${header.kid}`);
     }
@@ -120,17 +121,37 @@ export function createFirebaseAppCheckTokenVerifier({
   };
 }
 
+/** KV にキャッシュする JWKS。取得時刻は未知の kid による再取得の抑制に使う。 */
+interface CachedFirebaseAppCheckJwks {
+  /** JWKS の公開鍵一覧。 */
+  keys: JsonWebKeyWithKid[];
+  /** JWKS を取得した時刻 (Unix 秒)。 */
+  fetchedAtUnixSeconds: number;
+}
+
+// キャッシュに無い kid を理由に JWKS を取り直す最短間隔 (秒)。
+// App Check 検証は認証より前に行うため、正しい形式で未知の kid を持つ未署名 JWT を送るだけで
+// 未認証のまま外部 fetch を誘発できる。取得時刻からこの秒数以内の再取得は行わず、
+// リクエストごとの JWKS 取得 (Worker のサブリクエスト枠・Google 側への負荷) を colo あたり毎分1回に抑える。
+// 正規の鍵ローテーションは新しい鍵が JWKS に事前公開されるため、この抑制で正規 token を弾くことは通常ない
+const minJwksRefetchIntervalSeconds = 60;
+
 // kid に一致する公開鍵を KV キャッシュから探し、無ければ JWKS を取り直して探す。
-// 鍵のローテーション直後はキャッシュに新しい kid が無いため、キャッシュに無い kid は1回だけ再取得する
+// 鍵のローテーション直後はキャッシュに新しい kid が無いため取り直すが、
+// 直近 minJwksRefetchIntervalSeconds 以内に取得済みなら取り直さない (未知の kid による fetch 誘発の抑制)
 async function findPublicJwk(
   kid: string,
   jwksCache: FirebaseAppCheckJwksCache,
   fetchJwks: () => Promise<Response>,
+  now: number,
 ): Promise<JsonWebKeyWithKid | null> {
-  const cachedJwks = await jwksCache.kvNamespace.get<JsonWebKeyWithKid[]>(jwksCache.cacheKey, "json");
-  const cachedJwk = cachedJwks?.find((jwk) => jwk.kid === kid);
+  const cachedJwks = await jwksCache.kvNamespace.get<CachedFirebaseAppCheckJwks>(jwksCache.cacheKey, "json");
+  const cachedJwk = cachedJwks?.keys.find((jwk) => jwk.kid === kid);
   if (cachedJwk !== undefined) {
     return cachedJwk;
+  }
+  if (cachedJwks !== null && now - cachedJwks.fetchedAtUnixSeconds < minJwksRefetchIntervalSeconds) {
+    return null;
   }
 
   const jwksResponse = await fetchJwks();
@@ -142,21 +163,22 @@ async function findPublicJwk(
     throw new Error("App Check の JWKS の形式が不正です (keys 配列がありません)");
   }
   const fetchedJwks = jwksBody.keys as JsonWebKeyWithKid[];
-  await jwksCache.kvNamespace.put(jwksCache.cacheKey, JSON.stringify(fetchedJwks), {
-    expirationTtl: parseCacheMaxAgeSeconds(jwksResponse.headers.get("Cache-Control")) ?? defaultJwksCacheTtlSeconds,
-  });
+  const cacheTtlSeconds = parseCacheMaxAgeSeconds(jwksResponse.headers.get("Cache-Control")) ?? defaultJwksCacheTtlSeconds;
+  // KV の expirationTtl は 60 秒以上が必要。Google が鍵の緊急ローテーション等で 60 秒未満の max-age を返した場合は、
+  // 削除済みの鍵を既定 TTL で信頼し続けないよう KV に書かず、毎回取得する
+  if (cacheTtlSeconds >= 60) {
+    const cachedJwksToStore: CachedFirebaseAppCheckJwks = { keys: fetchedJwks, fetchedAtUnixSeconds: now };
+    await jwksCache.kvNamespace.put(jwksCache.cacheKey, JSON.stringify(cachedJwksToStore), {
+      expirationTtl: cacheTtlSeconds,
+    });
+  }
   return fetchedJwks.find((jwk) => jwk.kid === kid) ?? null;
 }
 
-// Cache-Control ヘッダーの max-age (秒) を返す。無い・不正な場合は null。
-// KV の expirationTtl は 60 秒以上が必要なため、それ未満は null にして既定値に倒す
+// Cache-Control ヘッダーの max-age (秒) を返す。無い・数値でない場合は null
 function parseCacheMaxAgeSeconds(cacheControlHeader: string | null): number | null {
   const maxAgeMatch = cacheControlHeader?.match(/(?:^|,)\s*max-age=(\d+)/i);
-  if (maxAgeMatch === null || maxAgeMatch === undefined) {
-    return null;
-  }
-  const maxAgeSeconds = Number(maxAgeMatch[1]);
-  return maxAgeSeconds >= 60 ? maxAgeSeconds : null;
+  return maxAgeMatch === null || maxAgeMatch === undefined ? null : Number(maxAgeMatch[1]);
 }
 
 function decodeBase64UrlJson(encodedText: string): Record<string, unknown> | null {

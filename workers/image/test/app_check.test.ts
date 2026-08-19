@@ -71,18 +71,30 @@ async function signAppCheckToken({
 }
 
 // スタブ JWKS 配信。呼び出し回数を数えて KV キャッシュの効き方を検証する
-function createJwksFetcher(jwks: () => JsonWebKey[] = () => publicJwks) {
+function createJwksFetcher({
+  jwks = () => publicJwks,
+  cacheControlHeader = "public, max-age=21600",
+}: { jwks?: () => JsonWebKey[]; cacheControlHeader?: string } = {}) {
   const fetcher = {
     callCount: 0,
     fetchJwks: async () => {
       fetcher.callCount++;
       return new Response(JSON.stringify({ keys: jwks() }), {
         status: 200,
-        headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=21600" },
+        headers: { "Content-Type": "application/json", "Cache-Control": cacheControlHeader },
       });
     },
   };
   return fetcher;
+}
+
+// 別鍵 (kid=old-kid) だけを含む古い JWKS を、指定の取得時刻で KV に入れておく
+async function seedCachedJwks(fetchedAtUnixSeconds: number): Promise<void> {
+  const otherPublicJwk = { ...(await crypto.subtle.exportKey("jwk", otherKeyPair.publicKey)), kid: "old-kid" };
+  await env.PUBLIC_JWK_CACHE_KV.put(
+    env.APP_CHECK_JWKS_CACHE_KEY,
+    JSON.stringify({ keys: [otherPublicJwk], fetchedAtUnixSeconds }),
+  );
 }
 
 function createVerifier(fetcher = createJwksFetcher(), cacheKey = env.APP_CHECK_JWKS_CACHE_KEY) {
@@ -172,25 +184,54 @@ describe("App Check token の検証", () => {
   });
 
   it("JWKS を KV にキャッシュし、2回目以降の検証では取得しない", async () => {
+    // vitest-pool-workers の isolatedStorage により KV は各テストの開始時点で空 (前のテストの書き込みは巻き戻される)
+    expect(await env.PUBLIC_JWK_CACHE_KV.get(env.APP_CHECK_JWKS_CACHE_KEY)).toBeNull();
     const jwksFetcher = createJwksFetcher();
     const verifyFirebaseAppCheckToken = createVerifier(jwksFetcher);
     await verifyFirebaseAppCheckToken(await signAppCheckToken());
     await verifyFirebaseAppCheckToken(await signAppCheckToken());
     expect(jwksFetcher.callCount).toBe(1);
-    expect(await env.PUBLIC_JWK_CACHE_KV.get(env.APP_CHECK_JWKS_CACHE_KEY, "json")).toEqual(publicJwks);
+    expect(await env.PUBLIC_JWK_CACHE_KV.get(env.APP_CHECK_JWKS_CACHE_KEY, "json")).toEqual({
+      keys: publicJwks,
+      fetchedAtUnixSeconds: currentUnixSeconds,
+    });
   });
 
-  it("キャッシュに無い kid はJWKS を取り直して検証する (鍵ローテーション)", async () => {
-    // 古い JWKS (別鍵) がキャッシュされている状態から、新しい鍵で署名された token が来るケース
-    const otherPublicJwk = { ...(await crypto.subtle.exportKey("jwk", otherKeyPair.publicKey)), kid: "old-kid" };
-    await env.PUBLIC_JWK_CACHE_KV.put(env.APP_CHECK_JWKS_CACHE_KEY, JSON.stringify([otherPublicJwk]));
+  it("Cache-Control の max-age が 60 秒未満なら KV に書かず、毎回 JWKS を取得する", async () => {
+    // Google が鍵の緊急ローテーション等で短い max-age を返した時に、削除済みの鍵を既定 TTL で信頼し続けないため
+    const jwksFetcher = createJwksFetcher({ cacheControlHeader: "public, max-age=0" });
+    const verifyFirebaseAppCheckToken = createVerifier(jwksFetcher);
+    await verifyFirebaseAppCheckToken(await signAppCheckToken());
+    await verifyFirebaseAppCheckToken(await signAppCheckToken());
+    expect(jwksFetcher.callCount).toBe(2);
+    expect(await env.PUBLIC_JWK_CACHE_KV.get(env.APP_CHECK_JWKS_CACHE_KEY)).toBeNull();
+  });
+
+  it("キャッシュに無い kid は JWKS を取り直して検証する (鍵ローテーション)", async () => {
+    // 古い JWKS (別鍵) を 60 秒より前に取得済みの状態から、新しい鍵で署名された token が来るケース
+    await seedCachedJwks(currentUnixSeconds - 61);
     const jwksFetcher = createJwksFetcher();
     const verifiedFirebaseApp = await createVerifier(jwksFetcher)(await signAppCheckToken());
     expect(verifiedFirebaseApp.appId).toBe(testAppId);
     expect(jwksFetcher.callCount).toBe(1);
   });
 
+  it("直近 60 秒以内に取得済みなら、キャッシュに無い kid でも JWKS を取り直さず拒否する (未知の kid による fetch 誘発の抑制)", async () => {
+    await seedCachedJwks(currentUnixSeconds - 30);
+    const jwksFetcher = createJwksFetcher();
+    const verifyFirebaseAppCheckToken = createVerifier(jwksFetcher);
+    // 未署名でも形式の正しい JWT を未知の kid で送るだけでは、リクエストごとの外部 fetch を誘発できない
+    for (const unknownKid of ["attacker-kid-1", "attacker-kid-2", "attacker-kid-3"]) {
+      await expect(
+        verifyFirebaseAppCheckToken(await signAppCheckToken({ headerOverrides: { kid: unknownKid } })),
+      ).rejects.toThrow();
+    }
+    expect(jwksFetcher.callCount).toBe(0);
+  });
+
   it("JWKS の取得に失敗した場合は token を拒否する", async () => {
+    // KV は各テストで空なので (isolatedStorage)、キャッシュ済みの鍵で通ってしまうことはなく必ず取得に進む
+    expect(await env.PUBLIC_JWK_CACHE_KV.get(env.APP_CHECK_JWKS_CACHE_KEY)).toBeNull();
     const failingFetcher = {
       fetchJwks: async () => new Response("unavailable", { status: 503 }),
     };
