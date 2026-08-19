@@ -39,37 +39,55 @@ ImageAnalysisResult buildImageAnalysisResult() => const ImageAnalysisResult(
   ],
 );
 
-/// Firestore へ書き込まず、登録された値を記録する AddTransaction。
+/// 1 枚のスクショから複数の明細が読み取れた解析結果を返す。
+ImageAnalysisResult buildMultipleImageAnalysisResult() =>
+    const ImageAnalysisResult(
+      transactions: [
+        AnalyzedTransaction(
+          title: 'Corner Market',
+          amount: 1280,
+          transactionDate: '2026-08-16',
+          type: TransactionType.expense,
+          category: TransactionCategory.food,
+        ),
+        AnalyzedTransaction(
+          title: 'Metro Card',
+          amount: 500,
+          transactionDate: '2026-08-15',
+          type: TransactionType.expense,
+          category: TransactionCategory.transportation,
+        ),
+        AnalyzedTransaction(
+          title: 'Coffee Stand',
+          amount: 380,
+          transactionDate: '2026-08-14',
+          type: TransactionType.expense,
+          category: TransactionCategory.eatingOut,
+        ),
+      ],
+    );
+
+/// AddTransaction に渡された 1 回分の登録内容。
+typedef AddTransactionCall = ({
+  TransactionType type,
+  TransactionSource source,
+  int amount,
+  TransactionCategory category,
+  String title,
+  DateTime transactionDate,
+  bool excludedFromAggregation,
+  String? sourceImageObjectKey,
+  bool analysisAdjustedByUser,
+});
+
+/// Firestore へ書き込まず、登録された値を呼ばれた順に記録する AddTransaction。
 class RecordingAddTransaction implements AddTransaction {
-  /// 登録の呼び出し回数。
-  int callCount = 0;
+  /// 登録の記録 (呼ばれた順)。
+  final List<AddTransactionCall> calls = [];
 
-  /// 登録された種別。
-  TransactionType? type;
-
-  /// 登録された出所。
-  TransactionSource? source;
-
-  /// 登録された金額。
-  int? amount;
-
-  /// 登録されたカテゴリ。
-  TransactionCategory? category;
-
-  /// 登録された表示名。
-  String? title;
-
-  /// 登録された取引日。
-  DateTime? transactionDate;
-
-  /// 登録された集計除外フラグ。
-  bool? excludedFromAggregation;
-
-  /// 登録された元画像のオブジェクトキー。
-  String? sourceImageObjectKey;
-
-  /// 登録された AI 解析結果の修正有無。
-  bool? analysisAdjustedByUser;
+  /// 登録のたびに記録の前に呼ばれる処理。例外を投げるとその登録が失敗する
+  /// (複数明細の途中失敗の検証で差し替える)。
+  Future<void> Function({required int callIndex})? onCall;
 
   @override
   String get userID => 'user-id';
@@ -86,16 +104,18 @@ class RecordingAddTransaction implements AddTransaction {
     required String? sourceImageObjectKey,
     required bool analysisAdjustedByUser,
   }) async {
-    callCount++;
-    this.type = type;
-    this.source = source;
-    this.amount = amount;
-    this.category = category;
-    this.title = title;
-    this.transactionDate = transactionDate;
-    this.excludedFromAggregation = excludedFromAggregation;
-    this.sourceImageObjectKey = sourceImageObjectKey;
-    this.analysisAdjustedByUser = analysisAdjustedByUser;
+    await onCall?.call(callIndex: calls.length);
+    calls.add((
+      type: type,
+      source: source,
+      amount: amount,
+      category: category,
+      title: title,
+      transactionDate: transactionDate,
+      excludedFromAggregation: excludedFromAggregation,
+      sourceImageObjectKey: sourceImageObjectKey,
+      analysisAdjustedByUser: analysisAdjustedByUser,
+    ));
   }
 }
 
@@ -152,6 +172,8 @@ Future<void> openCapturePage({
   required CaptureFakes captureFakes,
   required List<CaptureFlowResult?> captureFlowResults,
   required List<String> analyticsEvents,
+  // 既定はレシート撮影経路。スクショ (複数明細) の検証だけが screenshot を渡す。
+  TransactionSource transactionSource = TransactionSource.receipt,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -168,6 +190,7 @@ Future<void> openCapturePage({
                     context: context,
                     imageBytes: testImageBytes,
                     imageContentType: 'image/png',
+                    transactionSource: transactionSource,
                     logAnalyticsEvent: ({required name, parameters}) async {
                       analyticsEvents.add(name);
                     },
@@ -235,20 +258,38 @@ void main() {
     await tester.tap(find.text(AppLocalizationsEn().captureRegister));
     await tester.pumpAndSettle();
 
-    expect(captureFakes.addTransaction.callCount, 1);
-    expect(captureFakes.addTransaction.type, TransactionType.expense);
-    expect(captureFakes.addTransaction.source, TransactionSource.receipt);
-    expect(captureFakes.addTransaction.amount, 1280);
-    expect(captureFakes.addTransaction.category, TransactionCategory.food);
-    expect(captureFakes.addTransaction.title, 'Corner Market');
-    expect(captureFakes.addTransaction.transactionDate, DateTime(2026, 8, 16));
-    expect(captureFakes.addTransaction.excludedFromAggregation, false);
+    expect(captureFakes.addTransaction.calls.length, 1);
     expect(
-      captureFakes.addTransaction.sourceImageObjectKey,
+      captureFakes.addTransaction.calls.single.type,
+      TransactionType.expense,
+    );
+    expect(
+      captureFakes.addTransaction.calls.single.source,
+      TransactionSource.receipt,
+    );
+    expect(captureFakes.addTransaction.calls.single.amount, 1280);
+    expect(
+      captureFakes.addTransaction.calls.single.category,
+      TransactionCategory.food,
+    );
+    expect(captureFakes.addTransaction.calls.single.title, 'Corner Market');
+    expect(
+      captureFakes.addTransaction.calls.single.transactionDate,
+      DateTime(2026, 8, 16),
+    );
+    expect(
+      captureFakes.addTransaction.calls.single.excludedFromAggregation,
+      false,
+    );
+    expect(
+      captureFakes.addTransaction.calls.single.sourceImageObjectKey,
       uploadedImageObjectKey,
     );
     // 初期値から変えていないので手調整ではない
-    expect(captureFakes.addTransaction.analysisAdjustedByUser, false);
+    expect(
+      captureFakes.addTransaction.calls.single.analysisAdjustedByUser,
+      false,
+    );
     expect(captureFlowResults, [CaptureFlowResult.registered]);
     expect(captureFakes.deletedImageObjectKeys, isEmpty);
   });
@@ -283,10 +324,13 @@ void main() {
 
     // 空の店名は既定タイトルで補完されるが、ユーザーは修正していないので自動取込のまま
     expect(
-      captureFakes.addTransaction.title,
+      captureFakes.addTransaction.calls.single.title,
       AppLocalizationsEn().manualEntryDefaultTitle,
     );
-    expect(captureFakes.addTransaction.analysisAdjustedByUser, false);
+    expect(
+      captureFakes.addTransaction.calls.single.analysisAdjustedByUser,
+      false,
+    );
   });
 
   testWidgets('解析日が日付ピッカーの範囲外なら今日を初期値にする', (tester) async {
@@ -318,7 +362,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      captureFakes.addTransaction.transactionDate,
+      captureFakes.addTransaction.calls.single.transactionDate,
       DateUtils.dateOnly(DateTime.now()),
     );
   });
@@ -356,9 +400,18 @@ void main() {
 
     await tester.tap(find.text(AppLocalizationsEn().captureRegister));
     await tester.pumpAndSettle();
-    expect(captureFakes.addTransaction.type, TransactionType.income);
-    expect(captureFakes.addTransaction.category, TransactionCategory.salary);
-    expect(captureFakes.addTransaction.analysisAdjustedByUser, true);
+    expect(
+      captureFakes.addTransaction.calls.single.type,
+      TransactionType.income,
+    );
+    expect(
+      captureFakes.addTransaction.calls.single.category,
+      TransactionCategory.salary,
+    );
+    expect(
+      captureFakes.addTransaction.calls.single.analysisAdjustedByUser,
+      true,
+    );
   });
 
   testWidgets('解析成功: 初期値を書き換えて登録すると手調整として保存する', (tester) async {
@@ -384,10 +437,16 @@ void main() {
     await tester.tap(find.text(AppLocalizationsEn().captureRegister));
     await tester.pumpAndSettle();
 
-    expect(captureFakes.addTransaction.title, 'Neighborhood store');
-    expect(captureFakes.addTransaction.analysisAdjustedByUser, true);
     expect(
-      captureFakes.addTransaction.sourceImageObjectKey,
+      captureFakes.addTransaction.calls.single.title,
+      'Neighborhood store',
+    );
+    expect(
+      captureFakes.addTransaction.calls.single.analysisAdjustedByUser,
+      true,
+    );
+    expect(
+      captureFakes.addTransaction.calls.single.sourceImageObjectKey,
       uploadedImageObjectKey,
     );
     expect(captureFlowResults, [CaptureFlowResult.registered]);
@@ -449,18 +508,24 @@ void main() {
     await tester.tap(find.text(AppLocalizationsEn().captureRegister));
     await tester.pumpAndSettle();
 
-    expect(captureFakes.addTransaction.amount, 980);
-    expect(captureFakes.addTransaction.source, TransactionSource.receipt);
+    expect(captureFakes.addTransaction.calls.single.amount, 980);
+    expect(
+      captureFakes.addTransaction.calls.single.source,
+      TransactionSource.receipt,
+    );
     // 店名未入力は手動入力と同じ既定の表示名になる
     expect(
-      captureFakes.addTransaction.title,
+      captureFakes.addTransaction.calls.single.title,
       AppLocalizationsEn().manualEntryDefaultTitle,
     );
     // 全項目がユーザー入力なので常に手調整
-    expect(captureFakes.addTransaction.analysisAdjustedByUser, true);
+    expect(
+      captureFakes.addTransaction.calls.single.analysisAdjustedByUser,
+      true,
+    );
     // アップロードは成功しているので元画像は明細に紐づく
     expect(
-      captureFakes.addTransaction.sourceImageObjectKey,
+      captureFakes.addTransaction.calls.single.sourceImageObjectKey,
       uploadedImageObjectKey,
     );
     expect(captureFlowResults, [CaptureFlowResult.registered]);
@@ -520,7 +585,7 @@ void main() {
       find.textContaining(AppLocalizationsEn().captureAnalysisNoTransactions),
       findsOneWidget,
     );
-    expect(captureFakes.addTransaction.callCount, 0);
+    expect(captureFakes.addTransaction.calls.length, 0);
   });
 
   testWidgets('「取り直す」はアップロード済み画像を削除して retake で閉じる', (tester) async {
@@ -543,7 +608,7 @@ void main() {
 
     expect(captureFakes.deletedImageObjectKeys, [uploadedImageObjectKey]);
     expect(captureFlowResults, [CaptureFlowResult.retake]);
-    expect(captureFakes.addTransaction.callCount, 0);
+    expect(captureFakes.addTransaction.calls.length, 0);
   });
 
   testWidgets('閉じる (X) はアップロード済み画像を削除して cancelled で閉じる', (tester) async {
@@ -568,5 +633,197 @@ void main() {
     expect(captureFakes.deletedImageObjectKeys, [uploadedImageObjectKey]);
     expect(captureFlowResults, [CaptureFlowResult.cancelled]);
     expect(analyticsEvents, contains('capture_cancel'));
+  });
+
+  testWidgets('複数明細: 候補リストで 1 件を破棄して登録すると、採用した候補だけスクショの出所で保存する', (
+    tester,
+  ) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => buildMultipleImageAnalysisResult(),
+    );
+    final captureFlowResults = <CaptureFlowResult?>[];
+    final analyticsEvents = <String>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: captureFlowResults,
+      analyticsEvents: analyticsEvents,
+      transactionSource: TransactionSource.screenshot,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppLocalizationsEn().captureCandidatesNote(3)),
+      findsOneWidget,
+    );
+    // 既定は全件採用
+    expect(find.byType(Checkbox), findsNWidgets(3));
+    expect(
+      find.text(AppLocalizationsEn().captureRegisterCount(3)),
+      findsOneWidget,
+    );
+
+    // 2 件目 (Metro Card) のチェックを外して破棄する
+    await tester.tap(find.byType(Checkbox).at(1));
+    await tester.pumpAndSettle();
+    expect(analyticsEvents, contains('capture_candidate_toggle'));
+
+    await tester.tap(find.text(AppLocalizationsEn().captureRegisterCount(2)));
+    await tester.pumpAndSettle();
+
+    expect(captureFakes.addTransaction.calls.map((call) => call.title), [
+      'Corner Market',
+      'Coffee Stand',
+    ]);
+    // 同じ画像から読み取った候補は出所も元画像のキーも共有する
+    expect(
+      captureFakes.addTransaction.calls.map((call) => call.source),
+      everyElement(TransactionSource.screenshot),
+    );
+    expect(
+      captureFakes.addTransaction.calls.map(
+        (call) => call.sourceImageObjectKey,
+      ),
+      everyElement(uploadedImageObjectKey),
+    );
+    // 修正していない候補は手調整ではない
+    expect(
+      captureFakes.addTransaction.calls.map(
+        (call) => call.analysisAdjustedByUser,
+      ),
+      everyElement(false),
+    );
+    expect(
+      captureFakes.addTransaction.calls.first.transactionDate,
+      DateTime(2026, 8, 16),
+    );
+    expect(captureFlowResults, [CaptureFlowResult.registered]);
+  });
+
+  testWidgets('複数明細: 修正シートで書き換えた候補だけ手調整として保存する', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => buildMultipleImageAnalysisResult(),
+    );
+    final analyticsEvents = <String>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: <CaptureFlowResult?>[],
+      analyticsEvents: analyticsEvents,
+      transactionSource: TransactionSource.screenshot,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.edit_outlined).first);
+    await tester.pumpAndSettle();
+    expect(analyticsEvents, contains('capture_candidate_edit'));
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Corner Market'),
+      'Neighborhood store',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppLocalizationsEn().captureCandidateApplyEdit));
+    await tester.pumpAndSettle();
+
+    // 修正した内容が候補カードに反映される
+    expect(find.text('Neighborhood store'), findsOneWidget);
+
+    await tester.tap(find.text(AppLocalizationsEn().captureRegisterCount(3)));
+    await tester.pumpAndSettle();
+
+    expect(captureFakes.addTransaction.calls.map((call) => call.title), [
+      'Neighborhood store',
+      'Metro Card',
+      'Coffee Stand',
+    ]);
+    expect(
+      captureFakes.addTransaction.calls.map(
+        (call) => call.analysisAdjustedByUser,
+      ),
+      [true, false, false],
+    );
+  });
+
+  testWidgets('複数明細: 登録の途中で失敗するとエラーを表示し、登録済みの候補は再登録しない', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => buildMultipleImageAnalysisResult(),
+    );
+    // 2 件目 (Metro Card) の登録だけ失敗させる
+    captureFakes.addTransaction.onCall = ({required callIndex}) async {
+      if (callIndex == 1) {
+        throw StateError('明細の登録に失敗しました');
+      }
+    };
+    final captureFlowResults = <CaptureFlowResult?>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: captureFlowResults,
+      analyticsEvents: <String>[],
+      transactionSource: TransactionSource.screenshot,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppLocalizationsEn().captureRegisterCount(3)));
+    await tester.pumpAndSettle();
+
+    // エラーメッセージは加工せずそのまま表示する
+    expect(find.text(StateError('明細の登録に失敗しました').toString()), findsOneWidget);
+    expect(captureFakes.addTransaction.calls.map((call) => call.title), [
+      'Corner Market',
+    ]);
+    // 登録済みの候補はリストから消え、残りだけを再登録できる
+    expect(find.byType(Checkbox), findsNWidgets(2));
+    expect(captureFlowResults, isEmpty);
+
+    captureFakes.addTransaction.onCall = null;
+    await tester.tap(find.text(AppLocalizationsEn().captureRegisterCount(2)));
+    await tester.pumpAndSettle();
+
+    expect(captureFakes.addTransaction.calls.map((call) => call.title), [
+      'Corner Market',
+      'Metro Card',
+      'Coffee Stand',
+    ]);
+    expect(captureFlowResults, [CaptureFlowResult.registered]);
+  });
+
+  testWidgets('複数明細: 一部を登録した後に閉じても、登録済み明細が参照する元画像は削除しない', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => buildMultipleImageAnalysisResult(),
+    );
+    // 2 件目の登録だけ失敗させ、1 件目が登録済みの状態で止める
+    captureFakes.addTransaction.onCall = ({required callIndex}) async {
+      if (callIndex == 1) {
+        throw StateError('明細の登録に失敗しました');
+      }
+    };
+    final captureFlowResults = <CaptureFlowResult?>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: captureFlowResults,
+      analyticsEvents: <String>[],
+      transactionSource: TransactionSource.screenshot,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppLocalizationsEn().captureRegisterCount(3)));
+    await tester.pumpAndSettle();
+    expect(captureFakes.addTransaction.calls, hasLength(1));
+
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+
+    expect(captureFlowResults, [CaptureFlowResult.cancelled]);
+    expect(captureFakes.deletedImageObjectKeys, isEmpty);
   });
 }

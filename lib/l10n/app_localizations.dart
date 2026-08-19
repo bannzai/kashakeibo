@@ -500,6 +500,18 @@ abstract class AppLocalizations {
   /// **'Snap a receipt and AI reads the details'**
   String get captureReceiptWithCameraDescription;
 
+  /// No description provided for @capturePickFromPhotoLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Photos'**
+  String get capturePickFromPhotoLibrary;
+
+  /// No description provided for @capturePickFromPhotoLibraryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'AI splits statement or order screenshots into entries'**
+  String get capturePickFromPhotoLibraryDescription;
+
   /// No description provided for @manualEntryDescription.
   ///
   /// In en, this message translates to:
@@ -577,6 +589,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Register'**
   String get captureRegister;
+
+  /// Note shown above the candidate list when one image contains multiple transactions
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} entries. Choose which ones to register.'**
+  String captureCandidatesNote(int count);
+
+  /// No description provided for @captureCandidateEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get captureCandidateEdit;
+
+  /// No description provided for @captureCandidateApplyEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply changes'**
+  String get captureCandidateApplyEdit;
+
+  /// Primary button that registers the selected candidates
+  ///
+  /// In en, this message translates to:
+  /// **'Register {count} entries'**
+  String captureRegisterCount(int count);
 
   /// No description provided for @captureRegistered.
   ///

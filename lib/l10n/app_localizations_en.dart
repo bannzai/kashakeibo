@@ -226,6 +226,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Snap a receipt and AI reads the details';
 
   @override
+  String get capturePickFromPhotoLibrary => 'Choose from Photos';
+
+  @override
+  String get capturePickFromPhotoLibraryDescription =>
+      'AI splits statement or order screenshots into entries';
+
+  @override
   String get manualEntryDescription => 'Enter cash spending without an image';
 
   @override
@@ -265,6 +272,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get captureRegister => 'Register';
+
+  @override
+  String captureCandidatesNote(int count) {
+    return 'Found $count entries. Choose which ones to register.';
+  }
+
+  @override
+  String get captureCandidateEdit => 'Edit';
+
+  @override
+  String get captureCandidateApplyEdit => 'Apply changes';
+
+  @override
+  String captureRegisterCount(int count) {
+    return 'Register $count entries';
+  }
 
   @override
   String get captureRegistered => 'Logged ✓';

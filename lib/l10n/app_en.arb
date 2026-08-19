@@ -213,6 +213,8 @@
   "addRecordTitle": "Add a record",
   "captureReceiptWithCamera": "Take a photo",
   "captureReceiptWithCameraDescription": "Snap a receipt and AI reads the details",
+  "capturePickFromPhotoLibrary": "Choose from Photos",
+  "capturePickFromPhotoLibraryDescription": "AI splits statement or order screenshots into entries",
   "manualEntryDescription": "Enter cash spending without an image",
   "captureAnalyzingTitle": "AI is reading your receipt",
   "captureAnalyzingStepLoading": "Loading the image",
@@ -226,6 +228,26 @@
   "captureConfirmTitle": "Review details",
   "captureSourceImageNote": "You can always revisit the source image from the transaction",
   "captureRegister": "Register",
+  "captureCandidatesNote": "Found {count} entries. Choose which ones to register.",
+  "@captureCandidatesNote": {
+    "description": "Note shown above the candidate list when one image contains multiple transactions",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "captureCandidateEdit": "Edit",
+  "captureCandidateApplyEdit": "Apply changes",
+  "captureRegisterCount": "Register {count} entries",
+  "@captureRegisterCount": {
+    "description": "Primary button that registers the selected candidates",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "captureRegistered": "Logged ✓",
   "transactionDetailTitle": "Transaction",
   "transactionDetailSourceImage": "Source image",

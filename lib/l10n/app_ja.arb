@@ -74,6 +74,8 @@
   "addRecordTitle": "記録する",
   "captureReceiptWithCamera": "カメラで撮影",
   "captureReceiptWithCameraDescription": "レシートを撮ると AI が明細を読み取ります",
+  "capturePickFromPhotoLibrary": "写真・スクショから選ぶ",
+  "capturePickFromPhotoLibraryDescription": "カード明細や購入履歴のスクショを AI が明細に分けます",
   "manualEntryDescription": "画像がない現金支出などを入力します",
   "captureAnalyzingTitle": "AI が読み取っています",
   "captureAnalyzingStepLoading": "画像を読み込んでいます",
@@ -87,6 +89,24 @@
   "captureConfirmTitle": "読み取り確認",
   "captureSourceImageNote": "読み取りに使った元画像は、明細からいつでも見返せます",
   "captureRegister": "登録する",
+  "captureCandidatesNote": "{count} 件の明細を読み取りました。登録する明細を選んでください",
+  "@captureCandidatesNote": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "captureCandidateEdit": "修正する",
+  "captureCandidateApplyEdit": "変更を反映",
+  "captureRegisterCount": "{count} 件を登録する",
+  "@captureRegisterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "captureRegistered": "カシャッと記録!",
   "transactionDetailTitle": "明細",
   "transactionDetailSourceImage": "元画像",
