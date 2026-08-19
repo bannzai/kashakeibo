@@ -1,7 +1,7 @@
 ---
 feature: _root
 verification: mobile-mcp
-last_verified_commit: 8a9634107c725e2670c43709dd1ea4493699072f
+last_verified_commit: 5486f0c583aa80f5a0cc0f6f9183f7be68672054
 last_verified_at: 2026-08-19
 ---
 
