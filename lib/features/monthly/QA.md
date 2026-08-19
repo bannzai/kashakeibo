@@ -1,7 +1,7 @@
 ---
 feature: monthly
 verification: mobile-mcp
-last_verified_commit: 8a9634107c725e2670c43709dd1ea4493699072f
+last_verified_commit: 7da2a80ac3ab9bea18d06b5316b381e02ea6a46a
 last_verified_at: 2026-08-19
 ---
 

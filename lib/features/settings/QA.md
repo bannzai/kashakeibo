@@ -1,7 +1,7 @@
 ---
 feature: settings
 verification: mobile-mcp
-last_verified_commit: e389e1c15b680ccf604644635cd7dda411f2623a
+last_verified_commit: 7da2a80ac3ab9bea18d06b5316b381e02ea6a46a
 last_verified_at: 2026-08-19
 ---
 
