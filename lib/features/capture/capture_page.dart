@@ -542,8 +542,15 @@ class _CaptureConfirmForm extends HookWidget {
     final initialType = analyzedTransaction?.type ?? TransactionType.expense;
     final initialCategory =
         analyzedTransaction?.category ?? TransactionCategory.food;
+    // 日付ピッカーで選べる範囲。手動入力と同じ過去 100 年〜未来 1 年。
+    final firstSelectableDate = DateTime(DateTime.now().year - 100);
+    final lastSelectableDate = DateTime(DateTime.now().year + 1, 12, 31);
     final initialDate =
-        _parseAnalyzedDate(dateText: analyzedTransaction?.transactionDate) ??
+        _parseAnalyzedDate(
+          dateText: analyzedTransaction?.transactionDate,
+          firstSelectableDate: firstSelectableDate,
+          lastSelectableDate: lastSelectableDate,
+        ) ??
         DateUtils.dateOnly(DateTime.now());
 
     final formKey = useMemoized(GlobalKey<FormState>.new);
@@ -696,9 +703,8 @@ class _CaptureConfirmForm extends HookWidget {
                     final selectedDate = await showDatePicker(
                       context: context,
                       initialDate: transactionDate.value,
-                      // 手動入力と同じ範囲 (過去100年〜未来1年) を選択可能にする。
-                      firstDate: DateTime(DateTime.now().year - 100),
-                      lastDate: DateTime(DateTime.now().year + 1, 12, 31),
+                      firstDate: firstSelectableDate,
+                      lastDate: lastSelectableDate,
                     );
                     if (context.mounted && selectedDate != null) {
                       transactionDate.value = selectedDate;
@@ -803,13 +809,26 @@ class _CaptureConfirmForm extends HookWidget {
 }
 
 /// Worker が返す取引日 ("YYYY-MM-DD") をローカルの日付 (時刻 0:00) として読む。
-/// null・形式外の値は null を返し、呼び出し側が既定値 (今日) を使う。
-DateTime? _parseAnalyzedDate({required String? dateText}) {
+/// null・形式外の値・日付ピッカーで選べる範囲外の値 (誤読した年など) は null を返し、
+/// 呼び出し側が既定値 (今日) を使う (範囲外の initialDate は showDatePicker が受け付けない)。
+DateTime? _parseAnalyzedDate({
+  required String? dateText,
+  required DateTime firstSelectableDate,
+  required DateTime lastSelectableDate,
+}) {
   if (dateText == null) {
     return null;
   }
   final parsedDate = DateTime.tryParse(dateText);
-  return parsedDate == null ? null : DateUtils.dateOnly(parsedDate);
+  if (parsedDate == null) {
+    return null;
+  }
+  final analyzedDate = DateUtils.dateOnly(parsedDate);
+  if (analyzedDate.isBefore(firstSelectableDate) ||
+      analyzedDate.isAfter(lastSelectableDate)) {
+    return null;
+  }
+  return analyzedDate;
 }
 
 /// 収支種別ごとに選べるカテゴリ (手動入力と同じ体系)。

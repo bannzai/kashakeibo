@@ -289,6 +289,40 @@ void main() {
     expect(captureFakes.addTransaction.analysisAdjustedByUser, false);
   });
 
+  testWidgets('解析日が日付ピッカーの範囲外なら今日を初期値にする', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => const ImageAnalysisResult(
+        transactions: [
+          AnalyzedTransaction(
+            title: 'Corner Market',
+            amount: 500,
+            transactionDate: '1900-01-01',
+            type: TransactionType.expense,
+            category: TransactionCategory.food,
+          ),
+        ],
+      ),
+    );
+    final captureFlowResults = <CaptureFlowResult?>[];
+    final analyticsEvents = <String>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: captureFlowResults,
+      analyticsEvents: analyticsEvents,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppLocalizationsEn().captureRegister));
+    await tester.pumpAndSettle();
+
+    expect(
+      captureFakes.addTransaction.transactionDate,
+      DateUtils.dateOnly(DateTime.now()),
+    );
+  });
+
   testWidgets('収支種別を切り替えると、新しい種別で選べないカテゴリは既定カテゴリへ寄せる', (tester) async {
     useTallViewport(tester);
     final captureFakes = CaptureFakes(
