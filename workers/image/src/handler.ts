@@ -1,11 +1,15 @@
 // 画像アップロード (POST /images)・取得 (GET /images/{objectKey})・個別削除 (DELETE /images/{objectKey})・
-// アカウント削除時の全消去 (DELETE /images)・Gemini による明細抽出 (POST /analyses) のリクエスト処理本体。
+// アカウント削除時の全消去 (DELETE /images)・Gemini による明細抽出 (POST /analyses)・
+// 今月のスキャン回数と無料枠の取得 (GET /analyses/quota) のリクエスト処理本体。
 // Firebase ID token の検証手段を verifyFirebaseIdToken として注入する構造にし、
 // テストでは実際の Google JWK 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
 // (実際の検証器の組み立ては index.ts を参照)。
 import type { ImageAnalysisResult } from "./analysis";
 import { analyzeImageWithGemini, GeminiRequestError } from "./analysis";
-import type { DailyUploadCounter } from "./upload_counter";
+import type { EntitlementEnv } from "./entitlement";
+import { EntitlementVerificationError, hasPremiumEntitlement } from "./entitlement";
+import type { UsageCounter } from "./usage_counter";
+import { dailyCounterPurgeDelayMilliseconds, monthlyCounterPurgeDelayMilliseconds } from "./usage_counter";
 
 /** Firebase ID token の検証を通ったユーザー。 */
 export interface VerifiedFirebaseUser {
@@ -17,13 +21,13 @@ export interface VerifiedFirebaseUser {
 export type VerifyFirebaseIdToken = (firebaseIdToken: string) => Promise<VerifiedFirebaseUser>;
 
 /** Worker の binding (wrangler.jsonc で定義。各項目の説明もそちらを参照)。 */
-export interface ImageWorkerEnv {
+export interface ImageWorkerEnv extends EntitlementEnv {
   /** 画像の保存先 R2 バケット。 */
   IMAGE_BUCKET: R2Bucket;
   /** JWK キャッシュを保存する KV。 */
   PUBLIC_JWK_CACHE_KV: KVNamespace;
-  /** 日次アップロード回数カウンターの Durable Object (判定と加算の直列化)。 */
-  DAILY_UPLOAD_COUNTER: DurableObjectNamespace<DailyUploadCounter>;
+  /** 日次 (アップロード・解析) と月次 (スキャン無料枠) の回数カウンターの Durable Object (判定と加算の直列化)。 */
+  USAGE_COUNTER: DurableObjectNamespace<UsageCounter>;
   /** Firebase プロジェクト ID。 */
   FIREBASE_PROJECT_ID: string;
   /** JWK キャッシュの KV キー名。 */
@@ -67,11 +71,17 @@ export const maxDailyUploadCountTotal = 5000;
 
 // 解析 1 回あたりの Gemini 呼び出し (LLM 原価) を、匿名 token の乱用から守る日次上限。
 // 正規の利用は無料枠が月10スキャン (documents/PROJECT.md の課金設計) で、プレミアムでも 1 日数十回が現実的な上限のため、
-// アップロードと同じ 3 層 (uid 別・接続元 IP 別・全体) の値をそのまま使う。月次の無料枠と entitlement の判定は
-// 課金 (issue #12) のスコープで、本上限はそれとは独立した費用暴走の歯止め
+// アップロードと同じ 3 層 (uid 別・接続元 IP 別・全体) の値をそのまま使う。月次の無料枠と entitlement の判定
+// (monthlyFreeScanLimit) とは独立した費用暴走の歯止め
 export const maxDailyAnalysisCountPerUser = maxDailyUploadCountPerUser;
 export const maxDailyAnalysisCountPerIpAddress = maxDailyUploadCountPerIpAddress;
 export const maxDailyAnalysisCountTotal = maxDailyUploadCountTotal;
+
+// 無料プランの月あたりスキャン (解析) 回数の上限 (documents/PROJECT.md の課金設計「無料 = 月10スキャンまで」)。
+// 月の区切りは UTC の暦月で、uid ごとに数える。上限に達した後の解析は、RevenueCat のプレミアム entitlement を
+// 持つユーザーだけに許可する (持たない場合は 402 で、クライアントはペイウォールを表示する)。
+// 手動入力は解析を呼ばないため消費しない
+export const monthlyFreeScanLimit = 10;
 
 // Gemini にインラインで渡せるリクエスト全体の上限は 20MB で、base64 化で 4/3 倍になるため、
 // 元画像はその範囲に収まるサイズまでしか解析しない (クライアントは撮影時に長辺を縮小してから送る)
@@ -120,6 +130,9 @@ export async function handleImageRequest(
   }
   if (request.method === "POST" && requestUrl.pathname === "/analyses") {
     return handleImageAnalysis(request, env, verifiedFirebaseUser);
+  }
+  if (request.method === "GET" && requestUrl.pathname === "/analyses/quota") {
+    return handleScanQuotaGet(env, verifiedFirebaseUser);
   }
   return jsonResponse(404, { error: "not found" });
 }
@@ -278,11 +291,64 @@ async function incrementDailyCountIfWithinLimits({
 }): Promise<boolean> {
   const dateText = new Date().toISOString().slice(0, 10);
   const clientIpAddress = request.headers.get("CF-Connecting-IP") ?? "unknown";
-  return env.DAILY_UPLOAD_COUNTER.get(env.DAILY_UPLOAD_COUNTER.idFromName(dateText)).incrementIfWithinLimits([
-    { counterKey: `${counterKeyPrefix}uid:${verifiedFirebaseUser.uid}`, maxDailyUploadCount: maxDailyCountPerUser },
-    { counterKey: `${counterKeyPrefix}ip:${clientIpAddress}`, maxDailyUploadCount: maxDailyCountPerIpAddress },
-    { counterKey: `${counterKeyPrefix}total`, maxDailyUploadCount: maxDailyCountTotal },
-  ]);
+  return env.USAGE_COUNTER.get(env.USAGE_COUNTER.idFromName(dateText)).incrementIfWithinLimits(
+    [
+      { counterKey: `${counterKeyPrefix}uid:${verifiedFirebaseUser.uid}`, maxCount: maxDailyCountPerUser },
+      { counterKey: `${counterKeyPrefix}ip:${clientIpAddress}`, maxCount: maxDailyCountPerIpAddress },
+      { counterKey: `${counterKeyPrefix}total`, maxCount: maxDailyCountTotal },
+    ],
+    dailyCounterPurgeDelayMilliseconds,
+  );
+}
+
+/** 今月 (UTC の暦月) のスキャン回数カウンターの Durable Object インスタンス。日次インスタンスとは名前空間 (`month:` プレフィックス) で分ける。 */
+function monthlyUsageCounter(env: ImageWorkerEnv): DurableObjectStub<UsageCounter> {
+  return env.USAGE_COUNTER.get(env.USAGE_COUNTER.idFromName(`month:${new Date().toISOString().slice(0, 7)}`));
+}
+
+/** 月次スキャン回数カウンターの uid 別キー。 */
+function monthlyScanCounterKey(verifiedFirebaseUser: VerifiedFirebaseUser): string {
+  return `scan:uid:${verifiedFirebaseUser.uid}`;
+}
+
+/**
+ * 今月のスキャン回数を無料枠の範囲で 1 つ消費する。無料枠内なら加算して true。
+ * 無料枠を使い切っていれば RevenueCat のプレミアム entitlement を確認し、プレミアムなら加算 (利用回数の記録) して true、
+ * プレミアムでなければ加算せず false を返す (呼び出し側は 402 を返す)。
+ * 判定と加算は月次の Durable Object で直列化され、並行リクエストでも無料枠を超えて消費されない。
+ * RevenueCat の判定に失敗した場合は EntitlementVerificationError を投げる。
+ */
+async function consumeMonthlyScanQuota(env: ImageWorkerEnv, verifiedFirebaseUser: VerifiedFirebaseUser): Promise<boolean> {
+  const monthlyCounter = monthlyUsageCounter(env);
+  const counterKey = monthlyScanCounterKey(verifiedFirebaseUser);
+  if (
+    await monthlyCounter.incrementIfWithinLimits(
+      [{ counterKey, maxCount: monthlyFreeScanLimit }],
+      monthlyCounterPurgeDelayMilliseconds,
+    )
+  ) {
+    return true;
+  }
+  // 無料枠を使い切ったユーザーだけ RevenueCat に問い合わせる (無料枠内の解析では課金 API を呼ばない)
+  if (!(await hasPremiumEntitlement({ appUserId: verifiedFirebaseUser.uid, env }))) {
+    return false;
+  }
+  await monthlyCounter.incrementIfWithinLimits(
+    [{ counterKey, maxCount: Number.MAX_SAFE_INTEGER }],
+    monthlyCounterPurgeDelayMilliseconds,
+  );
+  return true;
+}
+
+/**
+ * 今月のスキャン回数と無料枠の上限を返す (GET /analyses/quota)。クライアントは残量表示とペイウォールの表示判定に使う。
+ * プレミアムかどうかはクライアントが RevenueCat SDK から直接得るため含めない。冪等 (読み取りのみ)。
+ */
+async function handleScanQuotaGet(env: ImageWorkerEnv, verifiedFirebaseUser: VerifiedFirebaseUser): Promise<Response> {
+  return jsonResponse(200, {
+    monthlyScanCount: await monthlyUsageCounter(env).getCount(monthlyScanCounterKey(verifiedFirebaseUser)),
+    monthlyFreeScanLimit,
+  });
 }
 
 /**
@@ -339,8 +405,9 @@ async function handleImageDelete(
 /**
  * アップロード済み画像を Gemini で解析し、抽出した明細を返す (POST /analyses)。
  * リクエスト本体は `{"imageObjectKey": "users/{uid}/..."}`。画像はクライアントから再送させず R2 から読む。
- * 本人の uid 配下のキーだけを許可し、解析回数は日次上限 (maxDailyAnalysisCount*) で守る。
- * 冪等 (副作用は日次カウンターの加算のみ)。
+ * 本人の uid 配下のキーだけを許可し、解析回数は日次上限 (maxDailyAnalysisCount*) と
+ * 月次の無料枠 (monthlyFreeScanLimit。超過時はプレミアム entitlement が必要) で守る。
+ * 冪等 (副作用は日次・月次カウンターの加算のみ)。
  */
 async function handleImageAnalysis(
   request: Request,
@@ -386,6 +453,27 @@ async function handleImageAnalysis(
   });
   if (!withinAnalysisLimits) {
     return jsonResponse(429, { error: "1日の解析回数の上限に達しました" });
+  }
+
+  // 月次の無料枠 (monthlyFreeScanLimit) と、超過時のプレミアム entitlement を判定する。
+  // 日次上限の後に置くことで、429 (混雑・乱用) で弾かれるリクエストが無料枠を消費しない
+  let withinMonthlyScanQuota: boolean;
+  try {
+    withinMonthlyScanQuota = await consumeMonthlyScanQuota(env, verifiedFirebaseUser);
+  } catch (error) {
+    if (!(error instanceof EntitlementVerificationError)) {
+      throw error;
+    }
+    // 課金状態を判定できない一時的な失敗は、無料枠超過 (402) と区別して 503 で返す (クライアントは再試行できる)
+    console.warn("RevenueCat の entitlement 判定に失敗", error);
+    return jsonResponse(503, { error: error.message });
+  }
+  if (!withinMonthlyScanQuota) {
+    return jsonResponse(402, {
+      error: `今月の無料スキャン (${monthlyFreeScanLimit}回) を使い切りました`,
+      monthlyScanCount: await monthlyUsageCounter(env).getCount(monthlyScanCounterKey(verifiedFirebaseUser)),
+      monthlyFreeScanLimit,
+    });
   }
 
   const imageObject = await env.IMAGE_BUCKET.get(resolvedKey.imageObjectKey);

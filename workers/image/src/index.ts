@@ -7,7 +7,7 @@ import type { ImageWorkerEnv } from "./handler";
 import { handleImageRequest } from "./handler";
 
 // Durable Object は Worker のエントリポイントから export する必要がある (wrangler.jsonc の durable_objects 参照)
-export { DailyUploadCounter } from "./upload_counter";
+export { UsageCounter } from "./usage_counter";
 
 // FIREBASE_AUTH_EMULATOR_HOST が設定されている場合はエミュレータの token を受け付ける (EmulatorEnv)
 type ImageWorkerBindings = ImageWorkerEnv & EmulatorEnv;

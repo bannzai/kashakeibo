@@ -11,7 +11,9 @@ import {
   maxDailyUploadCountPerIpAddress,
   maxDailyUploadCountPerUser,
   maxDailyUploadCountTotal,
+  monthlyFreeScanLimit,
 } from "../src/handler";
+import { dailyCounterPurgeDelayMilliseconds } from "../src/usage_counter";
 
 declare module "cloudflare:test" {
   interface ProvidedEnv extends ImageWorkerEnv {}
@@ -82,13 +84,14 @@ const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 
 // 指定カウンターだけを count 回まで加算する (他のカウンターの上限判定に影響を与えないよう単独条件で回す)
 async function seedUploadCount(counterKey: string, count: number): Promise<void> {
-  const dailyUploadCounter = env.DAILY_UPLOAD_COUNTER.get(
-    env.DAILY_UPLOAD_COUNTER.idFromName(new Date().toISOString().slice(0, 10)),
+  const dailyUsageCounter = env.USAGE_COUNTER.get(
+    env.USAGE_COUNTER.idFromName(new Date().toISOString().slice(0, 10)),
   );
   for (let seededCount = 0; seededCount < count; seededCount++) {
-    await dailyUploadCounter.incrementIfWithinLimits([
-      { counterKey, maxDailyUploadCount: Number.MAX_SAFE_INTEGER },
-    ]);
+    await dailyUsageCounter.incrementIfWithinLimits(
+      [{ counterKey, maxCount: Number.MAX_SAFE_INTEGER }],
+      dailyCounterPurgeDelayMilliseconds,
+    );
   }
 }
 
@@ -744,5 +747,200 @@ describe("画像解析", () => {
       stubVerifyFirebaseIdToken,
     );
     expect(uploadResponse.status).toBe(201);
+  });
+});
+
+describe("スキャン無料枠 (月次) とプレミアム判定", () => {
+  const geminiApiOrigin = "https://generativelanguage.googleapis.com";
+  const geminiGenerateContentPath = `/v1beta/models/${env.GEMINI_MODEL}:generateContent`;
+  const revenueCatApiOrigin = "https://api.revenuecat.com";
+
+  beforeAll(() => {
+    fetchMock.activate();
+    fetchMock.disableNetConnect();
+  });
+
+  afterEach(() => {
+    fetchMock.assertNoPendingInterceptors();
+  });
+
+  function revenueCatActiveEntitlementsPath(uid: string): string {
+    return `/v2/projects/${env.REVENUECAT_PROJECT_ID}/customers/${uid}/active_entitlements`;
+  }
+
+  // 今月の uid 別スキャン回数を count 回ぶん進める (無料枠を使い切った状態を作る)
+  async function seedMonthlyScanCount(uid: string, count: number): Promise<void> {
+    const monthlyUsageCounter = env.USAGE_COUNTER.get(
+      env.USAGE_COUNTER.idFromName(`month:${new Date().toISOString().slice(0, 7)}`),
+    );
+    for (let seededCount = 0; seededCount < count; seededCount++) {
+      await monthlyUsageCounter.incrementIfWithinLimits(
+        [{ counterKey: `scan:uid:${uid}`, maxCount: Number.MAX_SAFE_INTEGER }],
+        dailyCounterPurgeDelayMilliseconds,
+      );
+    }
+  }
+
+  async function uploadImageWithUploadId(uid: string, uploadId: string): Promise<string> {
+    const response = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: `Bearer valid-token-${uid}`,
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+        uploadId,
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+    return ((await response.json()) as { imageObjectKey: string }).imageObjectKey;
+  }
+
+  function requestAnalysis(uid: string, imageObjectKey: string, envOverride: ImageWorkerEnv = env): Promise<Response> {
+    return handleImageRequest(
+      new Request(`${workerBaseUrl}/analyses`, {
+        method: "POST",
+        headers: { Authorization: `Bearer valid-token-${uid}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ imageObjectKey }),
+      }),
+      envOverride,
+      stubVerifyFirebaseIdToken,
+    );
+  }
+
+  function requestScanQuota(uid: string): Promise<Response> {
+    return handleImageRequest(
+      new Request(`${workerBaseUrl}/analyses/quota`, {
+        method: "GET",
+        headers: { Authorization: `Bearer valid-token-${uid}` },
+      }),
+      env,
+      stubVerifyFirebaseIdToken,
+    );
+  }
+
+  function interceptGeminiSuccess(): void {
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(200, () =>
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: "model",
+                parts: [{ text: JSON.stringify({ transactions: [] }) }],
+              },
+            },
+          ],
+        }),
+      );
+  }
+
+  it("無料枠内の解析は RevenueCat を呼ばずに成功し、今月のスキャン回数が増える", async () => {
+    const uid = "uid-quota-free";
+    const imageObjectKey = await uploadImageWithUploadId(uid, "eeeeeeee-0000-4000-8000-000000000001");
+    expect(await (await requestScanQuota(uid)).json()).toEqual({ monthlyScanCount: 0, monthlyFreeScanLimit });
+
+    interceptGeminiSuccess();
+    expect((await requestAnalysis(uid, imageObjectKey)).status).toBe(200);
+    expect(await (await requestScanQuota(uid)).json()).toEqual({ monthlyScanCount: 1, monthlyFreeScanLimit });
+  });
+
+  it("無料枠を使い切ったプレミアムでないユーザーの解析は 402 を返し、Gemini を呼ばず、回数を消費しない", async () => {
+    const uid = "uid-quota-exhausted-free";
+    const imageObjectKey = await uploadImageWithUploadId(uid, "eeeeeeee-0000-4000-8000-000000000002");
+    await seedMonthlyScanCount(uid, monthlyFreeScanLimit);
+    // RevenueCat が顧客を知らない (購入経験なし) 場合は 404 で、プレミアムなしとして扱う
+    fetchMock
+      .get(revenueCatApiOrigin)
+      .intercept({ path: revenueCatActiveEntitlementsPath(uid), method: "GET" })
+      .reply(404, JSON.stringify({ type: "resource_missing" }));
+
+    const response = await requestAnalysis(uid, imageObjectKey);
+    expect(response.status).toBe(402);
+    expect(await response.json()).toEqual({
+      error: `今月の無料スキャン (${monthlyFreeScanLimit}回) を使い切りました`,
+      monthlyScanCount: monthlyFreeScanLimit,
+      monthlyFreeScanLimit,
+    });
+    expect(await (await requestScanQuota(uid)).json()).toEqual({
+      monthlyScanCount: monthlyFreeScanLimit,
+      monthlyFreeScanLimit,
+    });
+  });
+
+  it("無料枠を使い切ってもプレミアム entitlement を持つユーザーの解析は成功し、回数は記録し続ける", async () => {
+    const uid = "uid-quota-premium";
+    const imageObjectKey = await uploadImageWithUploadId(uid, "eeeeeeee-0000-4000-8000-000000000003");
+    await seedMonthlyScanCount(uid, monthlyFreeScanLimit);
+    let capturedAuthorizationHeader: string | undefined;
+    fetchMock
+      .get(revenueCatApiOrigin)
+      .intercept({ path: revenueCatActiveEntitlementsPath(uid), method: "GET" })
+      .reply(200, (request) => {
+        capturedAuthorizationHeader = (request.headers as Record<string, string>)["authorization"];
+        return JSON.stringify({
+          object: "list",
+          items: [
+            { object: "customer.active_entitlement", entitlement_id: env.REVENUECAT_PREMIUM_ENTITLEMENT_ID, expires_at: 4102444800000 },
+          ],
+          next_page: null,
+          url: revenueCatActiveEntitlementsPath(uid),
+        });
+      });
+    interceptGeminiSuccess();
+
+    expect((await requestAnalysis(uid, imageObjectKey)).status).toBe(200);
+    expect(capturedAuthorizationHeader).toBe(`Bearer ${env.REVENUECAT_SECRET_API_KEY}`);
+    expect(await (await requestScanQuota(uid)).json()).toEqual({
+      monthlyScanCount: monthlyFreeScanLimit + 1,
+      monthlyFreeScanLimit,
+    });
+  });
+
+  it("別の entitlement しか持たないユーザーはプレミアムとして扱わず 402 を返す", async () => {
+    const uid = "uid-quota-other-entitlement";
+    const imageObjectKey = await uploadImageWithUploadId(uid, "eeeeeeee-0000-4000-8000-000000000004");
+    await seedMonthlyScanCount(uid, monthlyFreeScanLimit);
+    fetchMock
+      .get(revenueCatApiOrigin)
+      .intercept({ path: revenueCatActiveEntitlementsPath(uid), method: "GET" })
+      .reply(200, JSON.stringify({ object: "list", items: [{ object: "customer.active_entitlement", entitlement_id: "entlother", expires_at: null }] }));
+
+    expect((await requestAnalysis(uid, imageObjectKey)).status).toBe(402);
+  });
+
+  it("RevenueCat の応答がエラーの場合は 402 ではなく 503 を返す (一時的な失敗として再試行できる)", async () => {
+    const uid = "uid-quota-revenuecat-down";
+    const imageObjectKey = await uploadImageWithUploadId(uid, "eeeeeeee-0000-4000-8000-000000000005");
+    await seedMonthlyScanCount(uid, monthlyFreeScanLimit);
+    fetchMock
+      .get(revenueCatApiOrigin)
+      .intercept({ path: revenueCatActiveEntitlementsPath(uid), method: "GET" })
+      .reply(500, "internal error");
+
+    const response = await requestAnalysis(uid, imageObjectKey);
+    expect(response.status).toBe(503);
+    expect(((await response.json()) as { error: string }).error).toContain("status=500");
+  });
+
+  it("RevenueCat の設定が無い環境では、無料枠超過を RevenueCat を呼ばずに 402 で返す (課金未セットアップ時は無料枠だけを強制する)", async () => {
+    const uid = "uid-quota-unconfigured";
+    const imageObjectKey = await uploadImageWithUploadId(uid, "eeeeeeee-0000-4000-8000-000000000006");
+    await seedMonthlyScanCount(uid, monthlyFreeScanLimit);
+
+    const response = await requestAnalysis(uid, imageObjectKey, {
+      ...env,
+      REVENUECAT_SECRET_API_KEY: undefined,
+      REVENUECAT_PROJECT_ID: "",
+      REVENUECAT_PREMIUM_ENTITLEMENT_ID: "",
+    });
+    expect(response.status).toBe(402);
+  });
+
+  it("スキャン回数は uid ごとに独立して数える", async () => {
+    await seedMonthlyScanCount("uid-quota-independent-a", 3);
+    expect(await (await requestScanQuota("uid-quota-independent-a")).json()).toEqual({ monthlyScanCount: 3, monthlyFreeScanLimit });
+    expect(await (await requestScanQuota("uid-quota-independent-b")).json()).toEqual({ monthlyScanCount: 0, monthlyFreeScanLimit });
   });
 });

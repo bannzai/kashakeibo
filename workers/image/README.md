@@ -5,7 +5,7 @@ Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github
 
 設計の決定は `documents/adr/0001-tech-stack.md` の「画像ストレージ」「画像解析」を参照。
 
-AI 画像解析 (Gemini) は、スキャン無料枠 (uid ごとの回数・entitlement 判定) をサーバー側で強制するため本 Worker の解析エンドポイント (`POST /analyses`) が担う。Gemini の API キーは Worker の secret にだけ置き、クライアントへ配布しない。月次の無料枠と entitlement の判定は課金 (issue #12) のスコープで、現時点では日次上限だけを強制する。
+AI 画像解析 (Gemini) は、スキャン無料枠 (uid ごとの月次回数・entitlement 判定) をサーバー側で強制するため本 Worker の解析エンドポイント (`POST /analyses`) が担う。Gemini の API キーは Worker の secret にだけ置き、クライアントへ配布しない。無料枠 (月10スキャン。documents/PROJECT.md の課金設計) を超えた解析は、RevenueCat のプレミアム entitlement をサーバー側で確認したユーザーだけに許可する (`src/entitlement.ts`。クライアント申告のプレミアム状態は信用しない)。
 
 ## API
 
@@ -41,6 +41,11 @@ multipart/form-data の `file` フィールドで画像をアップロードす�
 - Gemini は `generateContent` を構造化出力 (`responseSchema`) で 1 回呼ぶステートレスな呼び出しで、画像・結果とも Gemini 側に保存しない。モデルは wrangler.jsonc の `GEMINI_MODEL`。プロンプト・出力スキーマ・出力の検証は `src/analysis.ts`
 - レスポンス: `200 {"transactions": [{"title": "店名", "amount": 872, "transactionDate": "2026-08-16" | null, "type": "income" | "expense", "category": "food" | "eatingOut" | "dailyGoods" | "transportation" | "subscription" | "salary" | "other"}]}`。`type` / `category` は Flutter 側 Entity (`lib/entity/transaction.dart`) と同じ enum 名。紙のレシートは 1 枚 1 件 (合計金額)、明細スクショは取引ごとに 1 件、明細が写っていなければ空配列
 - Gemini API のエラーは 502 でエラー本文をそのまま返す (クライアントは手動入力へフォールバックする)
+- スキャン無料枠: uid ごとに今月 (UTC の暦月) の解析回数を数え、`src/handler.ts` の `monthlyFreeScanLimit` (10) までは無条件に解析する。使い切った後は RevenueCat API v2 の `active_entitlements` を uid (= クライアントが `Purchases.logIn` に渡す app user ID) で引き、`REVENUECAT_PREMIUM_ENTITLEMENT_ID` の entitlement が有効なら解析する (回数は記録し続ける)。有効でなければ `402 {"error": "...", "monthlyScanCount": 10, "monthlyFreeScanLimit": 10}` を返し、クライアントはペイウォールを表示する。RevenueCat API の失敗 (5xx・接続不能) は 402 と区別して 503 で返す (再試行可)。判定は日次上限 (429) の後、Gemini 呼び出しの前に行い、無料枠内の解析では RevenueCat を呼ばない。RevenueCat の設定 (`REVENUECAT_SECRET_API_KEY` / `REVENUECAT_PROJECT_ID` / `REVENUECAT_PREMIUM_ENTITLEMENT_ID`) が無い環境では全ユーザーを無料プランとして扱う (無料枠だけを強制する fail-closed)。回数の判定と加算は月次シングルトンの Durable Object (`src/usage_counter.ts`。日次カウンターと同じクラスの別インスタンス) で直列化する
+
+### GET /analyses/quota
+
+今月のスキャン (解析) 回数と無料枠の上限を返す: `200 {"monthlyScanCount": 3, "monthlyFreeScanLimit": 10}`。クライアントは残量チップの表示 (`monthlyFreeScanLimit - monthlyScanCount`) と、残量 0 でのペイウォール表示判定に使う。プレミアムかどうかはクライアントが RevenueCat SDK (`CustomerInfo`) から直接得るため含めない。
 
 ## 開発
 
@@ -59,14 +64,16 @@ Cloudflare 側のリソースは作成済み (2026-08-17):
 
 - R2 バケット: `kashakeibo-images-dev` / `kashakeibo-images-prod`
 - KV namespace: `PUBLIC_JWK_CACHE_KV_DEV` / `PUBLIC_JWK_CACHE_KV_PROD` (ID は wrangler.jsonc に記載済み)
-- Durable Object (`DailyUploadCounter`) は初回デプロイ時に wrangler.jsonc の migrations から自動作成される
+- Durable Object (`UsageCounter`。v1 では `DailyUploadCounter` の名前で作成され、v2 の migration で改名) は初回デプロイ時に wrangler.jsonc の migrations から自動作成される
 
-デプロイは environment 必須 (トップレベルに binding を置いていないため、env 指定なしの誤デプロイは失敗する)。解析エンドポイントには Gemini API キーの secret が必要で、環境ごとに一度だけ登録する:
+デプロイは environment 必須 (トップレベルに binding を置いていないため、env 指定なしの誤デプロイは失敗する)。解析エンドポイントには Gemini API キーの secret が必要で、環境ごとに一度だけ登録する。スキャン無料枠超過時のプレミアム判定には RevenueCat の secret API key (v2、`customer_information:customers:read` 権限。`~/.claude/skills/revenuecat-product-setup/references/api_key_handling.md` の「secret API key の扱い」) と、wrangler.jsonc の `REVENUECAT_PROJECT_ID` / `REVENUECAT_PREMIUM_ENTITLEMENT_ID` (RevenueCat プロジェクトを作成した後に `rc_list.sh entitlements` で得る `entl...` の ID) が必要:
 
 ```sh
 cd workers/image
 npx wrangler secret put GEMINI_API_KEY --env dev    # 値は Google AI Studio の API キー
 npx wrangler secret put GEMINI_API_KEY --env prod
+npx wrangler secret put REVENUECAT_SECRET_API_KEY --env dev    # 値は RevenueCat の v2 secret API key (sk_...)
+npx wrangler secret put REVENUECAT_SECRET_API_KEY --env prod
 npx wrangler deploy --env dev    # → kashakeibo-image-worker-dev
 npx wrangler deploy --env prod   # → kashakeibo-image-worker-prod
 ```

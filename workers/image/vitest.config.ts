@@ -16,13 +16,16 @@ export default defineWorkersConfig({
           r2Buckets: ["IMAGE_BUCKET"],
           kvNamespaces: ["PUBLIC_JWK_CACHE_KV"],
           durableObjects: {
-            DAILY_UPLOAD_COUNTER: "DailyUploadCounter",
+            USAGE_COUNTER: "UsageCounter",
           },
           bindings: {
             FIREBASE_PROJECT_ID: "kashakeibo-test",
             PUBLIC_JWK_CACHE_KEY: "firebase-public-jwk-cache",
             GEMINI_API_KEY: "test-gemini-api-key",
             GEMINI_MODEL: "gemini-test-model",
+            REVENUECAT_SECRET_API_KEY: "test-revenuecat-secret-api-key",
+            REVENUECAT_PROJECT_ID: "projtest",
+            REVENUECAT_PREMIUM_ENTITLEMENT_ID: "entltestpremium",
           },
         },
       },
