@@ -6,9 +6,13 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/features/capture/add_record_sheet.dart';
+import 'package:kashakeibo/features/capture/capture_page.dart';
+import 'package:kashakeibo/features/capture/receipt_camera.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
 import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
+import 'package:kashakeibo/features/transaction_detail/transaction_detail_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/transaction_labels.dart';
 import 'package:kashakeibo/provider/transaction.dart';
@@ -42,24 +46,41 @@ class MonthlyPage extends HookConsumerWidget {
     final duplicateCandidateList = ref.watch(
       monthlyDuplicateCandidatesProvider(yearMonth: selectedYearMonth),
     );
+    final captureReceiptImage = ref.watch(captureReceiptImageProvider);
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        tooltip: l10n.manualEntryOpen,
+        tooltip: l10n.addRecordOpen,
         onPressed: () async {
-          unawaited(logAnalyticsEvent(name: 'manual_entry_open'));
-          final registered = await showManualEntrySheet(context: context);
-          if (!context.mounted || registered != true) {
+          unawaited(logAnalyticsEvent(name: 'add_record_open'));
+          final addRecordOption = await showAddRecordSheet(context: context);
+          if (!context.mounted) {
             return;
           }
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.manualEntryRegistered)));
+          switch (addRecordOption) {
+            case AddRecordOption.camera:
+              await runReceiptCaptureFlow(
+                context: context,
+                captureReceiptImage: captureReceiptImage,
+                logAnalyticsEvent: logAnalyticsEvent,
+              );
+            case AddRecordOption.manual:
+              unawaited(logAnalyticsEvent(name: 'manual_entry_open'));
+              final registered = await showManualEntrySheet(context: context);
+              if (!context.mounted || registered != true) {
+                return;
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.manualEntryRegistered)),
+              );
+            case null:
+              unawaited(logAnalyticsEvent(name: 'add_record_cancel'));
+          }
         },
-        icon: const Icon(Icons.edit_note),
-        label: Text(l10n.manualEntryOpen),
+        icon: const Icon(Icons.photo_camera_outlined),
+        label: Text(l10n.addRecordOpen),
       ),
       body: SafeArea(
         child: Column(
@@ -129,6 +150,22 @@ class MonthlyPage extends HookConsumerWidget {
                         ..._groupedTransactionRows(
                           context: context,
                           transactions: transactions,
+                          onTransactionTap: (transaction) {
+                            unawaited(
+                              logAnalyticsEvent(
+                                name: 'transaction_detail_open',
+                                parameters: {'transactionID': transaction.id},
+                              ),
+                            );
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (context) => TransactionDetailPage(
+                                  transactionID: transaction.id,
+                                  logAnalyticsEvent: logAnalyticsEvent,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                     ],
                   );
@@ -829,9 +866,11 @@ class _CategoryBreakdownSection extends StatelessWidget {
 
 /// 明細を日付ごとにグループ化し、日付見出しと明細行の Widget 列を返す。
 /// [transactions] は取引日時の降順で渡される前提 (クエリの orderBy と一致)。
+/// 明細行のタップで [onTransactionTap] を呼ぶ (明細詳細への遷移)。
 List<Widget> _groupedTransactionRows({
   required BuildContext context,
   required List<Transaction> transactions,
+  required ValueChanged<Transaction> onTransactionTap,
 }) {
   final appColors = context.appColors;
   final rows = <Widget>[const SizedBox(height: AppSpacing.sm)];
@@ -864,7 +903,10 @@ List<Widget> _groupedTransactionRows({
     rows.add(
       Padding(
         padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, 6),
-        child: _TransactionRow(transaction: transaction),
+        child: _TransactionRow(
+          transaction: transaction,
+          onTap: () => onTransactionTap(transaction),
+        ),
       ),
     );
   }
@@ -872,11 +914,15 @@ List<Widget> _groupedTransactionRows({
 }
 
 /// 明細リストの 1 行 (明細タブの行デザイン)。計算対象外の明細は opacity 0.45。
+/// タップで明細詳細を開く。
 class _TransactionRow extends StatelessWidget {
   /// 表示する明細。
   final Transaction transaction;
 
-  const _TransactionRow({required this.transaction});
+  /// 行のタップ時の処理。
+  final VoidCallback onTap;
+
+  const _TransactionRow({required this.transaction, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -885,54 +931,59 @@ class _TransactionRow extends StatelessWidget {
     final subTexts = [
       categoryLabel(category: transaction.category, l10n: l10n),
       transactionSourceLabel(source: transaction.source, l10n: l10n),
+      ?transactionProvenanceLabel(transaction: transaction, l10n: l10n),
       if (transaction.excludedFromAggregation) l10n.excludedFromAggregation,
     ];
     return Opacity(
       opacity: transaction.excludedFromAggregation ? 0.45 : 1,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
-        decoration: BoxDecoration(
-          color: appColors.surface,
+      child: Material(
+        color: appColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    transaction.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.body,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body,
+                      ),
+                      Text(
+                        subTexts.join(' · '),
+                        style: AppTextStyles.caption.copyWith(
+                          color: appColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    subTexts.join(' · '),
-                    style: AppTextStyles.caption.copyWith(
-                      color: appColors.textMuted,
-                    ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Text(
+                  switch (transaction.type) {
+                    TransactionType.income =>
+                      '+¥${formatAmountNumber(amount: transaction.amount)}',
+                    TransactionType.expense =>
+                      '-¥${formatAmountNumber(amount: transaction.amount)}',
+                  },
+                  // 赤は使わない (デザイントークンに赤が存在しない)。収入のみセージで強調する。
+                  style: AppTextStyles.amountRow.copyWith(
+                    color: switch (transaction.type) {
+                      TransactionType.income => appColors.sage700,
+                      TransactionType.expense => appColors.onSurface,
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.md),
-            Text(
-              switch (transaction.type) {
-                TransactionType.income =>
-                  '+¥${formatAmountNumber(amount: transaction.amount)}',
-                TransactionType.expense =>
-                  '-¥${formatAmountNumber(amount: transaction.amount)}',
-              },
-              // 赤は使わない (デザイントークンに赤が存在しない)。収入のみセージで強調する。
-              style: AppTextStyles.amountRow.copyWith(
-                color: switch (transaction.type) {
-                  TransactionType.income => appColors.sage700,
-                  TransactionType.expense => appColors.onSurface,
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

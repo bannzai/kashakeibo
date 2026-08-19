@@ -51,6 +51,7 @@ Transaction buildTransaction({
     ).timeZoneOffset.inMinutes,
     yearMonth: yearMonthFrom(dateTime: now),
     excludedFromAggregation: excludedFromAggregation,
+    sourceImageObjectKey: null,
   );
 }
 
@@ -238,6 +239,8 @@ void main() {
     expect(addTransaction.title, 'Neighborhood store');
     expect(addTransaction.transactionDate, DateUtils.dateOnly(DateTime.now()));
     expect(addTransaction.excludedFromAggregation, false);
+    expect(addTransaction.sourceImageObjectKey, isNull);
+    expect(addTransaction.analysisAdjustedByUser, false);
   });
 
   testWidgets('手動入力: 金額だけで食費の現金支出として保存する', (tester) async {
@@ -592,6 +595,12 @@ class _RecordingAddTransaction extends AddTransaction {
   /// 登録された集計除外フラグ。
   bool? excludedFromAggregation;
 
+  /// 登録された元画像のオブジェクトキー。
+  String? sourceImageObjectKey;
+
+  /// 登録された AI 解析結果の修正有無。
+  bool? analysisAdjustedByUser;
+
   /// Firestore へ書き込まず、手動入力画面から渡された値を記録する。
   @override
   Future<void> call({
@@ -602,6 +611,8 @@ class _RecordingAddTransaction extends AddTransaction {
     required String title,
     required DateTime transactionDate,
     required bool excludedFromAggregation,
+    required String? sourceImageObjectKey,
+    required bool analysisAdjustedByUser,
   }) async {
     this.type = type;
     this.source = source;
@@ -610,6 +621,8 @@ class _RecordingAddTransaction extends AddTransaction {
     this.title = title;
     this.transactionDate = transactionDate;
     this.excludedFromAggregation = excludedFromAggregation;
+    this.sourceImageObjectKey = sourceImageObjectKey;
+    this.analysisAdjustedByUser = analysisAdjustedByUser;
   }
 }
 
@@ -629,6 +642,8 @@ class _PendingAddTransaction extends _RecordingAddTransaction {
     required String title,
     required DateTime transactionDate,
     required bool excludedFromAggregation,
+    required String? sourceImageObjectKey,
+    required bool analysisAdjustedByUser,
   }) {
     this.type = type;
     this.source = source;
@@ -637,6 +652,8 @@ class _PendingAddTransaction extends _RecordingAddTransaction {
     this.title = title;
     this.transactionDate = transactionDate;
     this.excludedFromAggregation = excludedFromAggregation;
+    this.sourceImageObjectKey = sourceImageObjectKey;
+    this.analysisAdjustedByUser = analysisAdjustedByUser;
     return _completer.future;
   }
 }

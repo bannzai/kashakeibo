@@ -46,7 +46,9 @@
         // Firebase プロジェクト ID (firebase/.firebaserc の dev と一致させる)
         "FIREBASE_PROJECT_ID": "kashakeibo-dev",
         // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
-        "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache"
+        "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
+        // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
+        "GEMINI_MODEL": "gemini-3.7-flash"
       }
     },
     "prod": {
@@ -85,7 +87,9 @@
         // Firebase プロジェクト ID (firebase/.firebaserc の prod と一致させる)
         "FIREBASE_PROJECT_ID": "kashakeibo-prod",
         // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
-        "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache"
+        "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
+        // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
+        "GEMINI_MODEL": "gemini-3.7-flash"
       }
     }
   }

@@ -201,4 +201,121 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transactionSourceUnknown => '出所不明';
+
+  @override
+  String get addRecordOpen => '記録する';
+
+  @override
+  String get addRecordTitle => '記録する';
+
+  @override
+  String get captureReceiptWithCamera => 'カメラで撮影';
+
+  @override
+  String get captureReceiptWithCameraDescription => 'レシートを撮ると AI が明細を読み取ります';
+
+  @override
+  String get manualEntryDescription => '画像がない現金支出などを入力します';
+
+  @override
+  String get captureAnalyzingTitle => 'AI が読み取っています';
+
+  @override
+  String get captureAnalyzingStepLoading => '画像を読み込んでいます';
+
+  @override
+  String get captureAnalyzingStepReading => '金額・日付を読み取っています';
+
+  @override
+  String get captureAnalyzingStepCategory => 'カテゴリを推定しています';
+
+  @override
+  String get captureAnalysisFailedTitle => '読み取れませんでした';
+
+  @override
+  String get captureAnalysisNoTransactions => '画像から明細を読み取れませんでした';
+
+  @override
+  String get captureRetry => 'もう一度読み取る';
+
+  @override
+  String get captureManualFallback => '手動で入力する';
+
+  @override
+  String get captureRetake => '取り直す';
+
+  @override
+  String get captureConfirmTitle => '読み取り確認';
+
+  @override
+  String get captureSourceImageNote => '読み取りに使った元画像は、明細からいつでも見返せます';
+
+  @override
+  String get captureRegister => '登録する';
+
+  @override
+  String get captureRegistered => 'カシャッと記録!';
+
+  @override
+  String get transactionDetailTitle => '明細';
+
+  @override
+  String get transactionDetailSourceImage => '元画像';
+
+  @override
+  String get transactionDetailSourceImageNote => '元画像はいつでも確認できます';
+
+  @override
+  String get transactionDetailNoImageManual => '手動入力のため元画像なし';
+
+  @override
+  String get transactionDetailNoImage => '元画像なし';
+
+  @override
+  String get transactionDetailZoom => '拡大';
+
+  @override
+  String get transactionDetailDeleteImage => '画像だけを削除';
+
+  @override
+  String get transactionDetailDeleteImageConfirmationTitle => '元画像を削除しますか？';
+
+  @override
+  String get transactionDetailDeleteImageConfirmationMessage =>
+      '明細は残り、元画像だけが削除されます。元に戻せません。';
+
+  @override
+  String get transactionDetailImageDeleted => '元画像を削除しました';
+
+  @override
+  String get transactionDetailDelete => '明細を削除';
+
+  @override
+  String get transactionDetailDeleteConfirmationTitle => '明細を削除しますか？';
+
+  @override
+  String get transactionDetailDeleteConfirmationMessage =>
+      '明細と元画像は完全に削除され、元に戻せません。';
+
+  @override
+  String get transactionDetailDeleted => '明細を削除しました';
+
+  @override
+  String get transactionDetailNotFound => 'この明細は削除されました';
+
+  @override
+  String get transactionDetailProvenance => '出所';
+
+  @override
+  String get transactionDetailExcludeFromAggregation => '計算対象から除外';
+
+  @override
+  String get transactionDetailExcludeFromAggregationDescription =>
+      'オンにすると合計・カテゴリ内訳に含めません';
+
+  @override
+  String get transactionProvenanceAutomatic => '自動取込';
+
+  @override
+  String get transactionProvenanceAdjusted => '手調整';
 }

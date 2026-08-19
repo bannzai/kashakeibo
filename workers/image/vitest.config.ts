@@ -5,6 +5,9 @@ import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
 // テストが設定ファイルの実 ID に依存しないようにしている
 export default defineWorkersConfig({
   test: {
+    // 日次上限のテストは Durable Object を上限回数 (最大 5000 回) 呼んでカウンターを埋めるため、
+    // 負荷の高いマシン・CI では既定の 5 秒を超えることがある
+    testTimeout: 30_000,
     poolOptions: {
       workers: {
         main: "./src/index.ts",
@@ -18,6 +21,8 @@ export default defineWorkersConfig({
           bindings: {
             FIREBASE_PROJECT_ID: "kashakeibo-test",
             PUBLIC_JWK_CACHE_KEY: "firebase-public-jwk-cache",
+            GEMINI_API_KEY: "test-gemini-api-key",
+            GEMINI_MODEL: "gemini-test-model",
           },
         },
       },

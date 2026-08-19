@@ -211,4 +211,127 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionSourceUnknown => 'Unknown source';
+
+  @override
+  String get addRecordOpen => 'Add a record';
+
+  @override
+  String get addRecordTitle => 'Add a record';
+
+  @override
+  String get captureReceiptWithCamera => 'Take a photo';
+
+  @override
+  String get captureReceiptWithCameraDescription =>
+      'Snap a receipt and AI reads the details';
+
+  @override
+  String get manualEntryDescription => 'Enter cash spending without an image';
+
+  @override
+  String get captureAnalyzingTitle => 'AI is reading your receipt';
+
+  @override
+  String get captureAnalyzingStepLoading => 'Loading the image';
+
+  @override
+  String get captureAnalyzingStepReading => 'Reading amount and date';
+
+  @override
+  String get captureAnalyzingStepCategory => 'Guessing the category';
+
+  @override
+  String get captureAnalysisFailedTitle => 'Couldn\'t read the image';
+
+  @override
+  String get captureAnalysisNoTransactions =>
+      'No transaction could be read from the image';
+
+  @override
+  String get captureRetry => 'Try again';
+
+  @override
+  String get captureManualFallback => 'Enter manually';
+
+  @override
+  String get captureRetake => 'Retake';
+
+  @override
+  String get captureConfirmTitle => 'Review details';
+
+  @override
+  String get captureSourceImageNote =>
+      'You can always revisit the source image from the transaction';
+
+  @override
+  String get captureRegister => 'Register';
+
+  @override
+  String get captureRegistered => 'Logged ✓';
+
+  @override
+  String get transactionDetailTitle => 'Transaction';
+
+  @override
+  String get transactionDetailSourceImage => 'Source image';
+
+  @override
+  String get transactionDetailSourceImageNote =>
+      'You can revisit the source image anytime';
+
+  @override
+  String get transactionDetailNoImageManual => 'No image · entered manually';
+
+  @override
+  String get transactionDetailNoImage => 'No source image';
+
+  @override
+  String get transactionDetailZoom => 'Zoom';
+
+  @override
+  String get transactionDetailDeleteImage => 'Delete image only';
+
+  @override
+  String get transactionDetailDeleteImageConfirmationTitle =>
+      'Delete the source image?';
+
+  @override
+  String get transactionDetailDeleteImageConfirmationMessage =>
+      'The transaction stays and only the image is deleted. This cannot be undone.';
+
+  @override
+  String get transactionDetailImageDeleted => 'Source image deleted';
+
+  @override
+  String get transactionDetailDelete => 'Delete transaction';
+
+  @override
+  String get transactionDetailDeleteConfirmationTitle =>
+      'Delete this transaction?';
+
+  @override
+  String get transactionDetailDeleteConfirmationMessage =>
+      'The transaction and its source image will be permanently deleted. This cannot be undone.';
+
+  @override
+  String get transactionDetailDeleted => 'Transaction deleted';
+
+  @override
+  String get transactionDetailNotFound => 'This transaction was deleted';
+
+  @override
+  String get transactionDetailProvenance => 'Source';
+
+  @override
+  String get transactionDetailExcludeFromAggregation => 'Exclude from totals';
+
+  @override
+  String get transactionDetailExcludeFromAggregationDescription =>
+      'When on, this is left out of totals and the category breakdown';
+
+  @override
+  String get transactionProvenanceAutomatic => 'Auto-imported';
+
+  @override
+  String get transactionProvenanceAdjusted => 'Adjusted';
 }
