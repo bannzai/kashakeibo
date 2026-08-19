@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/image_analysis_client.dart';
@@ -180,6 +181,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(AppLocalizationsEn().paywallTitle), findsOneWidget);
     expect(cameraOpenCount, 0);
+  });
+
+  testWidgets('月次一覧: 無料プランは直近3ヶ月より前へ月送りするとペイウォールを開き、月は変わらない', (tester) async {
+    final now = DateTime.now();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          // 当月から直近3ヶ月 (無料の範囲) ぶんの購読を空で差し替える
+          for (var monthOffset = 0; monthOffset < 3; monthOffset++) ...[
+            monthlyTransactionsProvider(
+              yearMonth: yearMonthFrom(
+                dateTime: DateTime(now.year, now.month - monthOffset),
+              ),
+            ).overrideWith((ref) => Stream.value(const [])),
+            monthlyDuplicateCandidatesProvider(
+              yearMonth: yearMonthFrom(
+                dateTime: DateTime(now.year, now.month - monthOffset),
+              ),
+            ).overrideWith((ref) => const []),
+          ],
+          ...anonymousUserOverrides(),
+          ...freePlanOverrides(monthlyScanCount: 0),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 当月 → 2ヶ月前までは無料で月送りできる
+    await tester.tap(find.byTooltip(AppLocalizationsEn().previousMonth));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(AppLocalizationsEn().previousMonth));
+    await tester.pumpAndSettle();
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsNothing);
+
+    // 3ヶ月より前 (無料範囲外) への月送りはペイウォールになり、閉じると月は変わらない
+    await tester.tap(find.byTooltip(AppLocalizationsEn().previousMonth));
+    await tester.pumpAndSettle();
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsOneWidget);
+
+    await tester.tap(
+      find.byTooltip(const DefaultMaterialLocalizations().closeButtonTooltip),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsNothing);
+    // 2ヶ月前の月ラベルのまま (英語表記の副題で判定)
+    final twoMonthsAgo = DateTime(now.year, now.month - 2);
+    expect(
+      find.textContaining(
+        DateFormat('MMMM yyyy', 'en_US').format(twoMonthsAgo).toUpperCase(),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('月次一覧: サマリー・カテゴリ内訳・明細リストがクライアント集計で表示される', (tester) async {

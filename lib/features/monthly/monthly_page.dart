@@ -12,6 +12,7 @@ import 'package:kashakeibo/features/capture/image_analysis_client.dart';
 import 'package:kashakeibo/features/capture/receipt_camera.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
 import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
+import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
 import 'package:kashakeibo/features/paywall/paywall_page.dart';
 import 'package:kashakeibo/features/paywall/scan_quota_label.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
@@ -109,11 +110,33 @@ class MonthlyPage extends HookConsumerWidget {
           children: [
             _MonthHeader(
               displayMonth: displayMonth.value,
-              onPreviousMonth: () {
-                displayMonth.value = DateTime(
+              onPreviousMonth: () async {
+                final previousMonth = DateTime(
                   displayMonth.value.year,
                   displayMonth.value.month - 1,
                 );
+                // 無料プランは直近 freePlanHistoryMonthCount ヶ月まで。それより古い月は
+                // プレミアム特典「全期間の履歴」の範囲のため、ペイウォールを挟み、
+                // プレミアムになった時だけ月送りする
+                if (!isPremium &&
+                    !isMonthWithinFreePlanHistory(
+                      month: previousMonth,
+                      now: DateTime.now(),
+                    )) {
+                  unawaited(
+                    logAnalyticsEvent(name: 'history_limit_paywall_open'),
+                  );
+                  final premiumUnlocked = await showPaywall(
+                    context: context,
+                    trigger: 'history_limit',
+                    openExternalUri: openExternalUri,
+                    logAnalyticsEvent: logAnalyticsEvent,
+                  );
+                  if (!context.mounted || premiumUnlocked != true) {
+                    return;
+                  }
+                }
+                displayMonth.value = previousMonth;
               },
               onNextMonth: () {
                 displayMonth.value = DateTime(

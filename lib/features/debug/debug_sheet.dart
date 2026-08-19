@@ -101,33 +101,55 @@ class DebugSheet extends ConsumerWidget {
               navigator.push(
                 MaterialPageRoute<void>(
                   fullscreenDialog: true,
-                  // アプリの ProviderScope とは独立した container で Offering・購入・復元だけを差し替える
-                  // (入れ子の ProviderScope で override すると dependencies の宣言が要るため、独立 root にする)。
-                  // 残量・プレミアム判定は実 Provider のまま
-                  builder: (context) => UncontrolledProviderScope(
-                    container: ProviderContainer(
-                      overrides: [
-                        premiumOfferingProvider.overrideWith(
-                          (ref) async => _sampleOffering,
-                        ),
-                        purchasePremiumPackageProvider.overrideWithValue(
-                          ({required package}) async => true,
-                        ),
-                        restorePurchasesProvider.overrideWithValue(
-                          () async => false,
-                        ),
-                      ],
-                    ),
-                    child: PaywallPage(
-                      openExternalUri: openExternalUri,
-                      logAnalyticsEvent: recordAnalyticsEvent,
-                    ),
-                  ),
+                  builder: (context) => const _SamplePaywallPage(),
                 ),
               );
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// サンプル Offering でペイウォールを表示する画面。
+///
+/// アプリの ProviderScope とは独立した container で Offering・購入・復元だけを差し替える
+/// (入れ子の ProviderScope で override すると dependencies の宣言が要るため、独立 root にする)。
+/// UncontrolledProviderScope は container を所有しないため、route の破棄と一緒に自前で dispose し、
+/// 開閉を繰り返しても RevenueCat リスナーや keepAlive の状態が蓄積しないようにする。
+class _SamplePaywallPage extends StatefulWidget {
+  const _SamplePaywallPage();
+
+  @override
+  State<_SamplePaywallPage> createState() => _SamplePaywallPageState();
+}
+
+class _SamplePaywallPageState extends State<_SamplePaywallPage> {
+  /// この画面が所有するサンプル差し替え用の container。
+  final ProviderContainer sampleProviderContainer = ProviderContainer(
+    overrides: [
+      premiumOfferingProvider.overrideWith((ref) async => _sampleOffering),
+      purchasePremiumPackageProvider.overrideWithValue(
+        ({required package}) async => true,
+      ),
+      restorePurchasesProvider.overrideWithValue(() async => false),
+    ],
+  );
+
+  @override
+  void dispose() {
+    sampleProviderContainer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return UncontrolledProviderScope(
+      container: sampleProviderContainer,
+      child: PaywallPage(
+        openExternalUri: openExternalUri,
+        logAnalyticsEvent: recordAnalyticsEvent,
       ),
     );
   }

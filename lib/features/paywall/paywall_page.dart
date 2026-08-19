@@ -399,12 +399,15 @@ class PaywallPage extends HookConsumerWidget {
                   children: [
                     _LegalLinkButton(
                       label: l10n.termsOfService,
+                      document: 'terms',
                       uri: legalDocumentUri(path: 'Terms'),
                       openExternalUri: openExternalUri,
+                      logAnalyticsEvent: logAnalyticsEvent,
                     ),
                     Text('·', style: TextStyle(color: appColors.textMuted)),
                     _LegalLinkButton(
                       label: l10n.privacyPolicy,
+                      document: 'privacy_policy',
                       uri: legalDocumentUri(
                         path:
                             Localizations.localeOf(context).languageCode == 'en'
@@ -412,6 +415,7 @@ class PaywallPage extends HookConsumerWidget {
                             : 'PrivacyPolicy',
                       ),
                       openExternalUri: openExternalUri,
+                      logAnalyticsEvent: logAnalyticsEvent,
                     ),
                   ],
                 ),
@@ -653,22 +657,36 @@ class _LegalLinkButton extends StatelessWidget {
   /// リンクの文言。
   final String label;
 
+  /// Analytics で法務ドキュメントを識別する値。
+  final String document;
+
   /// 開く URL。
   final Uri uri;
 
   /// 外部 URL を開く処理。
   final OpenExternalUri openExternalUri;
 
+  /// Analytics イベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
   const _LegalLinkButton({
     required this.label,
+    required this.document,
     required this.uri,
     required this.openExternalUri,
+    required this.logAnalyticsEvent,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: () async {
+        unawaited(
+          logAnalyticsEvent(
+            name: 'paywall_legal_document_open',
+            parameters: {'document': document},
+          ),
+        );
         try {
           await openExternalUri(uri: uri);
         } catch (error) {

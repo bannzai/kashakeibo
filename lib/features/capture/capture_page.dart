@@ -250,6 +250,10 @@ class CapturePage extends HookConsumerWidget {
         }
         analysisError.value = error;
         capturePhase.value = _CapturePhase.failed;
+        // Worker は Gemini 呼び出しの前に月次カウンターを加算するため、解析 API まで到達した失敗
+        // (502 等) でも無料枠は消費されている。残量チップが古い値のまま次の撮影で突然 402 に
+        // ならないよう、失敗時も取り直す (アップロード失敗など消費前の失敗でも読み取りだけで無害)
+        monthlyScanQuota.refresh();
         unawaited(logAnalyticsEvent(name: 'capture_analysis_failed'));
       }
     }
