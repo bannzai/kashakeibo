@@ -154,7 +154,9 @@ class TransactionDetailPage extends HookConsumerWidget {
                         name: 'transaction_exclusion_toggle',
                         parameters: {
                           'transactionID': transaction.id,
-                          'excludedFromAggregation': excludedFromAggregation,
+                          // Firebase Analytics のパラメータ値は String / num のみのため文字列にする。
+                          'excludedFromAggregation': excludedFromAggregation
+                              .toString(),
                         },
                       ),
                     );
