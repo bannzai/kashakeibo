@@ -10,28 +10,17 @@ paths:
 `ConsumerWidget` や `HookConsumerWidget` の `build` メソッド内でProviderを取得する場合は、状態Provider（`currentUserIDProvider` 等）・機能Provider（`call` メソッドを持つclass等）を問わず `ref.watch` を使い、ローカル変数に確保する。`onPressed` などのコールバック（クロージャ）内では、そのローカル変数を参照するだけにし、**コールバック内で新たに `ref.read` / `ref.watch` を呼ばない**。
 
 ```dart
-// NG: コールバック内で ref.read
-onPressed: () async {
-  final reviewed = await showSheet(...);
-  await ref.read(addShoppingListItemProvider(groupID: groupID)).call(...); // unmount後だとStateError
-}
-
-// OK: build で watch してキャプチャ
 Widget build(BuildContext context, WidgetRef ref) {
-  final addShoppingListItem = ref.watch(addShoppingListItemProvider(groupID: groupID));
+  final addTransaction = ref.watch(addTransactionProvider); // OK: build で watch してキャプチャ
   ...
   onPressed: () async {
     final reviewed = await showSheet(...);
-    await addShoppingListItem.call(...); // unmount後も安全
+    await addTransaction.call(...); // unmount後も安全。ここで ref.read すると unmount 後は StateError
   }
 }
 ```
 
-「コールバック内の `ref.read` を `ref.watch` に置換する」のではない点に注意する。build外でのwatchはできないため、**「build で watch → 変数キャプチャ → コールバックで変数使用」への構造変更**が必要になる。
-
-### 理由（#486 / #492）
-
-コールバック内で `ref.read` を呼ぶと、await後（widgetがunmountされ得るタイミング）に `ref` へ触れることになり、flutter_riverpodが `StateError('Cannot use "ref" after the widget was disposed.')` をthrowする（`_assertNotDisposed` は `context.mounted` を見て無条件throwする）。build内で `ref.watch` してキャプチャした変数のみを使う構造にすれば、refへのアクセスは常にmount中（build中）に限定されるため、このバグクラス（#486: 写真から追加フローでunmount後にref.readしてStateErrorが握りつぶされ1件も追加されない）は構造的に発生しなくなる。
+理由: コールバック内で `ref.read` を呼ぶと、await後（widgetがunmountされ得るタイミング）に `ref` へ触れることになり、flutter_riverpodが `StateError('Cannot use "ref" after the widget was disposed.')` をthrowする（実例: shoppinglist #486 の写真から追加フローで StateError が握りつぶされ 1 件も追加されない）。build内で `ref.watch` してキャプチャした変数のみを使う構造にすれば、refへのアクセスは常にmount中に限定される。「コールバック内の `ref.read` を `ref.watch` に置換する」のではなく、構造変更が必要になる点に注意する。
 
 参照:
 - https://pub.dev/documentation/flutter_riverpod/latest/flutter_riverpod/WidgetRef/read.html （「AVOID calling read inside build」）
