@@ -216,7 +216,7 @@
   "capturePickFromPhotoLibrary": "Choose from Photos",
   "capturePickFromPhotoLibraryDescription": "AI splits statement or order screenshots into entries",
   "manualEntryDescription": "Enter cash spending without an image",
-  "captureAnalyzingTitle": "AI is reading your receipt",
+  "captureAnalyzingTitle": "AI is reading your image",
   "captureAnalyzingStepLoading": "Loading the image",
   "captureAnalyzingStepReading": "Reading amount and date",
   "captureAnalyzingStepCategory": "Guessing the category",
@@ -228,7 +228,7 @@
   "captureConfirmTitle": "Review details",
   "captureSourceImageNote": "You can always revisit the source image from the transaction",
   "captureRegister": "Register",
-  "captureCandidatesNote": "Found {count} entries. Choose which ones to register.",
+  "captureCandidatesNote": "{count, plural, =1{Found 1 entry. Choose which one to register.} other{Found {count} entries. Choose which ones to register.}}",
   "@captureCandidatesNote": {
     "description": "Note shown above the candidate list when one image contains multiple transactions",
     "placeholders": {
@@ -239,7 +239,7 @@
   },
   "captureCandidateEdit": "Edit",
   "captureCandidateApplyEdit": "Apply changes",
-  "captureRegisterCount": "Register {count} entries",
+  "captureRegisterCount": "{count, plural, =1{Register 1 entry} other{Register {count} entries}}",
   "@captureRegisterCount": {
     "description": "Primary button that registers the selected candidates",
     "placeholders": {

@@ -103,10 +103,15 @@ Future<void> runCaptureFlow({
         ).showSnackBar(SnackBar(content: Text(error.toString())));
         return;
       }
-      if (!context.mounted || pickedImage == null) {
+      // キャンセルの記録は画像が選ばれなかった時だけにする (unmount で抜ける場合は
+      // ユーザーがキャンセルしたとは限らないため、両者を分けて判定する)。
+      if (pickedImage == null) {
         unawaited(
           logAnalyticsEvent(name: entryPoint.pickImageCancelAnalyticsEventName),
         );
+        return;
+      }
+      if (!context.mounted) {
         return;
       }
       capturedImage = pickedImage;

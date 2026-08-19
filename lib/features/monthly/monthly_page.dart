@@ -52,7 +52,7 @@ class MonthlyPage extends HookConsumerWidget {
     final pickCaptureImageFromPhotoLibrary = ref.watch(
       pickCaptureImageFromPhotoLibraryProvider,
     );
-    final takeSharedImages = ref.watch(takeSharedImagesProvider);
+    final takeNextSharedImage = ref.watch(takeNextSharedImageProvider);
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
 
@@ -60,7 +60,7 @@ class MonthlyPage extends HookConsumerWidget {
     // (features/share_import)。
     useSharedImageImport(
       context: context,
-      takeSharedImages: takeSharedImages,
+      takeNextSharedImage: takeNextSharedImage,
       pickImageFromPhotoLibrary: pickCaptureImageFromPhotoLibrary,
       logAnalyticsEvent: logAnalyticsEvent,
     );

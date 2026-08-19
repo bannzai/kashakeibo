@@ -11,14 +11,14 @@ void main() {
   /// MethodChannel を mock し、呼ばれたメソッド名を [invokedMethodNames] に記録する。
   void mockSharedImageInbox({
     required List<String> invokedMethodNames,
-    required List<Map<Object?, Object?>> sharedImages,
+    required Map<Object?, Object?>? sharedImage,
   }) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(sharedImageInboxMethodChannel, (
           methodCall,
         ) async {
           invokedMethodNames.add(methodCall.method);
-          return sharedImages;
+          return sharedImage;
         });
     addTearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -26,62 +26,51 @@ void main() {
     });
   }
 
-  test('iOS: ネイティブが返した画像を CapturedImage に変換する', () async {
+  test('iOS: ネイティブが返した 1 枚の画像を CapturedImage に変換する', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
     final invokedMethodNames = <String>[];
     mockSharedImageInbox(
       invokedMethodNames: invokedMethodNames,
-      sharedImages: [
-        {
-          'imageBytes': Uint8List.fromList([1, 2, 3]),
-          'imageContentType': 'image/png',
-        },
-        {
-          'imageBytes': Uint8List.fromList([4, 5]),
-          'imageContentType': 'image/jpeg',
-        },
-      ],
+      sharedImage: {
+        'imageBytes': Uint8List.fromList([1, 2, 3]),
+        'imageContentType': 'image/png',
+      },
     );
 
-    final sharedImages = await takeSharedImages();
+    final sharedImage = await takeNextSharedImage();
 
-    expect(invokedMethodNames, ['takeSharedImages']);
-    expect(sharedImages.map((sharedImage) => sharedImage.imageContentType), [
-      'image/png',
-      'image/jpeg',
-    ]);
-    expect(sharedImages.first.imageBytes, Uint8List.fromList([1, 2, 3]));
+    expect(invokedMethodNames, ['takeNextSharedImage']);
+    expect(sharedImage?.imageContentType, 'image/png');
+    expect(sharedImage?.imageBytes, Uint8List.fromList([1, 2, 3]));
   });
 
-  test('iOS: 共有された画像が無ければ空リストを返す', () async {
+  test('iOS: 共有された画像が無ければ null を返す', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
     final invokedMethodNames = <String>[];
     mockSharedImageInbox(
       invokedMethodNames: invokedMethodNames,
-      sharedImages: [],
+      sharedImage: null,
     );
 
-    expect(await takeSharedImages(), isEmpty);
-    expect(invokedMethodNames, ['takeSharedImages']);
+    expect(await takeNextSharedImage(), isNull);
+    expect(invokedMethodNames, ['takeNextSharedImage']);
   });
 
-  test('iOS 以外ではチャネルを呼ばずに空リストを返す', () async {
+  test('iOS 以外ではチャネルを呼ばずに null を返す', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
     final invokedMethodNames = <String>[];
     mockSharedImageInbox(
       invokedMethodNames: invokedMethodNames,
-      sharedImages: [
-        {
-          'imageBytes': Uint8List.fromList([1, 2, 3]),
-          'imageContentType': 'image/png',
-        },
-      ],
+      sharedImage: {
+        'imageBytes': Uint8List.fromList([1, 2, 3]),
+        'imageContentType': 'image/png',
+      },
     );
 
-    expect(await takeSharedImages(), isEmpty);
+    expect(await takeNextSharedImage(), isNull);
     expect(invokedMethodNames, isEmpty);
   });
 }

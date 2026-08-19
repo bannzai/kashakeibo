@@ -101,7 +101,11 @@ class ShareViewController: UIViewController {
       guard halvedSize.width >= 1, halvedSize.height >= 1 else {
         throw ShareExtensionError.unreadableImage
       }
-      image = UIGraphicsImageRenderer(size: halvedSize).image { _ in
+      let rendererFormat = UIGraphicsImageRendererFormat.default()
+      // UIGraphicsImageRenderer の既定 scale は端末の画面 scale (2〜3) で、point を半分にしても
+      // ピクセルが減らないことがあるため、元画像の scale を維持して確実にピクセル数を 1/4 にする。
+      rendererFormat.scale = image.scale
+      image = UIGraphicsImageRenderer(size: halvedSize, format: rendererFormat).image { _ in
         image.draw(in: CGRect(origin: .zero, size: halvedSize))
       }
     }

@@ -262,7 +262,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String captureCandidatesNote(int count) {
-    return '$count 件の明細を読み取りました。登録する明細を選んでください';
+    return '$count件の明細を読み取りました。登録する明細を選んでください';
   }
 
   @override
@@ -273,7 +273,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String captureRegisterCount(int count) {
-    return '$count 件を登録する';
+    return '$count件を登録する';
   }
 
   @override

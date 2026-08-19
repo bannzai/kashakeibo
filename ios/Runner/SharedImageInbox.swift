@@ -17,9 +17,9 @@ enum SharedImageInbox {
     let methodChannel = FlutterMethodChannel(name: methodChannelName, binaryMessenger: registrar.messenger())
     methodChannel.setMethodCallHandler { call, result in
       switch call.method {
-      case "takeSharedImages":
+      case "takeNextSharedImage":
         do {
-          result(try takeSharedImages())
+          result(try takeNextSharedImage())
         } catch {
           result(FlutterError(code: "shared_image_inbox", message: error.localizedDescription, details: nil))
         }
@@ -29,18 +29,19 @@ enum SharedImageInbox {
     }
   }
 
-  /// 受信箱の画像を共有された順にすべて取り出し、取り出した画像ファイルを削除する。
-  /// 戻り値の要素は {"imageBytes": バイト列, "imageContentType": MIME タイプ}。
-  /// 取り出したファイルを消すため冪等ではない (2 回目の呼び出しは空になる)。同じ画像を二重に取り込まないための仕様。
-  /// 個々のファイルの読み込み・削除の失敗はそのファイルをスキップして受信箱に残し、
-  /// 読み出せた分を返す (1 件の失敗で取得済みの画像まで失わない)。
-  static func takeSharedImages() throws -> [[String: Any]] {
+  /// 受信箱の最も古い画像を 1 枚だけ取り出し、取り出した画像ファイルを削除する。
+  /// 戻り値は {"imageBytes": バイト列, "imageContentType": MIME タイプ}。受信箱が空なら nil。
+  ///
+  /// まとめてではなく 1 枚ずつ取り出すのは、確認フローの途中でアプリが終了しても未処理の画像を
+  /// 受信箱に残すためと、複数枚の一括転送によるメモリ圧迫を避けるため。
+  /// 取り出したファイルを消すため冪等ではない (同じ画像を二重に取り込まないための仕様)。
+  static func takeNextSharedImage() throws -> [String: Any]? {
     guard
       let inboxDirectoryURL = try SharedImageInboxLocation.inboxDirectoryURL(
         hostAppBundleIdentifier: Bundle.main.bundleIdentifier ?? ""
       )
     else {
-      return []
+      return nil
     }
     let imageFileURLs = try FileManager.default.contentsOfDirectory(
       at: inboxDirectoryURL,
@@ -49,20 +50,20 @@ enum SharedImageInbox {
     )
     // ファイル名は Extension が「時刻 + 連番」で付ける (ShareViewController) ため名前順 = 共有順。
     .sorted { $0.lastPathComponent < $1.lastPathComponent }
-    var sharedImages: [[String: Any]] = []
     for imageFileURL in imageFileURLs {
       do {
         let imageData = try Data(contentsOf: imageFileURL)
         try FileManager.default.removeItem(at: imageFileURL)
-        sharedImages.append([
+        return [
           "imageBytes": FlutterStandardTypedData(bytes: imageData),
           "imageContentType": UTType(filenameExtension: imageFileURL.pathExtension)?.preferredMIMEType ?? "image/jpeg",
-        ])
+        ]
       } catch {
-        // 次回の takeSharedImages (foreground 復帰時等) で再試行される。
+        // 読み込み・削除に失敗したファイルは受信箱に残したままスキップし、次のファイルを試す。
+        // 残したファイルは次回の takeNextSharedImage (foreground 復帰時等) で再試行される。
         NSLog("共有画像の取り出しに失敗したためスキップします: %@", error.localizedDescription)
       }
     }
-    return sharedImages
+    return nil
   }
 }

@@ -89,7 +89,7 @@
   "captureConfirmTitle": "読み取り確認",
   "captureSourceImageNote": "読み取りに使った元画像は、明細からいつでも見返せます",
   "captureRegister": "登録する",
-  "captureCandidatesNote": "{count} 件の明細を読み取りました。登録する明細を選んでください",
+  "captureCandidatesNote": "{count}件の明細を読み取りました。登録する明細を選んでください",
   "@captureCandidatesNote": {
     "placeholders": {
       "count": {
@@ -99,7 +99,7 @@
   },
   "captureCandidateEdit": "修正する",
   "captureCandidateApplyEdit": "変更を反映",
-  "captureRegisterCount": "{count} 件を登録する",
+  "captureRegisterCount": "{count}件を登録する",
   "@captureRegisterCount": {
     "placeholders": {
       "count": {

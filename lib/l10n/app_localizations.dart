@@ -521,7 +521,7 @@ abstract class AppLocalizations {
   /// No description provided for @captureAnalyzingTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI is reading your receipt'**
+  /// **'AI is reading your image'**
   String get captureAnalyzingTitle;
 
   /// No description provided for @captureAnalyzingStepLoading.
@@ -593,7 +593,7 @@ abstract class AppLocalizations {
   /// Note shown above the candidate list when one image contains multiple transactions
   ///
   /// In en, this message translates to:
-  /// **'Found {count} entries. Choose which ones to register.'**
+  /// **'{count, plural, =1{Found 1 entry. Choose which one to register.} other{Found {count} entries. Choose which ones to register.}}'**
   String captureCandidatesNote(int count);
 
   /// No description provided for @captureCandidateEdit.
@@ -611,7 +611,7 @@ abstract class AppLocalizations {
   /// Primary button that registers the selected candidates
   ///
   /// In en, this message translates to:
-  /// **'Register {count} entries'**
+  /// **'{count, plural, =1{Register 1 entry} other{Register {count} entries}}'**
   String captureRegisterCount(int count);
 
   /// No description provided for @captureRegistered.

@@ -236,7 +236,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manualEntryDescription => 'Enter cash spending without an image';
 
   @override
-  String get captureAnalyzingTitle => 'AI is reading your receipt';
+  String get captureAnalyzingTitle => 'AI is reading your image';
 
   @override
   String get captureAnalyzingStepLoading => 'Loading the image';
@@ -275,7 +275,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String captureCandidatesNote(int count) {
-    return 'Found $count entries. Choose which ones to register.';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Found $count entries. Choose which ones to register.',
+      one: 'Found 1 entry. Choose which one to register.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -286,7 +292,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String captureRegisterCount(int count) {
-    return 'Register $count entries';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Register $count entries',
+      one: 'Register 1 entry',
+    );
+    return '$_temp0';
   }
 
   @override

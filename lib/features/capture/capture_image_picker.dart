@@ -24,7 +24,9 @@ final pickCaptureImageFromPhotoLibraryProvider = Provider<PickCaptureImage>(
 
 // 撮影画像の長辺の上限 (px)。レシートの文字を Gemini が読める解像度を保ちつつ、
 // アップロード・解析 (インライン画像は 20MB 上限) のサイズを数百 KB に抑える値。
-const _capturedImageMaxWidth = 1600.0;
+// image_picker は maxWidth / maxHeight を縦横それぞれの上限として扱うため、
+// 縦長・横長のどちらでも長辺が収まるように両方へ同じ値を渡す。
+const _capturedImageMaxLongSide = 1600.0;
 
 // JPEG 再圧縮の品質。文字の可読性を落とさない範囲でサイズを抑える一般的な値。
 const _capturedImageQuality = 85;
@@ -35,7 +37,8 @@ const _capturedImageQuality = 85;
 Future<CapturedImage?> captureReceiptImageWithCamera() async {
   final pickedFile = await ImagePicker().pickImage(
     source: ImageSource.camera,
-    maxWidth: _capturedImageMaxWidth,
+    maxWidth: _capturedImageMaxLongSide,
+    maxHeight: _capturedImageMaxLongSide,
     imageQuality: _capturedImageQuality,
   );
   if (pickedFile == null) {
@@ -56,7 +59,8 @@ Future<CapturedImage?> captureReceiptImageWithCamera() async {
 Future<CapturedImage?> pickCaptureImageFromPhotoLibrary() async {
   final pickedFile = await ImagePicker().pickImage(
     source: ImageSource.gallery,
-    maxWidth: _capturedImageMaxWidth,
+    maxWidth: _capturedImageMaxLongSide,
+    maxHeight: _capturedImageMaxLongSide,
     imageQuality: _capturedImageQuality,
   );
   if (pickedFile == null) {
@@ -73,7 +77,7 @@ Future<CapturedImage?> pickCaptureImageFromPhotoLibrary() async {
 /// ファイル拡張子から Content-Type を推定する。
 ///
 /// image_picker は iOS で mimeType を返さないことがあるため、拡張子で補う。
-/// maxWidth / imageQuality を指定した撮影・選択は JPEG で保存されるため、既定は image/jpeg。
+/// maxWidth / maxHeight / imageQuality を指定した撮影・選択は JPEG で保存されるため、既定は image/jpeg。
 String _imageContentTypeFromPath({required String imagePath}) {
   final lowerCasePath = imagePath.toLowerCase();
   if (lowerCasePath.endsWith('.png')) {

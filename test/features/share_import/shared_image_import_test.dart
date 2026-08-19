@@ -21,8 +21,8 @@ import '../capture/capture_page_test.dart'
 
 /// [useSharedImageImport] を呼ぶだけのホスト画面 (月次一覧の代わり)。
 class _SharedImageImportHost extends HookWidget {
-  /// 共有された画像を取り出す処理。
-  final TakeSharedImages takeSharedImages;
+  /// 共有された画像を 1 枚取り出す処理。
+  final TakeNextSharedImage takeNextSharedImage;
 
   /// 「取り直す」で開くフォトライブラリの選択処理。
   final PickCaptureImage pickImageFromPhotoLibrary;
@@ -31,7 +31,7 @@ class _SharedImageImportHost extends HookWidget {
   final LogAnalyticsEvent logAnalyticsEvent;
 
   const _SharedImageImportHost({
-    required this.takeSharedImages,
+    required this.takeNextSharedImage,
     required this.pickImageFromPhotoLibrary,
     required this.logAnalyticsEvent,
   });
@@ -40,7 +40,7 @@ class _SharedImageImportHost extends HookWidget {
   Widget build(BuildContext context) {
     useSharedImageImport(
       context: context,
-      takeSharedImages: takeSharedImages,
+      takeNextSharedImage: takeNextSharedImage,
       pickImageFromPhotoLibrary: pickImageFromPhotoLibrary,
       logAnalyticsEvent: logAnalyticsEvent,
     );
@@ -61,7 +61,7 @@ void main() {
     final pendingSharedImages = <CapturedImage>[
       (imageBytes: testImageBytes, imageContentType: 'image/png'),
     ];
-    final takeSharedImagesCalls = <int>[];
+    final takeNextSharedImageCalls = <int>[];
     final analyticsEvents = <String>[];
 
     await tester.pumpWidget(
@@ -71,11 +71,12 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: _SharedImageImportHost(
-            takeSharedImages: () async {
-              takeSharedImagesCalls.add(pendingSharedImages.length);
-              final sharedImages = [...pendingSharedImages];
-              pendingSharedImages.clear();
-              return sharedImages;
+            takeNextSharedImage: () async {
+              takeNextSharedImageCalls.add(pendingSharedImages.length);
+              if (pendingSharedImages.isEmpty) {
+                return null;
+              }
+              return pendingSharedImages.removeAt(0);
             },
             pickImageFromPhotoLibrary: () async => null,
             logAnalyticsEvent: ({required name, parameters}) async {
@@ -92,13 +93,13 @@ void main() {
     expect(analyticsEvents, contains('capture_shared_image_received'));
     expect(captureFakes.uploadedImageContentTypes, ['image/png']);
     // 確認画面を表示している間は次の取り出しを行わない
-    expect(takeSharedImagesCalls, [1]);
+    expect(takeNextSharedImageCalls, [1]);
 
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
 
-    // 1 巡した後に取り出し直し、空になったところで取り込みを終える
-    expect(takeSharedImagesCalls, [1, 0]);
+    // 1 枚処理した後に取り出し直し、空 (null) になったところで取り込みを終える
+    expect(takeNextSharedImageCalls, [1, 0]);
     expect(find.text(AppLocalizationsEn().captureConfirmTitle), findsNothing);
   });
 
@@ -119,10 +120,11 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: _SharedImageImportHost(
-            takeSharedImages: () async {
-              final sharedImages = [...pendingSharedImages];
-              pendingSharedImages.clear();
-              return sharedImages;
+            takeNextSharedImage: () async {
+              if (pendingSharedImages.isEmpty) {
+                return null;
+              }
+              return pendingSharedImages.removeAt(0);
             },
             pickImageFromPhotoLibrary: () async => null,
             logAnalyticsEvent: ({required name, parameters}) async {},
