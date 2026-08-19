@@ -151,6 +151,53 @@ void main() {
       expect(updatedTransaction.title, 'スーパーマーケット');
     });
 
+    test('同じ元画像を参照する明細が他にあれば R2 の画像は消さず、紐付けだけを外す', () async {
+      final firebaseFirestore = FakeFirebaseFirestore();
+      // 1 枚のスクショから登録した 2 明細 (同じ元画像キーを共有)。
+      final transaction = buildTransaction(
+        id: 'transaction-id',
+        sourceImageObjectKey: 'users/user-id/shared.png',
+        excludedFromAggregation: false,
+      );
+      await saveTransaction(
+        transaction: transaction,
+        firebaseFirestore: firebaseFirestore,
+      );
+      await saveTransaction(
+        transaction: buildTransaction(
+          id: 'sibling-transaction-id',
+          sourceImageObjectKey: 'users/user-id/shared.png',
+          excludedFromAggregation: false,
+        ),
+        firebaseFirestore: firebaseFirestore,
+      );
+      final deletedImageObjectKeys = <String>[];
+
+      await RemoveTransactionSourceImage(
+        firebaseFirestore: firebaseFirestore,
+        deleteStoredImage: ({required imageObjectKey}) async {
+          deletedImageObjectKeys.add(imageObjectKey);
+        },
+      ).call(transaction: transaction);
+
+      expect(deletedImageObjectKeys, isEmpty);
+      expect(
+        (await readTransaction(
+          transactionID: 'transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.sourceImageObjectKey,
+        isNull,
+      );
+      // もう片方の明細からは引き続き元画像を辿れる。
+      expect(
+        (await readTransaction(
+          transactionID: 'sibling-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.sourceImageObjectKey,
+        'users/user-id/shared.png',
+      );
+    });
+
     test('画像が無い明細では画像削除も書き込みも行わない', () async {
       final firebaseFirestore = FakeFirebaseFirestore();
       final transaction = buildTransaction(
@@ -217,6 +264,53 @@ void main() {
           firebaseFirestore: firebaseFirestore,
         ),
         isNull,
+      );
+    });
+
+    test('同じ元画像を参照する明細が他にあれば R2 の画像は消さず、ドキュメントだけを削除する', () async {
+      final firebaseFirestore = FakeFirebaseFirestore();
+      // 1 枚のスクショから登録した 2 明細 (同じ元画像キーを共有)。
+      final transaction = buildTransaction(
+        id: 'transaction-id',
+        sourceImageObjectKey: 'users/user-id/shared.png',
+        excludedFromAggregation: false,
+      );
+      await saveTransaction(
+        transaction: transaction,
+        firebaseFirestore: firebaseFirestore,
+      );
+      await saveTransaction(
+        transaction: buildTransaction(
+          id: 'sibling-transaction-id',
+          sourceImageObjectKey: 'users/user-id/shared.png',
+          excludedFromAggregation: false,
+        ),
+        firebaseFirestore: firebaseFirestore,
+      );
+      final deletedImageObjectKeys = <String>[];
+
+      await DeleteTransaction(
+        firebaseFirestore: firebaseFirestore,
+        deleteStoredImage: ({required imageObjectKey}) async {
+          deletedImageObjectKeys.add(imageObjectKey);
+        },
+      ).call(transaction: transaction);
+
+      expect(deletedImageObjectKeys, isEmpty);
+      expect(
+        await readTransaction(
+          transactionID: 'transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ),
+        isNull,
+      );
+      // もう片方の明細からは引き続き元画像を辿れる。
+      expect(
+        (await readTransaction(
+          transactionID: 'sibling-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.sourceImageObjectKey,
+        'users/user-id/shared.png',
       );
     });
 
