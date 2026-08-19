@@ -13,6 +13,8 @@ import 'package:kashakeibo/l10n/app_localizations_en.dart';
 import 'package:kashakeibo/provider/account.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
 import 'package:kashakeibo/provider/transaction.dart';
+import 'package:kashakeibo/style/app_theme.dart';
+import 'package:kashakeibo/style/tokens.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// Analyticsを必要としないウィジェットテスト用の記録処理。
@@ -483,6 +485,85 @@ void main() {
       find.text(AppLocalizationsEn().duplicateCandidateCount(1)),
       findsOneWidget,
     );
+  });
+
+  testWidgets('テーマ: ダークテーマでも月次一覧・設定画面が描画される', (tester) async {
+    final transactions = [
+      buildTransaction(
+        id: 'income-1',
+        type: TransactionType.income,
+        amount: 280000,
+        category: TransactionCategory.salary,
+        title: '給与',
+        excludedFromAggregation: false,
+      ),
+      buildTransaction(
+        id: 'expense-1',
+        type: TransactionType.expense,
+        amount: 1200,
+        category: TransactionCategory.food,
+        title: 'スーパーマーケット',
+        excludedFromAggregation: false,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(transactions)),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => const []),
+          ...anonymousUserOverrides(),
+        ],
+        child: MaterialApp(
+          theme: buildAppTheme(brightness: Brightness.light),
+          darkTheme: buildAppTheme(brightness: Brightness.dark),
+          themeMode: ThemeMode.dark,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final monthlyContext = tester.element(find.byType(MonthlyPage));
+    expect(
+      Theme.of(monthlyContext).extension<AppColorScheme>(),
+      AppColorScheme.dark,
+    );
+    expect(
+      Theme.of(monthlyContext).scaffoldBackgroundColor,
+      AppColorScheme.dark.background,
+    );
+
+    await tester.tap(find.byTooltip(AppLocalizationsEn().openSettings));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().settings), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('テーマ: ライトテーマの ColorScheme と TextTheme にデザイントークンが載る', () {
+    final theme = buildAppTheme(brightness: Brightness.light);
+
+    expect(theme.colorScheme.primary, AppColors.primary);
+    expect(theme.colorScheme.surface, AppColors.neutral100);
+    expect(theme.scaffoldBackgroundColor, AppColors.background);
+    expect(theme.textTheme.titleLarge!.fontSize, 19);
+    expect(theme.textTheme.titleLarge!.fontWeight, FontWeight.w800);
+    expect(theme.textTheme.titleLarge!.fontFamily, 'Figtree');
+    expect(theme.extension<AppColorScheme>(), AppColorScheme.light);
+
+    final darkTheme = buildAppTheme(brightness: Brightness.dark);
+
+    expect(darkTheme.colorScheme.brightness, Brightness.dark);
+    expect(darkTheme.scaffoldBackgroundColor, AppColors.onSurface);
+    expect(darkTheme.extension<AppColorScheme>(), AppColorScheme.dark);
   });
 }
 
