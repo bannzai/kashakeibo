@@ -53,7 +53,7 @@ npm run typecheck
 
 ローカルで Flutter アプリから叩く時は、`.dev.vars` (git 管理外) に `GEMINI_API_KEY=...` を置いて `npx wrangler dev --env dev --port 8787` で起動し、アプリを `--dart-define=IMAGE_API_BASE_URL=http://127.0.0.1:8787` で実行する (iOS シミュレータからホストの 127.0.0.1 に到達できる)。
 
-Flutter アプリは debug ビルドでは dev `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev`、release / profile ビルドでは prod `https://kashakeibo-image-worker-prod.star-kojiki.workers.dev` を既定で使う。`IMAGE_API_BASE_URL` は上記のローカル開発などで接続先を上書きするために使う。`USE_FIREBASE_EMULATOR=true` のビルドでは App Check を有効化しないため Worker は呼び出せず、`fetchFirebaseAppCheckToken` が `StateError` を返す。
+Flutter アプリは debug ビルドでは dev `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev`、release / profile ビルドでは prod `https://kashakeibo-image-worker-prod.star-kojiki.workers.dev` を既定で使う。`IMAGE_API_BASE_URL` は上記のローカル開発などで接続先を上書きするために使う。App Check 検証を導入する PR #41 のマージ後は、`USE_FIREBASE_EMULATOR=true` のビルドでは App Check を有効化しないため Worker は呼び出せず、`fetchFirebaseAppCheckToken` が `StateError` を返す。
 
 ## デプロイ
 
