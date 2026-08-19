@@ -1,7 +1,11 @@
 # kashakeibo-image-worker
 
 レシート・スクショ画像の保存先 (Cloudflare R2) へのアクセスを一本化する Cloudflare Worker。
-Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github.com/Code-Hex/firebase-auth-cloudflare-workers) で検証し (公開 JWK は Workers KV にキャッシュ)、検証を通ったリクエストだけが R2 を読み書きできる。
+Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github.com/Code-Hex/firebase-auth-cloudflare-workers) で検証し (公開 JWK は Workers KV にキャッシュ)、さらに Firebase App Check token を `src/app_check.ts` で検証して (公開鍵 JWKS は同じ KV に別キーでキャッシュ)、両方の検証を通ったリクエストだけが R2 を読み書きできる。
+
+- ID token は「誰のリクエストか」(uid) を、App Check token は「正規のアプリからのリクエストか」を判定する。匿名認証の ID token は公開クライアント設定から誰でも取得できるため、ID token だけでは正規アプリ由来かを判定できない
+- firebase-auth-cloudflare-workers (2.0.6) は App Check token の検証 API を持たないため、Firebase Admin SDK の AppCheckTokenVerifier と同じ手順 (alg / iss / aud / sub / exp / iat / RS256 署名) を `src/app_check.ts` に Web Crypto で実装している
+- App Check は「量」の制限にはならないため、日次アップロード回数上限はそのまま併用する
 
 設計の決定は `documents/adr/0001-tech-stack.md` の「画像ストレージ」を参照。
 
@@ -9,7 +13,7 @@ AI 画像解析 (Gemini) の呼び出しも、スキャン無料枠 (uid ごと�
 
 ## API
 
-すべてのエンドポイントで `Authorization: Bearer <Firebase ID token>` が必須。未認証・検証失敗は 401。
+すべてのエンドポイントで `Authorization: Bearer <Firebase ID token>` と `X-Firebase-AppCheck: <Firebase App Check token>` の両方が必須。どちらかの欠落・検証失敗は 401 (両方通って初めて後続の処理に進む)。
 
 ### POST /images
 
@@ -36,6 +40,30 @@ npm install
 npm test        # vitest (@cloudflare/vitest-pool-workers)。R2/KV は miniflare、token 検証はスタブ
 npm run typecheck
 ```
+
+## デバッグビルドでの動作確認 (App Check debug token)
+
+Flutter の debug ビルドは App Check の debug provider (`lib/utils/firebase_app_check/firebase_app_check.dart`) を使う。debug provider は端末ごとに生成した debug token を Firebase に登録しておくと、その端末からの App Check token が有効になる (未登録の debug token では App Check token が発行されず、Worker は 401 を返す)。
+
+1. debug ビルドを起動し、コンソールに出力される debug token を控える
+   - iOS: Xcode / `flutter run` のログの `Firebase App Check Debug Token: <UUID>`
+   - Android: logcat の `DebugAppCheckProvider: Enter this debug secret into the allow list in the Firebase Console for your project: <UUID>`
+2. debug token を Firebase に登録する。App Check REST API (`projects.apps.debugTokens.create`) で登録できる (Firebase Console の App Check → アプリ → デバッグトークンを管理、でも可)。`<projectId>` は `kashakeibo-dev` / `kashakeibo-prod`、`<appId>` は Firebase の App ID (`GoogleService-Info.plist` の `GOOGLE_APP_ID` / `google-services.json` の `mobilesdk_app_id`)
+
+   ```sh
+   DEBUG_TOKEN='<手順1で控えた UUID>'
+   [ -n "$DEBUG_TOKEN" ] || { echo "DEBUG_TOKEN is empty" >&2; exit 1; }
+   curl -X POST \
+     -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+     -H "Content-Type: application/json" \
+     "https://firebaseappcheck.googleapis.com/v1/projects/<projectId>/apps/<appId>/debugTokens" \
+     -d "{\"displayName\": \"<端末名など>\", \"token\": \"$DEBUG_TOKEN\"}"
+   ```
+
+3. アプリを再起動すると debug provider が有効な App Check token を取得し、Worker へのリクエスト (`X-Firebase-AppCheck` ヘッダー) が通る
+
+- Emulator ビルド (`--dart-define=USE_FIREBASE_EMULATOR=true`) は App Check を有効化しないため Worker を呼び出せない (App Check にはエミュレータが無く、Worker 側にも検証のバイパスを設けていない)。Worker の動作確認は debug ビルド (kashakeibo-dev) で行う
+- Worker 単体の確認は `npm test` (App Check token の検証は `test/app_check.test.ts` でテスト内生成の RSA 鍵と JWT で検証。handler の認可は `test/handler.test.ts` でスタブ検証器を注入)
 
 ## デプロイ
 
