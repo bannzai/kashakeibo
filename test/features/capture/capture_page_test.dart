@@ -253,6 +253,80 @@ void main() {
     expect(captureFakes.deletedImageObjectKeys, isEmpty);
   });
 
+  testWidgets('解析成功: 店名が読み取れず空のまま既定タイトルで登録しても手調整にしない', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => const ImageAnalysisResult(
+        transactions: [
+          AnalyzedTransaction(
+            title: '',
+            amount: 500,
+            transactionDate: '2026-08-16',
+            type: TransactionType.expense,
+            category: TransactionCategory.food,
+          ),
+        ],
+      ),
+    );
+    final captureFlowResults = <CaptureFlowResult?>[];
+    final analyticsEvents = <String>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: captureFlowResults,
+      analyticsEvents: analyticsEvents,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppLocalizationsEn().captureRegister));
+    await tester.pumpAndSettle();
+
+    // 空の店名は既定タイトルで補完されるが、ユーザーは修正していないので自動取込のまま
+    expect(
+      captureFakes.addTransaction.title,
+      AppLocalizationsEn().manualEntryDefaultTitle,
+    );
+    expect(captureFakes.addTransaction.analysisAdjustedByUser, false);
+  });
+
+  testWidgets('収支種別を切り替えると、新しい種別で選べないカテゴリは既定カテゴリへ寄せる', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => buildImageAnalysisResult(),
+    );
+    final captureFlowResults = <CaptureFlowResult?>[];
+    final analyticsEvents = <String>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: captureFlowResults,
+      analyticsEvents: analyticsEvents,
+    );
+    await tester.pumpAndSettle();
+
+    // 支出・食費 → 収入へ切り替えると、食費は収入で選べないため給与になる
+    await tester.tap(find.text(AppLocalizationsEn().monthlyIncome));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.widgetWithText(
+              ChoiceChip,
+              AppLocalizationsEn().categorySalary,
+            ),
+          )
+          .selected,
+      isTrue,
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().captureRegister));
+    await tester.pumpAndSettle();
+    expect(captureFakes.addTransaction.type, TransactionType.income);
+    expect(captureFakes.addTransaction.category, TransactionCategory.salary);
+    expect(captureFakes.addTransaction.analysisAdjustedByUser, true);
+  });
+
   testWidgets('解析成功: 初期値を書き換えて登録すると手調整として保存する', (tester) async {
     useTallViewport(tester);
     final captureFakes = CaptureFakes(

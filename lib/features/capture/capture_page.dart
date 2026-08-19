@@ -166,7 +166,22 @@ class CapturePage extends HookConsumerWidget {
     final analysisError = useState<Object?>(null);
     // 再試行のたびに増やし、解析の再実行と確認フォームの初期値のリセットに使う。
     final analysisAttempt = useState(0);
+    // 登録 (Firestore 書き込み) の実行中。閉じる・取り直すを無効にし、登録と画像削除が
+    // 並行しないようにする。
+    final isSubmitting = useState(false);
+    // 登録せずに閉じる操作 (閉じる・取り直す・システムの戻る) が行われたか。
+    // アップロード完了前に閉じられた場合、完了側がこのフラグを見て画像を消す。
+    final discarded = useRef(false);
     final l10n = AppLocalizations.of(context);
+
+    /// アップロード済み画像を消す。失敗しても登録されない画像が残るだけなので例外にしない。
+    Future<void> deleteUploadedImage({required String imageObjectKey}) async {
+      try {
+        await deleteStoredImage(imageObjectKey: imageObjectKey);
+      } catch (error) {
+        debugPrint('撮影フローの中断時に画像を削除できませんでした: $error');
+      }
+    }
 
     Future<void> uploadAndAnalyze() async {
       capturePhase.value = _CapturePhase.analyzing;
@@ -179,6 +194,11 @@ class CapturePage extends HookConsumerWidget {
               imageContentType: imageContentType,
               uploadImageID: uploadImageID,
             );
+        if (discarded.value) {
+          // アップロード中に閉じられた。画面はもう無いので、できたばかりの画像を消す。
+          await deleteUploadedImage(imageObjectKey: imageObjectKey);
+          return;
+        }
         if (!context.mounted) {
           return;
         }
@@ -217,72 +237,90 @@ class CapturePage extends HookConsumerWidget {
 
     /// アップロード済みの画像を消してから画面を閉じる (登録しない終了)。
     /// 削除失敗は登録されない画像が残るだけなので、閉じる操作を妨げない。
+    /// 登録の実行中と、既に閉じる処理が始まっている時は何もしない。
     Future<void> discardAndClose({required CaptureFlowResult result}) async {
+      if (isSubmitting.value || discarded.value) {
+        return;
+      }
+      discarded.value = true;
       final imageObjectKey = uploadedImageObjectKey.value;
       if (imageObjectKey != null) {
-        try {
-          await deleteStoredImage(imageObjectKey: imageObjectKey);
-        } catch (error) {
-          debugPrint('撮影フローの中断時に画像を削除できませんでした: $error');
-        }
+        await deleteUploadedImage(imageObjectKey: imageObjectKey);
       }
       if (context.mounted) {
         Navigator.of(context).pop(result);
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        title: Text(switch (capturePhase.value) {
-          _CapturePhase.analyzing => l10n.captureAnalyzingTitle,
-          _CapturePhase.failed => l10n.captureAnalysisFailedTitle,
-          _CapturePhase.confirming => l10n.captureConfirmTitle,
-        }, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-        leading: IconButton(
-          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-          icon: const Icon(Icons.close),
-          onPressed: () {
-            unawaited(logAnalyticsEvent(name: 'capture_cancel'));
-            discardAndClose(result: CaptureFlowResult.cancelled);
+    // システムの戻る操作 (Android の戻る等) でも閉じるボタンと同じ破棄処理を通す。
+    // 登録中は pop 自体を受け付けない。
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          return;
+        }
+        unawaited(logAnalyticsEvent(name: 'capture_cancel'));
+        discardAndClose(result: CaptureFlowResult.cancelled);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          title: Text(switch (capturePhase.value) {
+            _CapturePhase.analyzing => l10n.captureAnalyzingTitle,
+            _CapturePhase.failed => l10n.captureAnalysisFailedTitle,
+            _CapturePhase.confirming => l10n.captureConfirmTitle,
+          }, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+          leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+            icon: const Icon(Icons.close),
+            onPressed: isSubmitting.value
+                ? null
+                : () {
+                    unawaited(logAnalyticsEvent(name: 'capture_cancel'));
+                    discardAndClose(result: CaptureFlowResult.cancelled);
+                  },
+          ),
+        ),
+        body: SafeArea(
+          child: switch (capturePhase.value) {
+            _CapturePhase.analyzing => const _AnalyzingView(),
+            _CapturePhase.failed => _AnalysisFailedView(
+              error: analysisError.value,
+              onRetry: () {
+                unawaited(logAnalyticsEvent(name: 'capture_analysis_retry'));
+                analysisAttempt.value++;
+              },
+              onManualFallback: () {
+                unawaited(logAnalyticsEvent(name: 'capture_manual_fallback'));
+                analyzedTransaction.value = null;
+                capturePhase.value = _CapturePhase.confirming;
+              },
+              onRetake: () {
+                unawaited(logAnalyticsEvent(name: 'capture_retake'));
+                discardAndClose(result: CaptureFlowResult.retake);
+              },
+            ),
+            _CapturePhase.confirming => _CaptureConfirmForm(
+              // 再試行で解析し直した時にフォームの初期値を作り直す。
+              key: ValueKey(analysisAttempt.value),
+              imageBytes: imageBytes,
+              analyzedTransaction: analyzedTransaction.value,
+              sourceImageObjectKey: uploadedImageObjectKey.value,
+              addTransaction: addTransaction,
+              logAnalyticsEvent: logAnalyticsEvent,
+              onSubmittingChanged: (submitting) {
+                isSubmitting.value = submitting;
+              },
+              onRegistered: () =>
+                  Navigator.of(context).pop(CaptureFlowResult.registered),
+              onRetake: () {
+                unawaited(logAnalyticsEvent(name: 'capture_retake'));
+                discardAndClose(result: CaptureFlowResult.retake);
+              },
+            ),
           },
         ),
-      ),
-      body: SafeArea(
-        child: switch (capturePhase.value) {
-          _CapturePhase.analyzing => const _AnalyzingView(),
-          _CapturePhase.failed => _AnalysisFailedView(
-            error: analysisError.value,
-            onRetry: () {
-              unawaited(logAnalyticsEvent(name: 'capture_analysis_retry'));
-              analysisAttempt.value++;
-            },
-            onManualFallback: () {
-              unawaited(logAnalyticsEvent(name: 'capture_manual_fallback'));
-              analyzedTransaction.value = null;
-              capturePhase.value = _CapturePhase.confirming;
-            },
-            onRetake: () {
-              unawaited(logAnalyticsEvent(name: 'capture_retake'));
-              discardAndClose(result: CaptureFlowResult.retake);
-            },
-          ),
-          _CapturePhase.confirming => _CaptureConfirmForm(
-            // 再試行で解析し直した時にフォームの初期値を作り直す。
-            key: ValueKey(analysisAttempt.value),
-            imageBytes: imageBytes,
-            analyzedTransaction: analyzedTransaction.value,
-            sourceImageObjectKey: uploadedImageObjectKey.value,
-            addTransaction: addTransaction,
-            logAnalyticsEvent: logAnalyticsEvent,
-            onRegistered: () =>
-                Navigator.of(context).pop(CaptureFlowResult.registered),
-            onRetake: () {
-              unawaited(logAnalyticsEvent(name: 'capture_retake'));
-              discardAndClose(result: CaptureFlowResult.retake);
-            },
-          ),
-        },
       ),
     );
   }
@@ -473,6 +511,9 @@ class _CaptureConfirmForm extends HookWidget {
   /// Analytics イベントを記録する処理。
   final LogAnalyticsEvent logAnalyticsEvent;
 
+  /// 登録処理の開始・終了を親へ通知する処理 (登録中は閉じる操作を無効にするため)。
+  final ValueChanged<bool> onSubmittingChanged;
+
   /// 登録完了時の処理。
   final VoidCallback onRegistered;
 
@@ -485,6 +526,7 @@ class _CaptureConfirmForm extends HookWidget {
     required this.sourceImageObjectKey,
     required this.addTransaction,
     required this.logAnalyticsEvent,
+    required this.onSubmittingChanged,
     required this.onRegistered,
     required this.onRetake,
     super.key,
@@ -514,20 +556,9 @@ class _CaptureConfirmForm extends HookWidget {
     final transactionDate = useState(initialDate);
     final submitting = useState(false);
     final registrationError = useState<Object?>(null);
-    final availableCategories = switch (transactionType.value) {
-      TransactionType.expense => const [
-        TransactionCategory.food,
-        TransactionCategory.eatingOut,
-        TransactionCategory.dailyGoods,
-        TransactionCategory.transportation,
-        TransactionCategory.subscription,
-        TransactionCategory.other,
-      ],
-      TransactionType.income => const [
-        TransactionCategory.salary,
-        TransactionCategory.other,
-      ],
-    };
+    final availableCategories = _availableCategories(
+      transactionType: transactionType.value,
+    );
 
     return Form(
       key: formKey,
@@ -619,9 +650,10 @@ class _CaptureConfirmForm extends HookWidget {
                 ? null
                 : (selection) {
                     transactionType.value = selection.single;
-                    if (!availableCategories.contains(
-                      transactionCategory.value,
-                    )) {
+                    // 切替後の種別で選べないカテゴリなら、その種別の既定カテゴリへ寄せる。
+                    if (!_availableCategories(
+                      transactionType: selection.single,
+                    ).contains(transactionCategory.value)) {
                       transactionCategory.value = switch (selection.single) {
                         TransactionType.expense => TransactionCategory.food,
                         TransactionType.income => TransactionCategory.salary,
@@ -698,16 +730,20 @@ class _CaptureConfirmForm extends HookWidget {
                       return;
                     }
                     submitting.value = true;
+                    onSubmittingChanged(true);
                     registrationError.value = null;
-                    final title = titleController.text.trim().isEmpty
+                    final inputTitle = titleController.text.trim();
+                    final title = inputTitle.isEmpty
                         ? l10n.manualEntryDefaultTitle
-                        : titleController.text.trim();
+                        : inputTitle;
                     final amount = int.parse(amountController.text);
                     // 解析結果 (初期値) から 1 項目でも変わっていれば「手調整」として記録する。
+                    // 店名は既定タイトルへの補完前の入力値で比較し、解析で店名が取れず
+                    // 空のまま登録した場合を手調整にしない。
                     // 解析に失敗して手動入力した場合は、全項目がユーザー入力のため常に手調整。
                     final analysisAdjustedByUser =
                         analyzedTransaction == null ||
-                        title != initialTitle ||
+                        inputTitle != initialTitle ||
                         amount != initialAmount ||
                         transactionType.value != initialType ||
                         transactionCategory.value != initialCategory ||
@@ -733,6 +769,7 @@ class _CaptureConfirmForm extends HookWidget {
                       }
                       registrationError.value = error;
                       submitting.value = false;
+                      onSubmittingChanged(false);
                     }
                   },
             style: FilledButton.styleFrom(
@@ -774,3 +811,21 @@ DateTime? _parseAnalyzedDate({required String? dateText}) {
   final parsedDate = DateTime.tryParse(dateText);
   return parsedDate == null ? null : DateUtils.dateOnly(parsedDate);
 }
+
+/// 収支種別ごとに選べるカテゴリ (手動入力と同じ体系)。
+List<TransactionCategory> _availableCategories({
+  required TransactionType transactionType,
+}) => switch (transactionType) {
+  TransactionType.expense => const [
+    TransactionCategory.food,
+    TransactionCategory.eatingOut,
+    TransactionCategory.dailyGoods,
+    TransactionCategory.transportation,
+    TransactionCategory.subscription,
+    TransactionCategory.other,
+  ],
+  TransactionType.income => const [
+    TransactionCategory.salary,
+    TransactionCategory.other,
+  ],
+};
