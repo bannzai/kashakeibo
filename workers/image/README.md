@@ -48,7 +48,7 @@ Flutter の debug ビルドは App Check の debug provider (`lib/utils/firebase
 1. debug ビルドを起動し、コンソールに出力される debug token を控える
    - iOS: Xcode / `flutter run` のログの `Firebase App Check Debug Token: <UUID>`
    - Android: logcat の `DebugAppCheckProvider: Enter this debug secret into the allow list in the Firebase Console for your project: <UUID>`
-2. debug token を Firebase に登録する。App Check REST API (`projects.apps.debugTokens.create`) で登録できる (Firebase Console の App Check → アプリ → デバッグトークンを管理、でも可)。`<projectId>` は `kashakeibo-dev` / `kashakeibo-prod`、`<appId>` は Firebase の App ID (`GoogleService-Info.plist` の `GOOGLE_APP_ID` / `google-services.json` の `mobilesdk_app_id`)
+2. debug token を **kashakeibo-dev にだけ** 登録する。App Check REST API (`projects.apps.debugTokens.create`) で登録できる (Firebase Console の App Check → アプリ → デバッグトークンを管理、でも可)。`<appId>` は dev の Firebase App ID (`ios/Firebase/dev/GoogleService-Info.plist` の `GOOGLE_APP_ID` / `android/app/src/debug/google-services.json` の `mobilesdk_app_id`)
 
    ```sh
    DEBUG_TOKEN='<手順1で控えた UUID>'
@@ -56,9 +56,11 @@ Flutter の debug ビルドは App Check の debug provider (`lib/utils/firebase
    curl -X POST \
      -H "Authorization: Bearer $(gcloud auth print-access-token)" \
      -H "Content-Type: application/json" \
-     "https://firebaseappcheck.googleapis.com/v1/projects/<projectId>/apps/<appId>/debugTokens" \
+     "https://firebaseappcheck.googleapis.com/v1/projects/kashakeibo-dev/apps/<appId>/debugTokens" \
      -d "{\"displayName\": \"<端末名など>\", \"token\": \"$DEBUG_TOKEN\"}"
    ```
+
+   - kashakeibo-prod には debug token を登録しない。本番に登録すると、DeviceCheck / Play Integrity の attest を通らなくても端末ログに出力される静的な debug secret だけで本番向け App Check token を発行できるようになり、secret がログや共有資料から漏れた時に「正規アプリ由来」の制限を任意のスクリプトから迂回できる。debug ビルドは kashakeibo-dev に接続する構成 (`lib/main.dart`) なので、dev への登録だけで動作確認は足りる
 
 3. アプリを再起動すると debug provider が有効な App Check token を取得し、Worker へのリクエスト (`X-Firebase-AppCheck` ヘッダー) が通る
 
