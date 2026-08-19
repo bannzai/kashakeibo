@@ -7,6 +7,7 @@ import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/transaction_labels.dart';
 import 'package:kashakeibo/provider/transaction.dart';
+import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
 
 /// 手動明細入力シートを表示し、登録完了時は true を返す。
@@ -37,6 +38,7 @@ class ManualEntrySheet extends HookConsumerWidget {
     final registrationComplete = useState(false);
     final registrationError = useState<Object?>(null);
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
     final availableCategories = switch (transactionType.value) {
       TransactionType.expense => const [
         TransactionCategory.food,
@@ -54,10 +56,10 @@ class ManualEntrySheet extends HookConsumerWidget {
 
     final content = Padding(
       padding: EdgeInsets.fromLTRB(
-        20,
-        16,
-        20,
-        MediaQuery.viewInsetsOf(context).bottom + 20,
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        MediaQuery.viewInsetsOf(context).bottom + AppSpacing.xl,
       ),
       child: SingleChildScrollView(
         child: Form(
@@ -71,10 +73,7 @@ class ManualEntrySheet extends HookConsumerWidget {
                   Expanded(
                     child: Text(
                       l10n.manualEntryTitle,
-                      style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: AppTextStyles.screenTitle,
                     ),
                   ),
                   IconButton(
@@ -88,7 +87,7 @@ class ManualEntrySheet extends HookConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: amountController,
                 autofocus: true,
@@ -97,7 +96,6 @@ class ManualEntrySheet extends HookConsumerWidget {
                 decoration: InputDecoration(
                   labelText: l10n.manualEntryAmount,
                   prefixText: '¥ ',
-                  border: const OutlineInputBorder(),
                 ),
                 style: const TextStyle(
                   fontSize: 28,
@@ -112,13 +110,10 @@ class ManualEntrySheet extends HookConsumerWidget {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               TextFormField(
                 controller: titleController,
-                decoration: InputDecoration(
-                  labelText: l10n.manualEntryStore,
-                  border: const OutlineInputBorder(),
-                ),
+                decoration: InputDecoration(labelText: l10n.manualEntryStore),
                 textInputAction: TextInputAction.done,
               ),
               const SizedBox(height: 18),
@@ -126,7 +121,7 @@ class ManualEntrySheet extends HookConsumerWidget {
                 l10n.manualEntryType,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               SegmentedButton<TransactionType>(
                 segments: [
                   ButtonSegment(
@@ -154,10 +149,10 @@ class ManualEntrySheet extends HookConsumerWidget {
                 l10n.manualEntryCategory,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
                 children: [
                   for (final category in availableCategories)
                     ChoiceChip(
@@ -178,7 +173,7 @@ class ManualEntrySheet extends HookConsumerWidget {
                 l10n.manualEntryDate,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 onPressed: submitting.value
                     ? null
@@ -204,7 +199,7 @@ class ManualEntrySheet extends HookConsumerWidget {
               ),
               if (registrationError.value != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
                   child: Text(
                     registrationError.value.toString(),
                     style: TextStyle(
@@ -212,7 +207,7 @@ class ManualEntrySheet extends HookConsumerWidget {
                     ),
                   ),
                 ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               FilledButton(
                 onPressed: submitting.value
                     ? null
@@ -256,14 +251,12 @@ class ManualEntrySheet extends HookConsumerWidget {
                       },
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
                 ),
                 child: submitting.value
-                    ? const SizedBox.square(
+                    ? SizedBox.square(
                         dimension: 22,
                         child: CircularProgressIndicator(
-                          color: AppColors.onPrimary,
+                          color: appColors.onPrimary,
                           strokeWidth: 2,
                         ),
                       )

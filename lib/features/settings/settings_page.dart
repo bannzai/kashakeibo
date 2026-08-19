@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/provider/account.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
+import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -52,6 +53,7 @@ class SettingsPage extends HookConsumerWidget {
     // 戻る操作を経路 (AppBar の戻るボタン / スワイプ) によらず一度だけ記録する。
     final settingsCloseLogged = useRef(false);
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
     final privacyPolicyPath =
         Localizations.localeOf(context).languageCode == 'en'
         ? 'PrivacyPolicy-en'
@@ -122,8 +124,6 @@ class SettingsPage extends HookConsumerWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: AppColors.background,
-          surfaceTintColor: AppColors.background,
           leading: IconButton(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             icon: const BackButtonIcon(),
@@ -132,10 +132,7 @@ class SettingsPage extends HookConsumerWidget {
               Navigator.of(context).pop();
             },
           ),
-          title: Text(
-            l10n.settings,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
-          ),
+          title: Text(l10n.settings),
         ),
         body: SafeArea(
           child: firebaseUserAsync.when(
@@ -156,7 +153,12 @@ class SettingsPage extends HookConsumerWidget {
                 providerID: 'google.com',
               );
               return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  14,
+                  AppSpacing.xl,
+                  24,
+                ),
                 children: [
                   _BackupCard(
                     configured: !firebaseUser.isAnonymous,
@@ -180,8 +182,8 @@ class SettingsPage extends HookConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   Material(
-                    color: AppColors.neutral100,
-                    borderRadius: BorderRadius.circular(16),
+                    color: appColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
@@ -254,7 +256,7 @@ class SettingsPage extends HookConsumerWidget {
                               }
                             },
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.accent800,
+                        foregroundColor: appColors.destructive,
                       ),
                       child: Text(
                         l10n.deleteAccount,
@@ -306,13 +308,14 @@ class _LegalDocumentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = context.appColors;
     return ListTile(
       minTileHeight: 50,
       title: Text(
         label,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
       ),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.neutral500),
+      trailing: Icon(Icons.chevron_right, color: appColors.neutral500),
       onTap: () async {
         unawaited(
           logAnalyticsEvent(
@@ -368,12 +371,13 @@ class _BackupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.sage100,
-        border: Border.all(color: AppColors.sage300),
-        borderRadius: BorderRadius.circular(28),
+        color: appColors.sage100,
+        border: Border.all(color: appColors.sage300),
+        borderRadius: BorderRadius.circular(AppRadius.sheet),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,55 +386,54 @@ class _BackupCard extends StatelessWidget {
             children: [
               Text(
                 l10n.accountBackupTitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.sage800,
+                  color: appColors.sage800,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
-                  color: AppColors.sage300,
-                  borderRadius: BorderRadius.circular(999),
+                  color: appColors.sage300,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
                 child: Text(
                   configured
                       ? l10n.accountBackupConfigured
                       : l10n.accountBackupNotSet,
-                  style: const TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.sage800,
-                  ),
+                  style: AppTextStyles.label.copyWith(color: appColors.sage800),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             configured
                 ? l10n.accountBackupConfiguredDescription
                 : l10n.accountBackupDescription,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5,
               height: 1.6,
-              color: AppColors.sage800,
+              color: appColors.sage800,
             ),
           ),
           if (!appleLinked || !googleLinked) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 if (!appleLinked)
                   FilledButton(
                     onPressed: operationInProgress ? null : onApplePressed,
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.neutral900,
-                      foregroundColor: AppColors.background,
+                      backgroundColor: appColors.neutral900,
+                      foregroundColor: appColors.background,
                     ),
                     child: Text(l10n.linkOrSignInWithApple),
                   ),
@@ -438,9 +441,7 @@ class _BackupCard extends StatelessWidget {
                   OutlinedButton(
                     onPressed: operationInProgress ? null : onGooglePressed,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.onSurface,
-                      side: const BorderSide(color: AppColors.divider),
-                      backgroundColor: AppColors.neutral100,
+                      backgroundColor: appColors.surface,
                     ),
                     child: Text(l10n.linkOrSignInWithGoogle),
                   ),
@@ -448,7 +449,7 @@ class _BackupCard extends StatelessWidget {
             ),
           ],
           if (operationInProgress) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             const LinearProgressIndicator(),
           ],
         ],
@@ -521,7 +522,9 @@ Future<bool> _confirmAccountDeletion({
                   Navigator.of(dialogContext).pop(true);
                 }
               },
-              style: TextButton.styleFrom(foregroundColor: AppColors.accent800),
+              style: TextButton.styleFrom(
+                foregroundColor: dialogContext.appColors.destructive,
+              ),
               child: Text(l10n.delete),
             ),
           ],

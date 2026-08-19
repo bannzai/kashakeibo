@@ -4,7 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/features/auth/sign_in_resolver.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
-import 'package:kashakeibo/style/tokens.dart';
+import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:kashakeibo/utils/config/environment.dart';
 import 'package:kashakeibo/utils/firebase_app_check/firebase_app_check.dart';
@@ -37,21 +37,10 @@ class App extends StatelessWidget {
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      // design_handoff_kashakeibo/README.md の Material 3 mapping。
-      // ダークモードはデザイン未設計のためライトのみ定義する。
-      theme: ThemeData(
-        fontFamily: 'Figtree',
-        scaffoldBackgroundColor: AppColors.background,
-        colorScheme: const ColorScheme.light(
-          primary: AppColors.primary,
-          onPrimary: AppColors.onPrimary,
-          secondary: AppColors.secondary,
-          onSecondary: AppColors.onPrimary,
-          surface: AppColors.neutral100,
-          onSurface: AppColors.onSurface,
-          outline: AppColors.divider,
-        ),
-      ),
+      // デザイントークン (lib/style/) を Material 3 テーマに載せる。
+      // ダークはトーンランプ反転で定義し、端末設定 (themeMode 既定の system) に従う。
+      theme: buildAppTheme(brightness: Brightness.light),
+      darkTheme: buildAppTheme(brightness: Brightness.dark),
       home: const SignInResolver(
         child: MonthlyPage(logAnalyticsEvent: recordAnalyticsEvent),
       ),
