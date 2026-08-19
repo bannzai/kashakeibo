@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
+import 'package:kashakeibo/provider/image.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'transaction.g.dart';
@@ -19,10 +20,15 @@ CollectionReference<Map<String, dynamic>> transactionDocumentsReference({
 /// `/users/{userID}/transactions` への参照 (Entity コンバータ適用済み)。
 CollectionReference<Transaction> transactionsReference({
   required String userID,
-}) => transactionDocumentsReference(userID: userID).withConverter(
-  fromFirestore: Transaction.fromFirestore,
-  toFirestore: Transaction.toFirestore,
-);
+  FirebaseFirestore? firebaseFirestore,
+}) =>
+    transactionDocumentsReference(
+      userID: userID,
+      firebaseFirestore: firebaseFirestore,
+    ).withConverter(
+      fromFirestore: Transaction.fromFirestore,
+      toFirestore: Transaction.toFirestore,
+    );
 
 /// 指定月 (yearMonth: "2026-08" 形式) の明細一覧を取引日時の降順で購読するストリーム。
 ///
@@ -42,6 +48,20 @@ Stream<List<Transaction>> monthlyTransactions(
       .orderBy(TransactionFirestoreKeys.transactionDate, descending: true)
       .snapshots()
       .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+}
+
+/// 明細 1 件を購読するストリーム。明細詳細画面の表示に使う。
+///
+/// 削除されたドキュメントは null として流れる (詳細画面はそれを受けて閉じる)。
+@riverpod
+Stream<Transaction?> transaction(Ref ref, {required String transactionID}) {
+  final userID = ref.watch(currentUserIDProvider);
+  if (userID == null) {
+    return Stream.value(null);
+  }
+  return transactionsReference(
+    userID: userID,
+  ).doc(transactionID).snapshots().map((snapshot) => snapshot.data());
 }
 
 /// 表示月と隣接月の明細から、表示月に関係する重複候補を返す。
@@ -105,6 +125,9 @@ class AddTransaction {
   ///
   /// yearMonth はここで [transactionDate] から導出し、呼び出し側に渡させない。
   /// 両フィールドの食い違いを構造的に防ぐため。
+  ///
+  /// [sourceImageObjectKey] は撮影・取込フローでアップロード済みの元画像のキー
+  /// (手動入力は null)。[analysisAdjustedByUser] は AI 解析結果をユーザーが修正したか。
   Future<void> call({
     required TransactionType type,
     required TransactionSource source,
@@ -113,6 +136,8 @@ class AddTransaction {
     required String title,
     required DateTime transactionDate,
     required bool excludedFromAggregation,
+    required String? sourceImageObjectKey,
+    required bool analysisAdjustedByUser,
   }) async {
     final documentReference = transactionsReference(userID: userID).doc();
     final serverWrite = documentReference.set(
@@ -133,6 +158,8 @@ class AddTransaction {
             .inMinutes,
         yearMonth: yearMonthFrom(dateTime: transactionDate),
         excludedFromAggregation: excludedFromAggregation,
+        sourceImageObjectKey: sourceImageObjectKey,
+        analysisAdjustedByUser: analysisAdjustedByUser,
       ),
     );
     final localWrite = documentReference
@@ -142,6 +169,117 @@ class AddTransaction {
     // set の Future はオフライン中にサーバー同期を待ち続ける。ローカルキャッシュへの
     // 反映を登録完了として扱い、サーバー同期は Firestore の永続キューに委ねる。
     await Future.any([serverWrite, localWrite]);
+  }
+}
+
+/// 明細の計算対象除外フラグを更新する機能 Provider。
+@riverpod
+UpdateTransactionExclusion updateTransactionExclusion(Ref ref) =>
+    UpdateTransactionExclusion(firebaseFirestore: FirebaseFirestore.instance);
+
+/// 明細を集計の計算対象から除外する・戻す。
+class UpdateTransactionExclusion {
+  /// Firestore クライアント。
+  final FirebaseFirestore firebaseFirestore;
+
+  UpdateTransactionExclusion({required this.firebaseFirestore});
+
+  /// [transaction] の excludedFromAggregation を [excludedFromAggregation] に更新する。
+  ///
+  /// 同じ値を書き込む再実行は結果を変えないため冪等。
+  Future<void> call({
+    required Transaction transaction,
+    required bool excludedFromAggregation,
+  }) =>
+      transactionsReference(
+            userID: transaction.userID,
+            firebaseFirestore: firebaseFirestore,
+          )
+          .doc(transaction.id)
+          .set(
+            transaction.copyWith(
+              excludedFromAggregation: excludedFromAggregation,
+            ),
+            SetOptions(merge: true),
+          );
+}
+
+/// 明細から元画像だけを外す機能 Provider。
+@riverpod
+RemoveTransactionSourceImage removeTransactionSourceImage(Ref ref) =>
+    RemoveTransactionSourceImage(
+      firebaseFirestore: FirebaseFirestore.instance,
+      deleteStoredImage: ref.watch(deleteStoredImageProvider),
+    );
+
+/// 明細を残したまま元画像を削除する (R2 の画像を消し、明細の紐付けを外す)。
+class RemoveTransactionSourceImage {
+  /// Firestore クライアント。
+  final FirebaseFirestore firebaseFirestore;
+
+  /// Worker 経由で R2 の画像 1 件を削除する操作。
+  final DeleteStoredImage deleteStoredImage;
+
+  RemoveTransactionSourceImage({
+    required this.firebaseFirestore,
+    required this.deleteStoredImage,
+  });
+
+  /// [transaction] の元画像を削除し、sourceImageObjectKey を null にする。
+  ///
+  /// 画像の削除 (対象が無くても成功) → 紐付けの解除の順で行い、途中で失敗しても
+  /// 再実行で同じ結果に収束するため冪等。逆順にすると明細から辿れない孤児画像が残る。
+  Future<void> call({required Transaction transaction}) async {
+    final sourceImageObjectKey = transaction.sourceImageObjectKey;
+    if (sourceImageObjectKey == null) {
+      return;
+    }
+    await deleteStoredImage(imageObjectKey: sourceImageObjectKey);
+    await transactionsReference(
+          userID: transaction.userID,
+          firebaseFirestore: firebaseFirestore,
+        )
+        .doc(transaction.id)
+        .set(
+          transaction.copyWith(sourceImageObjectKey: null),
+          SetOptions(merge: true),
+        );
+  }
+}
+
+/// 明細を元画像ごと削除する機能 Provider。
+@riverpod
+DeleteTransaction deleteTransaction(Ref ref) => DeleteTransaction(
+  firebaseFirestore: FirebaseFirestore.instance,
+  deleteStoredImage: ref.watch(deleteStoredImageProvider),
+);
+
+/// 明細と、紐づく元画像を削除する。
+class DeleteTransaction {
+  /// Firestore クライアント。
+  final FirebaseFirestore firebaseFirestore;
+
+  /// Worker 経由で R2 の画像 1 件を削除する操作。
+  final DeleteStoredImage deleteStoredImage;
+
+  DeleteTransaction({
+    required this.firebaseFirestore,
+    required this.deleteStoredImage,
+  });
+
+  /// [transaction] の元画像 (あれば) と Firestore ドキュメントを削除する。
+  ///
+  /// 画像の削除 → ドキュメントの削除の順で行う。どちらも対象が無くても成功するため、
+  /// 途中で失敗しても再実行で同じ結果に収束する (冪等)。
+  Future<void> call({required Transaction transaction}) async {
+    final sourceImageObjectKey = transaction.sourceImageObjectKey;
+    if (sourceImageObjectKey != null) {
+      await deleteStoredImage(imageObjectKey: sourceImageObjectKey);
+    }
+    await transactionsReference(
+      userID: transaction.userID,
+      firebaseFirestore: firebaseFirestore,
+    ).doc(transaction.id).delete();
   }
 }
 

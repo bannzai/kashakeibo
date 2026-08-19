@@ -174,4 +174,50 @@ void main() {
       );
     });
   });
+
+  group('deleteImage', () {
+    test('DELETE /images/{オブジェクトキー} に Bearer トークン付きで送信する', () async {
+      late http.Request capturedRequest;
+      await deleteImage(
+        imageObjectKey: 'users/uid-a/uuid.png',
+        firebaseIdToken: 'test-id-token',
+        httpClient: MockClient((request) async {
+          capturedRequest = request;
+          return http.Response('{"deleted":true}', 200);
+        }),
+        baseUrl: testBaseUrl,
+      );
+
+      expect(capturedRequest.method, 'DELETE');
+      expect(
+        capturedRequest.url.toString(),
+        '$testBaseUrl/images/users/uid-a/uuid.png',
+      );
+      expect(capturedRequest.headers['Authorization'], 'Bearer test-id-token');
+    });
+
+    test('200 以外のレスポンスはボディを加工せず例外として伝える', () async {
+      await expectLater(
+        deleteImage(
+          imageObjectKey: 'users/uid-a/missing.png',
+          firebaseIdToken: 'test-id-token',
+          httpClient: MockClient(
+            (request) async => http.Response(
+              '{"error":"画像が見つかりません"}',
+              404,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            ),
+          ),
+          baseUrl: testBaseUrl,
+        ),
+        throwsA(
+          isA<http.ClientException>().having(
+            (clientException) => clientException.message,
+            'message',
+            allOf(contains('status=404'), contains('画像が見つかりません')),
+          ),
+        ),
+      );
+    });
+  });
 }

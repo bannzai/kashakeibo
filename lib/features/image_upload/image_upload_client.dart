@@ -101,3 +101,26 @@ Future<Uint8List> fetchImage({
   }
   return fetchResponse.bodyBytes;
 }
+
+/// アップロード済み画像 1 件をオブジェクトキーで削除する。
+/// 明細から画像だけを外す・明細ごと削除する時に使う (features/transaction_detail)。
+/// 冪等: Worker は対象が既に無い場合も 200 を返す。
+Future<void> deleteImage({
+  required String imageObjectKey,
+  required String firebaseIdToken,
+  required http.Client httpClient,
+  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
+  String baseUrl = imageApiBaseUrl,
+}) async {
+  final deleteResponse = await httpClient.delete(
+    Uri.parse('$baseUrl/images/$imageObjectKey'),
+    headers: {'Authorization': 'Bearer $firebaseIdToken'},
+  );
+  if (deleteResponse.statusCode != 200) {
+    // エラーメッセージは加工せずそのまま伝える (コーディング規約)
+    throw http.ClientException(
+      '画像の削除に失敗しました (status=${deleteResponse.statusCode}): ${deleteResponse.body}',
+      Uri.parse('$baseUrl/images/$imageObjectKey'),
+    );
+  }
+}

@@ -121,6 +121,19 @@ abstract class Transaction with _$Transaction {
     /// 集計に含めない、などの用途 (documents/PROJECT.md の MVP スコープ)。
     required bool excludedFromAggregation,
 
+    /// 元画像 (レシート写真・スクショ) の R2 オブジェクトキー
+    /// (`users/{userID}/{uploadImageID}.{拡張子}`。lib/features/image_upload/README.md)。
+    /// 「元の画像に戻れる」ための紐付けで、手動入力・画像を削除した明細は null。
+    /// フィールドが無い旧データも null として読む。
+    required String? sourceImageObjectKey,
+
+    /// AI 解析 (自動取込) の結果をユーザーが修正して登録したか。
+    /// 出所の表示を「自動取込」「手調整」に分けるための記録 (documents/PROJECT.md の出所記録)。
+    /// 手動入力 (source manual) は解析を経ないため常に false。
+    /// 出所記録追加前の明細にはフィールドが無く、修正の有無を判別できないため
+    /// 「修正していない」側 (false) に倒して読む。
+    @Default(false) bool analysisAdjustedByUser,
+
     /// 重複候補として提示済みで、ユーザーが「別物として残す」と判断した明細 ID。
     /// 相手側にも自身の ID を保存し、どちらを先に読み込んでも同じ候補を再提示しない。
     /// フィールドが無い旧データは未判断として扱う。

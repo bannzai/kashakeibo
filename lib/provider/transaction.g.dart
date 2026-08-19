@@ -183,6 +183,150 @@ class _MonthlyTransactionsProviderElement
   String get yearMonth => (origin as MonthlyTransactionsProvider).yearMonth;
 }
 
+String _$transactionHash() => r'f9d56522ad05702e58db5779f1475a516a345f04';
+
+/// 明細 1 件を購読するストリーム。明細詳細画面の表示に使う。
+///
+/// 削除されたドキュメントは null として流れる (詳細画面はそれを受けて閉じる)。
+///
+/// Copied from [transaction].
+@ProviderFor(transaction)
+const transactionProvider = TransactionFamily();
+
+/// 明細 1 件を購読するストリーム。明細詳細画面の表示に使う。
+///
+/// 削除されたドキュメントは null として流れる (詳細画面はそれを受けて閉じる)。
+///
+/// Copied from [transaction].
+class TransactionFamily extends Family<AsyncValue<Transaction?>> {
+  /// 明細 1 件を購読するストリーム。明細詳細画面の表示に使う。
+  ///
+  /// 削除されたドキュメントは null として流れる (詳細画面はそれを受けて閉じる)。
+  ///
+  /// Copied from [transaction].
+  const TransactionFamily();
+
+  /// 明細 1 件を購読するストリーム。明細詳細画面の表示に使う。
+  ///
+  /// 削除されたドキュメントは null として流れる (詳細画面はそれを受けて閉じる)。
+  ///
+  /// Copied from [transaction].
+  TransactionProvider call({required String transactionID}) {
+    return TransactionProvider(transactionID: transactionID);
+  }
+
+  @override
+  TransactionProvider getProviderOverride(
+    covariant TransactionProvider provider,
+  ) {
+    return call(transactionID: provider.transactionID);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'transactionProvider';
+}
+
+/// 明細 1 件を購読するストリーム。明細詳細画面の表示に使う。
+///
+/// 削除されたドキュメントは null として流れる (詳細画面はそれを受けて閉じる)。
+///
+/// Copied from [transaction].
+class TransactionProvider extends AutoDisposeStreamProvider<Transaction?> {
+  /// 明細 1 件を購読するストリーム。明細詳細画面の表示に使う。
+  ///
+  /// 削除されたドキュメントは null として流れる (詳細画面はそれを受けて閉じる)。
+  ///
+  /// Copied from [transaction].
+  TransactionProvider({required String transactionID})
+    : this._internal(
+        (ref) =>
+            transaction(ref as TransactionRef, transactionID: transactionID),
+        from: transactionProvider,
+        name: r'transactionProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$transactionHash,
+        dependencies: TransactionFamily._dependencies,
+        allTransitiveDependencies: TransactionFamily._allTransitiveDependencies,
+        transactionID: transactionID,
+      );
+
+  TransactionProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.transactionID,
+  }) : super.internal();
+
+  final String transactionID;
+
+  @override
+  Override overrideWith(
+    Stream<Transaction?> Function(TransactionRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: TransactionProvider._internal(
+        (ref) => create(ref as TransactionRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        transactionID: transactionID,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeStreamProviderElement<Transaction?> createElement() {
+    return _TransactionProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is TransactionProvider && other.transactionID == transactionID;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, transactionID.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin TransactionRef on AutoDisposeStreamProviderRef<Transaction?> {
+  /// The parameter `transactionID` of this provider.
+  String get transactionID;
+}
+
+class _TransactionProviderElement
+    extends AutoDisposeStreamProviderElement<Transaction?>
+    with TransactionRef {
+  _TransactionProviderElement(super.provider);
+
+  @override
+  String get transactionID => (origin as TransactionProvider).transactionID;
+}
+
 String _$monthlyDuplicateCandidatesHash() =>
     r'b953e2a344ac4d10a2c48cd713e19625c1126500';
 
@@ -356,6 +500,70 @@ final addTransactionProvider = AutoDisposeProvider<AddTransaction>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AddTransactionRef = AutoDisposeProviderRef<AddTransaction>;
+String _$updateTransactionExclusionHash() =>
+    r'6c00ecdbe79242144942bb94c9424ef9b7639844';
+
+/// 明細の計算対象除外フラグを更新する機能 Provider。
+///
+/// Copied from [updateTransactionExclusion].
+@ProviderFor(updateTransactionExclusion)
+final updateTransactionExclusionProvider =
+    AutoDisposeProvider<UpdateTransactionExclusion>.internal(
+      updateTransactionExclusion,
+      name: r'updateTransactionExclusionProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$updateTransactionExclusionHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateTransactionExclusionRef =
+    AutoDisposeProviderRef<UpdateTransactionExclusion>;
+String _$removeTransactionSourceImageHash() =>
+    r'8eabb594228a6cca59f3e792af2a77864aaedb4d';
+
+/// 明細から元画像だけを外す機能 Provider。
+///
+/// Copied from [removeTransactionSourceImage].
+@ProviderFor(removeTransactionSourceImage)
+final removeTransactionSourceImageProvider =
+    AutoDisposeProvider<RemoveTransactionSourceImage>.internal(
+      removeTransactionSourceImage,
+      name: r'removeTransactionSourceImageProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$removeTransactionSourceImageHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RemoveTransactionSourceImageRef =
+    AutoDisposeProviderRef<RemoveTransactionSourceImage>;
+String _$deleteTransactionHash() => r'12e77b402e74cca0a798152d832be4463d37febf';
+
+/// 明細を元画像ごと削除する機能 Provider。
+///
+/// Copied from [deleteTransaction].
+@ProviderFor(deleteTransaction)
+final deleteTransactionProvider =
+    AutoDisposeProvider<DeleteTransaction>.internal(
+      deleteTransaction,
+      name: r'deleteTransactionProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$deleteTransactionHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteTransactionRef = AutoDisposeProviderRef<DeleteTransaction>;
 String _$mergeDuplicateTransactionsHash() =>
     r'0c6949ac73defcb882f3344efb723126870bddd1';
 
