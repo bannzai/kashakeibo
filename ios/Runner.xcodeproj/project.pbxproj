@@ -697,7 +697,6 @@
 			baseConfigurationReference = 5B4439FE735E7BB99FC8ED7B /* ShareExtension-Debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = TQPN82UBBY;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -724,7 +723,6 @@
 			baseConfigurationReference = 5AF97867E0CF14F306593268 /* ShareExtension-Release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = TQPN82UBBY;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -752,7 +750,6 @@
 			baseConfigurationReference = 5AF97867E0CF14F306593268 /* ShareExtension-Release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = TQPN82UBBY;
 				GENERATE_INFOPLIST_FILE = NO;
