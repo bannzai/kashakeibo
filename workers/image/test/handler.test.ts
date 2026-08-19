@@ -921,7 +921,10 @@ describe("スキャン無料枠 (月次) とプレミアム判定", () => {
 
     const response = await requestAnalysis(uid, imageObjectKey);
     expect(response.status).toBe(503);
-    expect(((await response.json()) as { error: string }).error).toContain("status=500");
+    // RevenueCat のエラー本文 (内部情報を含み得る) はクライアントへ返さず、固定文言 + status だけを返す
+    const responseBody = (await response.json()) as { error: string };
+    expect(responseBody.error).toContain("status=500");
+    expect(responseBody.error).not.toContain("internal error");
   });
 
   it("RevenueCat の設定が無い環境では、無料枠超過を RevenueCat を呼ばずに 402 で返す (課金未セットアップ時は無料枠だけを強制する)", async () => {

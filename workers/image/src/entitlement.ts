@@ -16,6 +16,11 @@ export interface EntitlementEnv {
 
 const revenueCatApiBaseUrl = "https://api.revenuecat.com/v2";
 
+// RevenueCat API 呼び出しのタイムアウト。Workers の fetch サブリクエストには既定のタイムアウトが無く、
+// RevenueCat 側の応答遅延が解析リクエスト全体のハングに波及するのを防ぐ。
+// active_entitlements は軽い読み取り API のため、通常応答 (1 秒未満) に大きく余裕を持たせた値
+const revenueCatRequestTimeoutMilliseconds = 10_000;
+
 /**
  * RevenueCat API の呼び出しに失敗し、課金状態を判定できなかったことを表す。
  * 「プレミアムではない」とは区別し、呼び出し側は無料枠超過の 402 ではなく一時的なエラーとして返す。
@@ -50,7 +55,10 @@ export async function hasPremiumEntitlement({
   try {
     activeEntitlementsResponse = await fetch(
       `${revenueCatApiBaseUrl}/projects/${encodeURIComponent(env.REVENUECAT_PROJECT_ID)}/customers/${encodeURIComponent(appUserId)}/active_entitlements`,
-      { headers: { Authorization: `Bearer ${env.REVENUECAT_SECRET_API_KEY}` } },
+      {
+        headers: { Authorization: `Bearer ${env.REVENUECAT_SECRET_API_KEY}` },
+        signal: AbortSignal.timeout(revenueCatRequestTimeoutMilliseconds),
+      },
     );
   } catch (error) {
     throw new EntitlementVerificationError(`RevenueCat への接続に失敗しました: ${String(error)}`);
@@ -60,8 +68,13 @@ export async function hasPremiumEntitlement({
     return false;
   }
   if (!activeEntitlementsResponse.ok) {
+    // RevenueCat のエラー本文にはプロジェクト ID 等の内部情報が含まれ得るため、
+    // 詳細はログにだけ残し、クライアントへは固定文言 + status を返す
+    console.warn(
+      `RevenueCat の課金状態の取得に失敗 (status=${activeEntitlementsResponse.status}): ${await activeEntitlementsResponse.text()}`,
+    );
     throw new EntitlementVerificationError(
-      `RevenueCat の課金状態の取得に失敗しました (status=${activeEntitlementsResponse.status}): ${await activeEntitlementsResponse.text()}`,
+      `課金状態を確認できませんでした (status=${activeEntitlementsResponse.status})`,
     );
   }
   const activeEntitlements = (await activeEntitlementsResponse.json()) as { items?: { entitlement_id?: unknown }[] };
