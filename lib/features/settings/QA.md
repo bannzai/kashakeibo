@@ -1,7 +1,7 @@
 ---
 feature: settings
 verification: mobile-mcp
-last_verified_commit: 8a9634107c725e2670c43709dd1ea4493699072f
+last_verified_commit: e389e1c15b680ccf604644635cd7dda411f2623a
 last_verified_at: 2026-08-19
 ---
 
@@ -24,12 +24,10 @@ last_verified_at: 2026-08-19
 
 - [x] **設定画面の表示**: 月次一覧の設定アイコンから設定画面へ遷移し、利用規約・プライバシーポリシー・特定商取引法に基づく表示の 3 行が表示される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [ ] **法務ドキュメントを開く**: 各行をタップすると端末の既定ブラウザで bannzai.github.io/kashakeibo/ 配下の該当ページ (Terms / PrivacyPolicy / SpecifiedCommercialTransactionAct-ja) が開く
+- [x] **法務ドキュメントを開く**: 各行をタップすると端末の既定ブラウザで bannzai.github.io/kashakeibo/ 配下の該当ページ (Terms / PrivacyPolicy / SpecifiedCommercialTransactionAct-ja) が開く
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-  - ❌ 失敗: 3 行とも Safari は起動し正しい URL を開くが、どのページも GitHub Pages の「404 File not found」になり法務ドキュメントを閲覧できない。再現手順: 設定画面で Terms of Service / Privacy Policy / Commercial Transaction Disclosure のいずれかをタップ → Safari に GitHub Pages の 404 ページが出る。原因は bannzai/kashakeibo で GitHub Pages が有効化されていないこと (`gh api repos/bannzai/kashakeibo/pages` が 404 Not Found を返す。docs/ 配下のファイル自体は origin/main に存在する)。issue: 未起票
-- [ ] **英語環境のプライバシーポリシー**: 端末の言語を英語にした状態でプライバシーポリシーをタップすると PrivacyPolicy-en が開く
+- [x] **英語環境のプライバシーポリシー**: 端末の言語を英語にした状態でプライバシーポリシーをタップすると PrivacyPolicy-en が開く
   - 自動化: manual (シミュレータの言語切替を伴うため agent のシミュレータ操作で確認する)
-  - ❌ 失敗: 英語ロケールの Simulator で Privacy Policy 行が開く URL は正しく `https://bannzai.github.io/kashakeibo/PrivacyPolicy-en` になるが、そのページが 404 のため英語版プライバシーポリシーを閲覧できない。アプリ側のロケール分岐は期待どおりで、失敗の原因は GitHub Pages 未有効化 (「法務ドキュメントを開く」と同じ)。再現手順: 英語ロケールの Simulator で設定画面 → Privacy Policy をタップ → Safari の URL が PrivacyPolicy-en なのに 404 ページが出る。issue: 未起票
 - [x] **戻る操作**: 戻るボタンで月次一覧へ戻る
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 
@@ -59,7 +57,9 @@ runner の Simulator が英語ロケールのため、行の文言は英語 ("Te
 
 runner の Simulator が英語ロケールのため、行の文言は英語表示。またこの Simulator は英語ロケールなので Privacy Policy 行が開くのは PrivacyPolicy-en で、日本語ロケールでの PrivacyPolicy (ja) が開くことは本 Simulator では確認できない。
 
-3 行とも既定ブラウザ (Safari) が起動し、`bash tmp/qa/wda.sh elements` で読み取った Safari のアドレス欄はそれぞれ期待どおりの URL だった:
+前回 (2026-08-19 の初回実行) は GitHub Pages 未有効化で 404 だったが、有効化後の再確認で解消。
+
+3 行とも既定ブラウザ (Safari) が起動し、法務ドキュメントの本文が表示された。Safari のアドレス欄をタップして編集状態にし、`bash tmp/qa/wda.sh elements` の `"name": "URL"` の value で読み取ったフル URL もそれぞれ期待どおりだった:
 
 ```
 Terms of Service                  → https://bannzai.github.io/kashakeibo/Terms
@@ -67,11 +67,11 @@ Privacy Policy                    → https://bannzai.github.io/kashakeibo/Priva
 Commercial Transaction Disclosure → https://bannzai.github.io/kashakeibo/SpecifiedCommercialTransactionAct-ja
 ```
 
-しかしどの URL も GitHub Pages の「404 File not found」ページになり、法務ドキュメントが表示されない。左から Terms / Privacy Policy / Commercial Transaction Disclosure をタップした結果。
+左から Terms of Service (見出し「カシャケイボ利用規約」と本文・第1条(定義))、Privacy Policy (見出し "Privacy Policy" と英語本文・"User Information We Collect and How We Collect It")、Commercial Transaction Disclosure (見出し「特定商取引法に基づく表示」と問い合わせ先・販売価格・支払方法) をタップした結果。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/6ce15405-97c0-4bb3-8628-813b67983348.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/909425a9-d22a-47d2-b412-02fdea1972d3.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/93bd1871-7213-4ed0-858d-a8d7bb63f8f2.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/31a52e36-3cc5-444a-978e-0124191d8366.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/31d846aa-0ff6-4dff-9fd5-651cbfee782d.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/3e39e4a7-d0fe-4caf-9c7d-33b1e2e8bf39.jpg" width="320">
 
 Safari からアプリへ戻るには `bash tmp/qa/wda.sh launch com.bannzai.kashakeibo` を実行する (設定画面を開いたまま復帰する)。
 
@@ -85,9 +85,11 @@ Safari からアプリへ戻るには `bash tmp/qa/wda.sh launch com.bannzai.kas
 
 runner の Simulator は英語ロケールのため、この項目の前提 (端末の言語が英語) はそのまま満たされている。日本語ロケールに切り替えての PrivacyPolicy (ja) 側の確認は本 Simulator ではできない。
 
-Privacy Policy 行をタップすると Safari が `https://bannzai.github.io/kashakeibo/PrivacyPolicy-en` を開き、アプリ側のロケール分岐 (英語なら PrivacyPolicy-en) は期待どおり動いている。ただしそのページ自体が GitHub Pages の 404 になるため、英語版プライバシーポリシーは閲覧できない。
+前回 (2026-08-19 の初回実行) は GitHub Pages 未有効化で 404 だったが、有効化後の再確認で解消。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/909425a9-d22a-47d2-b412-02fdea1972d3.jpg" width="320">
+Privacy Policy 行をタップすると Safari が `https://bannzai.github.io/kashakeibo/PrivacyPolicy-en` を開き (アドレス欄を編集状態にして `elements` の `"name": "URL"` の value で確認)、英語版プライバシーポリシー本文が表示された。見出し "Privacy Policy" と、`bannzai (the "Provider") establishes this Privacy Policy...` で始まる英語の本文・"User Information We Collect and How We Collect It" の節が読める。アプリ側のロケール分岐 (英語なら PrivacyPolicy-en) も期待どおり。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/31d846aa-0ff6-4dff-9fd5-651cbfee782d.jpg" width="320">
 
 </details>
 
@@ -111,9 +113,8 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 ## 2. 配信
 
-- [ ] **法務ページの配信確認**: https://bannzai.github.io/kashakeibo/ の index・Terms・PrivacyPolicy・PrivacyPolicy-en・SpecifiedCommercialTransactionAct-ja・AccountDeletion が HTTP 200 を返す
+- [x] **法務ページの配信確認**: https://bannzai.github.io/kashakeibo/ の index・Terms・PrivacyPolicy・PrivacyPolicy-en・SpecifiedCommercialTransactionAct-ja・AccountDeletion が HTTP 200 を返す
   - 自動化: manual (curl での機械確認が可能。Maestro ではなくコマンド実行で確認する)
-  - ❌ 失敗: 6 URL すべてが HTTP 404 を返す。再現手順: `curl -s -o /dev/null -w '%{http_code} %{url_effective}\n' <各 URL>` を実行する (出力はエビデンス欄)。GitHub Pages 自体が有効化されておらず (`gh api repos/bannzai/kashakeibo/pages` が「Not Found」)、docs/ 配下の 6 ファイルは origin/main にあるものの配信されていない。issue: 未起票
 
 #### 動作確認
 <details>
@@ -125,33 +126,22 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 **確認日: 2026-08-19**
 
-この項目は curl での確認のためスクリーンショットは無い。ホストマシンから 6 URL に `curl -s -o /dev/null -w '%{http_code} %{url_effective}\n'` を実行した結果:
+この項目は curl での確認のため、画面のスクリーンショットではなく curl の出力を画像化して貼る (mark_verified.sh がチェック済み項目に画像を要求するため)。
+
+前回 (2026-08-19 の初回実行) は GitHub Pages 未有効化で 404 だったが、有効化後の再確認で解消。
+
+ホストマシンから 6 URL に `curl -s -o /dev/null -w '%{http_code} %{url_effective}\n'` を実行した結果、すべて 200 を返した:
 
 ```
-404 https://bannzai.github.io/kashakeibo/
-404 https://bannzai.github.io/kashakeibo/Terms
-404 https://bannzai.github.io/kashakeibo/PrivacyPolicy
-404 https://bannzai.github.io/kashakeibo/PrivacyPolicy-en
-404 https://bannzai.github.io/kashakeibo/SpecifiedCommercialTransactionAct-ja
-404 https://bannzai.github.io/kashakeibo/AccountDeletion
+200 https://bannzai.github.io/kashakeibo/
+200 https://bannzai.github.io/kashakeibo/Terms
+200 https://bannzai.github.io/kashakeibo/PrivacyPolicy
+200 https://bannzai.github.io/kashakeibo/PrivacyPolicy-en
+200 https://bannzai.github.io/kashakeibo/SpecifiedCommercialTransactionAct-ja
+200 https://bannzai.github.io/kashakeibo/AccountDeletion
 ```
 
-原因の切り分け: GitHub Pages サイトがそもそも作られていない。
-
-```
-$ gh api repos/bannzai/kashakeibo/pages
-{"message":"Not Found","documentation_url":"https://docs.github.com/rest/pages/pages#get-a-apiname-pages-site","status":"404"}
-
-$ git ls-tree --name-only origin/main docs/
-docs/AccountDeletion.md
-docs/PrivacyPolicy-en.md
-docs/PrivacyPolicy.md
-docs/SpecifiedCommercialTransactionAct-ja.md
-docs/Terms.md
-docs/index.md
-```
-
-配信するファイルは origin/main の docs/ に揃っているので、リポジトリ設定で GitHub Pages を有効化 (source を main ブランチの /docs に設定) すれば解消する見込み。
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/78fa607a-9ccd-43fc-8fca-b3742196eb0a.png" width="320">
 
 </details>
 
