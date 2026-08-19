@@ -22,7 +22,7 @@ last_verified_at: 2026-08-19
 ## ログイン方法
 
 - 匿名認証のみ。起動時に SignInResolver が自動で匿名サインインするため、テストアカウント・認証情報は不要
-- ユーザーデータはサインインした匿名 uid の `/users/{uid}` 配下に閉じる。アプリを削除して再インストールすると別 uid になりデータは引き継がれない
+- ユーザーデータはサインインした匿名 uid の `/users/{uid}` 配下に閉じる。iOS では Firebase Auth の認証状態が Keychain に保存されるため、アプリを削除して再インストールしても同じ匿名 uid が復元されることがある。新規 uid (初回起動状態) が必要な時は Simulator を消去する (`xcrun simctl erase <udid>`)、または新しい simtunnel セッション (runner ごと新規) を使う
 
 ## 動作確認手段
 
