@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/image_analysis_client.dart';
 import 'package:kashakeibo/features/capture/receipt_camera.dart';
+import 'package:kashakeibo/features/paywall/paywall_page.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/transaction_labels.dart';
 import 'package:kashakeibo/provider/image.dart';
@@ -134,6 +136,8 @@ enum _CapturePhase {
 ///
 /// 解析に失敗した場合はエラーを表示し、再試行・手動入力 (画像付きの空フォーム)・
 /// 取り直しへ進める (issue #7 の受け入れ条件)。
+/// 無料枠を使い切っていて解析が 402 で拒否された場合はペイウォールを開き、
+/// プレミアムになれば同じ画像で解析を再実行する (issue #12)。
 class CapturePage extends HookConsumerWidget {
   /// 撮影した画像のバイト列。
   final Uint8List imageBytes;
@@ -157,6 +161,8 @@ class CapturePage extends HookConsumerWidget {
     final analyzeUploadedImage = ref.watch(analyzeUploadedImageProvider);
     final deleteStoredImage = ref.watch(deleteStoredImageProvider);
     final addTransaction = ref.watch(addTransactionProvider);
+    // 解析のたびに Worker 側の回数が進むため、成功後に残量を取り直す (keepAlive の notifier を build 時に確保)。
+    final monthlyScanQuota = ref.watch(monthlyScanQuotaProvider.notifier);
     // 論理アップロード ID。再試行でも同じ ID を使い、Worker 側で同じキーに収束させる
     // (孤児画像を作らない。lib/features/image_upload/README.md)。
     final uploadImageID = useMemoized(() => const Uuid().v4());
@@ -216,7 +222,28 @@ class CapturePage extends HookConsumerWidget {
         // 複数明細のスクショ (issue #8) はこの画面のスコープ外のため先頭だけを使う。
         analyzedTransaction.value = imageAnalysisResult.transactions.first;
         capturePhase.value = _CapturePhase.confirming;
+        monthlyScanQuota.refresh();
         unawaited(logAnalyticsEvent(name: 'capture_analysis_succeeded'));
+      } on ScanQuotaExceededException catch (error) {
+        if (!context.mounted) {
+          return;
+        }
+        // 無料枠超過。失敗表示 (エラー文 + 手動入力・取り直し) の上にペイウォールを重ね、
+        // プレミアムになったら同じアップロード済み画像で解析だけをやり直す
+        analysisError.value = error;
+        capturePhase.value = _CapturePhase.failed;
+        monthlyScanQuota.refresh();
+        unawaited(logAnalyticsEvent(name: 'capture_scan_quota_exceeded'));
+        final premiumUnlocked = await showPaywall(
+          context: context,
+          trigger: 'scan_quota_exceeded',
+          openExternalUri: openExternalUri,
+          logAnalyticsEvent: logAnalyticsEvent,
+        );
+        if (!context.mounted || premiumUnlocked != true) {
+          return;
+        }
+        analysisAttempt.value++;
       } catch (error) {
         if (!context.mounted) {
           return;

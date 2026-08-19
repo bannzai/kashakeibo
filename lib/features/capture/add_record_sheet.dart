@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:kashakeibo/features/paywall/scan_quota_label.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
+import 'package:kashakeibo/provider/image.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/style/tokens.dart';
 
 /// 「記録する」シートで選ばれた入力経路。
@@ -26,12 +30,15 @@ Future<AddRecordOption?> showAddRecordSheet({required BuildContext context}) =>
 /// 入力経路 (カメラで撮影 / 手動で入力) を選ぶボトムシート
 /// (design_handoff_kashakeibo/README.md の取込フロー 1「記録する」)。
 ///
+/// 下部に今月のスキャン残量 (プレミアムなら無制限) を表示する。
 /// 写真・スクショから選ぶ経路は issue #8 のスコープで、本シートにはまだ無い。
-class AddRecordSheet extends StatelessWidget {
+class AddRecordSheet extends ConsumerWidget {
   const AddRecordSheet({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPremium = ref.watch(isPremiumProvider);
+    final scanQuota = ref.watch(monthlyScanQuotaProvider).valueOrNull;
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
@@ -61,6 +68,22 @@ class AddRecordSheet extends StatelessWidget {
             description: l10n.manualEntryDescription,
             onTap: () => Navigator.of(context).pop(AddRecordOption.manual),
           ),
+          if (isPremium || scanQuota != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              scanQuotaLabel(
+                l10n: l10n,
+                isPremium: isPremium,
+                scanQuota: scanQuota,
+              ),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.neutral600,
+              ),
+            ),
+          ],
         ],
       ),
     );

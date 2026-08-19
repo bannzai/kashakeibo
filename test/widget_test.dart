@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/features/capture/image_analysis_client.dart';
+import 'package:kashakeibo/features/capture/receipt_camera.dart';
 import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
@@ -12,6 +14,8 @@ import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/app_localizations_en.dart';
 import 'package:kashakeibo/provider/account.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
+import 'package:kashakeibo/provider/image.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
@@ -67,6 +71,7 @@ class NoopDeleteAccount implements DeleteAccount {
 /// 設定画面が依存する Firebase Auth の Provider を匿名ユーザー相当へ差し替える。
 List<Override> anonymousUserOverrides() {
   final firebaseUser = MockFirebaseUser();
+  when(() => firebaseUser.uid).thenReturn('user-id');
   when(() => firebaseUser.isAnonymous).thenReturn(true);
   when(() => firebaseUser.providerData).thenReturn(const []);
   return [
@@ -84,7 +89,99 @@ List<Override> anonymousUserOverrides() {
   ];
 }
 
+/// スキャン残量チップ・ペイウォールが依存する課金 Provider を、無料プラン (今月 [monthlyScanCount] 回消費) に差し替える。
+List<Override> freePlanOverrides({required int monthlyScanCount}) => [
+  fetchScanQuotaProvider.overrideWithValue(
+    () async =>
+        ScanQuota(monthlyScanCount: monthlyScanCount, monthlyFreeScanLimit: 10),
+  ),
+  isPremiumProvider.overrideWithValue(false),
+  premiumOfferingProvider.overrideWith((ref) async => null),
+  purchasePremiumPackageProvider.overrideWithValue(
+    ({required package}) async => false,
+  ),
+  restorePurchasesProvider.overrideWithValue(() async => false),
+];
+
 void main() {
+  testWidgets('月次一覧: 残量チップに今月のスキャン残りを表示し、タップでペイウォールを開く', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(const [])),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => const []),
+          ...anonymousUserOverrides(),
+          ...freePlanOverrides(monthlyScanCount: 3),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().capturesSection), findsOneWidget);
+    expect(
+      find.text(AppLocalizationsEn().scanQuotaRemaining(7)),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().scanQuotaRemaining(7)));
+    await tester.pumpAndSettle();
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsOneWidget);
+  });
+
+  testWidgets('月次一覧: 無料枠を使い切っていると「カメラで撮影」はカメラを開かずペイウォールを開く', (tester) async {
+    var cameraOpenCount = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(const [])),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => const []),
+          captureReceiptImageProvider.overrideWithValue(() async {
+            cameraOpenCount++;
+            return null;
+          }),
+          ...anonymousUserOverrides(),
+          ...freePlanOverrides(monthlyScanCount: 10),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text(AppLocalizationsEn().scanQuotaRemaining(0)),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().addRecordOpen));
+    await tester.pumpAndSettle();
+    // 「記録する」シートの下部にも残量を出す
+    expect(
+      find.text(AppLocalizationsEn().scanQuotaRemaining(0)),
+      findsNWidgets(2),
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().captureReceiptWithCamera));
+    await tester.pumpAndSettle();
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsOneWidget);
+    expect(cameraOpenCount, 0);
+  });
+
   testWidgets('月次一覧: サマリー・カテゴリ内訳・明細リストがクライアント集計で表示される', (tester) async {
     final transactions = [
       buildTransaction(
