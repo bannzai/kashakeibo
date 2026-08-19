@@ -46,8 +46,9 @@ npm run typecheck
 Flutter の debug ビルドは App Check の debug provider (`lib/utils/firebase_app_check/firebase_app_check.dart`) を使う。debug provider は端末ごとに生成した debug token を Firebase に登録しておくと、その端末からの App Check token が有効になる (未登録の debug token では App Check token が発行されず、Worker は 401 を返す)。
 
 1. debug ビルドを起動し、コンソールに出力される debug token を控える
-   - iOS: Xcode / `flutter run` のログの `Firebase App Check Debug Token: <UUID>`
+   - iOS: `xcrun simctl spawn <UDID> log show --last 2m --predicate 'process == "Runner"' | grep "App Check debug token"` で出る `App Check debug token: '<UUID>'` (Xcode / `flutter run` のログでも同じ行が出る)
    - Android: logcat の `DebugAppCheckProvider: Enter this debug secret into the allow list in the Firebase Console for your project: <UUID>`
+   - debug ビルドの bundle ID は `com.bannzai.kashakeibo.dev` なので、`ios/Firebase/dev/GoogleService-Info.plist` は kashakeibo-dev の「kashakeibo dev」iOS アプリ (`BUNDLE_ID` が `com.bannzai.kashakeibo.dev`) のものを置く。`com.bannzai.kashakeibo` 用の古い plist だと API key の bundle ID 制限で `API_KEY_IOS_APP_BLOCKED` になり、Firebase Auth も App Check の debug token 交換も失敗する (2026-08-19 の疎通確認で実際に踏んだ)
 2. debug token を **kashakeibo-dev にだけ** 登録する。App Check REST API (`projects.apps.debugTokens.create`) で登録できる (Firebase Console の App Check → アプリ → デバッグトークンを管理、でも可)。`<appId>` は dev の Firebase App ID (`ios/Firebase/dev/GoogleService-Info.plist` の `GOOGLE_APP_ID` / `android/app/src/debug/google-services.json` の `mobilesdk_app_id`)
 
    ```sh
@@ -83,5 +84,5 @@ npx wrangler deploy --env dev    # → kashakeibo-image-worker-dev
 npx wrangler deploy --env prod   # → kashakeibo-image-worker-prod
 ```
 
-- デプロイ後に表示される `*.workers.dev` URL を Flutter の `--dart-define=IMAGE_API_BASE_URL=...` に渡す
+- デプロイ後に表示される `*.workers.dev` URL を Flutter の `--dart-define=IMAGE_API_BASE_URL=...` に渡す。dev は `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev` (2026-08-19 に初回デプロイ済み。prod は未デプロイ)
 - 画像は機微情報のため、R2 バケットの公開アクセス (r2.dev ドメイン・カスタムドメイン直結) は有効化しない
