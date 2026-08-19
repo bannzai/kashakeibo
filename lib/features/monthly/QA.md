@@ -18,10 +18,11 @@ last_verified_at: 2026-08-19
 |----|---------|---------|
 | S1 | 明細は users/{userID}/transactions/{id} に保存され、yearMonth・type・計算対象除外フラグのクエリ用フィールドと複合インデックスを持つ | 明細リスト表示 (インデックス欠落は permission/failed-precondition エラーとして画面に現れる) |
 | S2 | 集計はサマリードキュメントを持たず、当月明細のクライアント集計で表示する | 収支サマリー / カテゴリ内訳 |
-| S3 | snapshot listener でリアルタイム反映され、オフラインキャッシュでも動作する | 明細追加の即時反映 |
+| S3a | snapshot listener でリアルタイム反映される | 明細追加の即時反映 |
+| S3b | オフラインキャッシュでも動作する (ネットワーク遮断中の起動・月切替・既存明細表示) | オフラインキャッシュでの表示 (未検証。simtunnel のリモート Simulator ではネットワーク遮断ができない) |
 | S4 | 金額+日付+店名のヒューリスティックで重複候補を検出し、確認 UI で提示する | 重複候補バナー表示 / 重複確認シート表示 |
 | S5 | ユーザーはマージ (1件に統合) か「別物として残す」を選べる | 重複マージ / 別々の支出として残す |
-| S6 | マージは複数端末の同時操作でも二重計上・消失が起きない | — (複数端末の同時操作は手動 QA で再現困難。Firestore トランザクション実装のユニットテストでカバーする想定) |
+| S6 | マージは複数端末の同時操作でも二重計上・消失が起きない | — (未検証。複数端末の同時操作は手動 QA で再現困難で、lib/provider/transaction.dart の MergeDuplicateTransactions / KeepBothTransactions の競合を検証するユニットテストも 2026-08-19 時点で存在しない。テスト漏れとして可視化) |
 
 ## 1. 表示・集計
 
@@ -37,6 +38,8 @@ last_verified_at: 2026-08-19
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **明細追加の即時反映**: 手動入力またはデバッグメニューで明細を追加すると、画面操作なしで一覧・サマリー・カテゴリ内訳に即時反映される (snapshot listener)
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
+- [ ] **オフラインキャッシュでの表示**: 明細を表示した後にネットワークを遮断してアプリを再起動・月切替しても、Firestore のオフラインキャッシュから既存明細とサマリーが表示される
+  - 自動化: todo (simtunnel のリモート Simulator ではネットワーク遮断ができない。ローカル Simulator なら Network Link Conditioner または `xcrun simctl` でのネットワーク遮断で確認できる見込み)
 
 #### 動作確認
 <details>
@@ -128,6 +131,14 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/aeb660e8-e847-4850-9743-0f25c383fa41.jpg" width="320">
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/1ddaa179-c624-4fce-9799-d77a1a6fbdba.jpg" width="320">
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ad8df1d9-ee7b-4d97-85e4-463a4b806977.jpg" width="320">
+
+</details>
+
+### **オフラインキャッシュでの表示**: 明細を表示した後にネットワークを遮断してアプリを再起動・月切替しても、Firestore のオフラインキャッシュから既存明細とサマリーが表示される
+
+<details><summary>動作確認スクショ</summary>
+
+（未実行）
 
 </details>
 

@@ -24,12 +24,17 @@ last_verified_at: 2026-08-19
 
 - [x] **設定画面の表示**: 月次一覧の設定アイコンから設定画面へ遷移し、利用規約・プライバシーポリシー・特定商取引法に基づく表示の 3 行が表示される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [x] **法務ドキュメントを開く**: 各行をタップすると端末の既定ブラウザで bannzai.github.io/kashakeibo/ 配下の該当ページ (Terms / PrivacyPolicy / SpecifiedCommercialTransactionAct-ja) が開く
+- [x] **法務ドキュメントを開く**: 各行をタップすると端末の既定ブラウザで bannzai.github.io/kashakeibo/ 配下の該当ページ (Terms / ロケールに応じたプライバシーポリシー / SpecifiedCommercialTransactionAct-ja) が開く
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **英語環境のプライバシーポリシー**: 端末の言語を英語にした状態でプライバシーポリシーをタップすると PrivacyPolicy-en が開く
   - 自動化: manual (シミュレータの言語切替を伴うため agent のシミュレータ操作で確認する)
+- [ ] **日本語環境のプライバシーポリシー**: 端末の言語を日本語にした状態でプライバシーポリシーをタップすると PrivacyPolicy (日本語版) が開く
+  - 自動化: manual (シミュレータの言語切替を伴うため agent のシミュレータ操作で確認する)
+  - ⏭️ スキップ: simtunnel のリモート Simulator は英語ロケール固定で日本語ロケールに切り替えられない。ローカル Simulator (`xcrun simctl` で AppleLanguages を ja に設定) で確認する
 - [x] **戻る操作**: 戻るボタンで月次一覧へ戻る
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
+- [ ] **外部ブラウザ起動失敗時のエラー表示**: 外部ブラウザを開けなかった場合、起動処理が返したエラーメッセージが加工されずスナックバーで画面下部に表示される (lib/features/settings/README.md)
+  - 自動化: todo (Simulator で Safari の起動を失敗させる状態の作り込み手段が未整備。test/widget_test.dart の設定画面テストは openExternalUri を差し替えるため、失敗経路はウィジェットテストで代替できる見込み)
 
 #### 動作確認
 <details>
@@ -49,7 +54,7 @@ runner の Simulator が英語ロケールのため、行の文言は英語 ("Te
 
 </details>
 
-### **法務ドキュメントを開く**: 各行をタップすると端末の既定ブラウザで bannzai.github.io/kashakeibo/ 配下の該当ページ (Terms / PrivacyPolicy / SpecifiedCommercialTransactionAct-ja) が開く
+### **法務ドキュメントを開く**: 各行をタップすると端末の既定ブラウザで bannzai.github.io/kashakeibo/ 配下の該当ページ (Terms / ロケールに応じたプライバシーポリシー / SpecifiedCommercialTransactionAct-ja) が開く
 
 <details><summary>動作確認スクショ</summary>
 
@@ -61,7 +66,7 @@ runner の Simulator が英語ロケールのため、行の文言は英語表�
 
 3 行とも既定ブラウザ (Safari) が起動し、法務ドキュメントの本文が表示された。Safari のアドレス欄をタップして編集状態にし、`bash tmp/qa/wda.sh elements` の `"name": "URL"` の value で読み取ったフル URL もそれぞれ期待どおりだった:
 
-```
+```text
 Terms of Service                  → https://bannzai.github.io/kashakeibo/Terms
 Privacy Policy                    → https://bannzai.github.io/kashakeibo/PrivacyPolicy-en
 Commercial Transaction Disclosure → https://bannzai.github.io/kashakeibo/SpecifiedCommercialTransactionAct-ja
@@ -93,6 +98,14 @@ Privacy Policy 行をタップすると Safari が `https://bannzai.github.io/ka
 
 </details>
 
+### **日本語環境のプライバシーポリシー**: 端末の言語を日本語にした状態でプライバシーポリシーをタップすると PrivacyPolicy (日本語版) が開く
+
+<details><summary>動作確認スクショ</summary>
+
+（未実行）
+
+</details>
+
 ### **戻る操作**: 戻るボタンで月次一覧へ戻る
 
 <details><summary>動作確認スクショ</summary>
@@ -104,6 +117,14 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 設定画面の AppBar 左上の戻るボタンをタップすると月次一覧へ戻り、サマリー (Spending ¥12,640 / Income ¥860,000 / Balance ¥847,360)・重複候補バナー・カテゴリ内訳・明細一覧が表示された。
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/0587deb0-7050-45b1-9971-edce22a6d273.jpg" width="320">
+
+</details>
+
+### **外部ブラウザ起動失敗時のエラー表示**: 外部ブラウザを開けなかった場合、起動処理が返したエラーメッセージが加工されずスナックバーで画面下部に表示される (lib/features/settings/README.md)
+
+<details><summary>動作確認スクショ</summary>
+
+（未実行）
 
 </details>
 
@@ -132,7 +153,7 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 ホストマシンから 6 URL に `curl -s -o /dev/null -w '%{http_code} %{url_effective}\n'` を実行した結果、すべて 200 を返した:
 
-```
+```text
 200 https://bannzai.github.io/kashakeibo/
 200 https://bannzai.github.io/kashakeibo/Terms
 200 https://bannzai.github.io/kashakeibo/PrivacyPolicy
