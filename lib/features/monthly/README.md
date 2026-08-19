@@ -7,6 +7,7 @@
 レポートのカテゴリ横棒、明細タブの日付グループ行) に合わせる。
 集計はサマリードキュメントを持たず、購読中の明細からクライアント集計する
 (`.claude/rules/firestore-aggregation-rules.md`)。
+本 README で挙げる色 (neutral-600・セージ等) は `context.appColors` (lib/style/app_theme.dart) 経由で参照し、ライト / ダークで切り替わる。
 
 ## 画面
 
