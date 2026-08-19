@@ -25,3 +25,19 @@ String transactionSourceLabel({
   TransactionSource.manual => l10n.transactionSourceManual,
   TransactionSource.unknown => l10n.transactionSourceUnknown,
 };
+
+/// 出所記録 (AI 解析結果を修正したか) の表示名を返す。
+///
+/// 撮影・取込 (receipt / screenshot) の明細だけが対象で、修正なしは「自動取込」、
+/// 修正ありは「手調整」。手動入力・出所不明は [transactionSourceLabel] だけで
+/// 表しきれるため null を返す。
+String? transactionProvenanceLabel({
+  required Transaction transaction,
+  required AppLocalizations l10n,
+}) => switch (transaction.source) {
+  TransactionSource.receipt || TransactionSource.screenshot =>
+    transaction.analysisAdjustedByUser
+        ? l10n.transactionProvenanceAdjusted
+        : l10n.transactionProvenanceAutomatic,
+  TransactionSource.manual || TransactionSource.unknown => null,
+};
