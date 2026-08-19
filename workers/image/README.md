@@ -84,5 +84,5 @@ npx wrangler deploy --env dev    # → kashakeibo-image-worker-dev
 npx wrangler deploy --env prod   # → kashakeibo-image-worker-prod
 ```
 
-- デプロイ後に表示される `*.workers.dev` URL を Flutter の `--dart-define=IMAGE_API_BASE_URL=...` に渡す。dev は `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev` (2026-08-19 に初回デプロイ済み。prod は未デプロイ)
+- デプロイ後に表示される `*.workers.dev` URL を Flutter の `--dart-define=IMAGE_API_BASE_URL=...` に渡す。dev は `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev`、prod は `https://kashakeibo-image-worker-prod.star-kojiki.workers.dev` (どちらも 2026-08-19 に初回デプロイ済み)
 - 画像は機微情報のため、R2 バケットの公開アクセス (r2.dev ドメイン・カスタムドメイン直結) は有効化しない
