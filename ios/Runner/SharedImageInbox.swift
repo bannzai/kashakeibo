@@ -32,6 +32,8 @@ enum SharedImageInbox {
   /// 受信箱の画像を共有された順にすべて取り出し、取り出した画像ファイルを削除する。
   /// 戻り値の要素は {"imageBytes": バイト列, "imageContentType": MIME タイプ}。
   /// 取り出したファイルを消すため冪等ではない (2 回目の呼び出しは空になる)。同じ画像を二重に取り込まないための仕様。
+  /// 個々のファイルの読み込み・削除の失敗はそのファイルをスキップして受信箱に残し、
+  /// 読み出せた分を返す (1 件の失敗で取得済みの画像まで失わない)。
   static func takeSharedImages() throws -> [[String: Any]] {
     guard
       let inboxDirectoryURL = try SharedImageInboxLocation.inboxDirectoryURL(
@@ -49,12 +51,17 @@ enum SharedImageInbox {
     .sorted { $0.lastPathComponent < $1.lastPathComponent }
     var sharedImages: [[String: Any]] = []
     for imageFileURL in imageFileURLs {
-      let imageData = try Data(contentsOf: imageFileURL)
-      try FileManager.default.removeItem(at: imageFileURL)
-      sharedImages.append([
-        "imageBytes": FlutterStandardTypedData(bytes: imageData),
-        "imageContentType": UTType(filenameExtension: imageFileURL.pathExtension)?.preferredMIMEType ?? "image/jpeg",
-      ])
+      do {
+        let imageData = try Data(contentsOf: imageFileURL)
+        try FileManager.default.removeItem(at: imageFileURL)
+        sharedImages.append([
+          "imageBytes": FlutterStandardTypedData(bytes: imageData),
+          "imageContentType": UTType(filenameExtension: imageFileURL.pathExtension)?.preferredMIMEType ?? "image/jpeg",
+        ])
+      } catch {
+        // 次回の takeSharedImages (foreground 復帰時等) で再試行される。
+        NSLog("共有画像の取り出しに失敗したためスキップします: %@", error.localizedDescription)
+      }
     }
     return sharedImages
   }

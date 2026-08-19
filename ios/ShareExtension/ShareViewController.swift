@@ -11,8 +11,9 @@ class ShareViewController: UIViewController {
   // これ以外の形式 (GIF・TIFF 等) は JPEG に変換して受信箱へ入れる。
   private static let acceptedImageTypes: [UTType] = [.jpeg, .png, .webP, .heic]
 
-  // これ以上大きい画像は JPEG に再圧縮して Worker の上限 (20MB) と通信量を抑える。
-  private static let maxImageBytesWithoutReencoding = 10 * 1024 * 1024
+  // これ以上大きい画像は JPEG に再圧縮・縮小する。Worker の解析上限
+  // (workers/image/src/handler.ts の maxAnalysisImageBytes = 14MB) に余裕を持って収める値。
+  private static let maxImageBytes = 10 * 1024 * 1024
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -47,12 +48,23 @@ class ShareViewController: UIViewController {
       }
       // 受信箱のファイル名は「時刻 + 連番」にし、ホストアプリが共有した順に取り出せるようにする。
       let batchPrefix = String(format: "%.0f", Date().timeIntervalSince1970 * 1000)
-      for (index, attachment) in imageAttachments.enumerated() {
-        let (imageData, fileExtension) = try await Self.loadImage(from: attachment)
-        let imageFileURL = inboxDirectoryURL.appendingPathComponent(
-          "\(batchPrefix)-\(String(format: "%03d", index)).\(fileExtension)"
-        )
-        try imageData.write(to: imageFileURL, options: .atomic)
+      // 途中の添付で失敗した場合に保存済みファイルを消してから失敗を返し、
+      // 同じ共有の再試行で先行画像が二重に取り込まれないようにする。
+      var savedImageFileURLs: [URL] = []
+      do {
+        for (index, attachment) in imageAttachments.enumerated() {
+          let (imageData, fileExtension) = try await Self.loadImage(from: attachment)
+          let imageFileURL = inboxDirectoryURL.appendingPathComponent(
+            "\(batchPrefix)-\(String(format: "%03d", index)).\(fileExtension)"
+          )
+          try imageData.write(to: imageFileURL, options: .atomic)
+          savedImageFileURLs.append(imageFileURL)
+        }
+      } catch {
+        for savedImageFileURL in savedImageFileURLs {
+          try? FileManager.default.removeItem(at: savedImageFileURL)
+        }
+        throw error
       }
       openHostApp(hostAppBundleIdentifier: hostAppBundleIdentifier)
     } catch {
@@ -61,19 +73,38 @@ class ShareViewController: UIViewController {
   }
 
   /// 添付 1 件を画像のバイト列と拡張子にする。
-  /// Worker が受け付ける形式ならそのまま、それ以外と大きすぎる画像は JPEG に変換する。
+  /// Worker が受け付ける形式かつ上限以下ならそのまま、それ以外は上限に収まるまで縮小しながら JPEG に変換する。
   private static func loadImage(from attachment: NSItemProvider) async throws -> (Data, String) {
     let loadedImage = try await loadImageData(from: attachment)
     let isAcceptedType = loadedImage.type.map { type in acceptedImageTypes.contains { type.conforms(to: $0) } } ?? false
-    if isAcceptedType, loadedImage.data.count <= maxImageBytesWithoutReencoding,
+    if isAcceptedType, loadedImage.data.count <= maxImageBytes,
       let fileExtension = loadedImage.type?.preferredFilenameExtension
     {
       return (loadedImage.data, fileExtension)
     }
-    guard let image = UIImage(data: loadedImage.data), let jpegData = image.jpegData(compressionQuality: 0.85) else {
+    guard var image = UIImage(data: loadedImage.data) else {
       throw ShareExtensionError.unreadableImage
     }
-    return (jpegData, "jpg")
+    // JPEG 再圧縮の品質。文字の可読性を落とさない範囲でサイズを抑える一般的な値
+    // (撮影経路の lib/features/capture/capture_image_picker.dart と同じ)。
+    let jpegCompressionQuality = 0.85
+    // 再圧縮後も上限を超える高解像度画像は、収まるまで解像度を半分にして作り直す。
+    // 1 回の縮小でデータ量は約 1/4 になるため、実用的な画像では数回で収束する。
+    while true {
+      guard let jpegData = image.jpegData(compressionQuality: jpegCompressionQuality) else {
+        throw ShareExtensionError.unreadableImage
+      }
+      if jpegData.count <= maxImageBytes {
+        return (jpegData, "jpg")
+      }
+      let halvedSize = CGSize(width: image.size.width / 2, height: image.size.height / 2)
+      guard halvedSize.width >= 1, halvedSize.height >= 1 else {
+        throw ShareExtensionError.unreadableImage
+      }
+      image = UIGraphicsImageRenderer(size: halvedSize).image { _ in
+        image.draw(in: CGRect(origin: .zero, size: halvedSize))
+      }
+    }
   }
 
   /// 添付から画像のバイト列と型を読み出す。ファイル表現 (写真アプリ・Safari の画像) を優先し、
