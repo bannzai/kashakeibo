@@ -1,11 +1,14 @@
 // handler.ts の認可ロジックのテスト。
-// Firebase ID token の検証はスタブ検証器 (トークン文字列 → uid の固定対応) で置き換え、
+// Firebase ID token / App Check token の検証はスタブ検証器 (トークン文字列の固定対応) で置き換え、
 // R2 / KV は vitest-pool-workers (miniflare) の実 binding を使う。
 // 実際の Google JWK 検証 (firebase-auth-cloudflare-workers) はライブラリ側の責務のためここでは検証しない。
+// App Check token の実際の JWT 検証は test/app_check.test.ts で検証する。
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import type { ImageWorkerEnv, VerifyFirebaseIdToken } from "../src/handler";
+import type { VerifyFirebaseAppCheckToken } from "../src/app_check";
+import type { ImageWorkerEnv, TokenVerifiers, VerifyFirebaseIdToken } from "../src/handler";
 import {
+  firebaseAppCheckHeaderName,
   handleImageRequest,
   maxDailyUploadCountPerIpAddress,
   maxDailyUploadCountPerUser,
@@ -25,6 +28,20 @@ const stubVerifyFirebaseIdToken: VerifyFirebaseIdToken = async (firebaseIdToken)
   return { uid: firebaseIdToken.slice(validTokenPrefix.length) };
 };
 
+// スタブ App Check 検証器: "valid-app-check-token" だけを受理する
+const validAppCheckToken = "valid-app-check-token";
+const stubVerifyFirebaseAppCheckToken: VerifyFirebaseAppCheckToken = async (firebaseAppCheckToken) => {
+  if (firebaseAppCheckToken !== validAppCheckToken) {
+    throw new Error("invalid app check token (stub)");
+  }
+  return { appId: "1:000000000000:ios:stub" };
+};
+
+const stubTokenVerifiers: TokenVerifiers = {
+  verifyFirebaseIdToken: stubVerifyFirebaseIdToken,
+  verifyFirebaseAppCheckToken: stubVerifyFirebaseAppCheckToken,
+};
+
 const workerBaseUrl = "https://image-worker.test";
 
 const testUploadId = "11111111-2222-4333-8444-555555555555";
@@ -34,11 +51,13 @@ function buildUploadRequest({
   fileContentType,
   fileBytes,
   uploadId = testUploadId,
+  appCheckToken = validAppCheckToken,
 }: {
   authorizationHeader: string | null;
   fileContentType: string;
   fileBytes: Uint8Array;
   uploadId?: string | null;
+  appCheckToken?: string | null;
 }): Request {
   const uploadFormData = new FormData();
   uploadFormData.append(
@@ -53,6 +72,9 @@ function buildUploadRequest({
   if (uploadId !== null) {
     requestHeaders.set("X-Upload-Id", uploadId);
   }
+  if (appCheckToken !== null) {
+    requestHeaders.set(firebaseAppCheckHeaderName, appCheckToken);
+  }
   return new Request(`${workerBaseUrl}/images`, {
     method: "POST",
     headers: requestHeaders,
@@ -63,13 +85,18 @@ function buildUploadRequest({
 function buildGetRequest({
   authorizationHeader,
   imageObjectKey,
+  appCheckToken = validAppCheckToken,
 }: {
   authorizationHeader: string | null;
   imageObjectKey: string;
+  appCheckToken?: string | null;
 }): Request {
   const requestHeaders = new Headers();
   if (authorizationHeader !== null) {
     requestHeaders.set("Authorization", authorizationHeader);
+  }
+  if (appCheckToken !== null) {
+    requestHeaders.set(firebaseAppCheckHeaderName, appCheckToken);
   }
   return new Request(`${workerBaseUrl}/images/${imageObjectKey}`, {
     method: "GET",
@@ -96,7 +123,7 @@ describe("認証", () => {
     const response = await handleImageRequest(
       buildUploadRequest({ authorizationHeader: null, fileContentType: "image/png", fileBytes: pngBytes }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(401);
   });
@@ -105,9 +132,76 @@ describe("認証", () => {
     const response = await handleImageRequest(
       buildGetRequest({ authorizationHeader: null, imageObjectKey: "users/uid-a/x.png" }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(401);
+  });
+
+  it("App Check token ヘッダーなしの POST / GET を 401 で拒否し、画像を保存しない", async () => {
+    const uploadResponse = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+        appCheckToken: null,
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(uploadResponse.status).toBe(401);
+    expect((await env.IMAGE_BUCKET.list({ prefix: "users/uid-a/" })).objects).toHaveLength(0);
+
+    const getResponse = await handleImageRequest(
+      buildGetRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        imageObjectKey: "users/uid-a/x.png",
+        appCheckToken: null,
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(getResponse.status).toBe(401);
+  });
+
+  it("検証に失敗する App Check token の POST / GET を、有効な ID token があっても 401 で拒否する", async () => {
+    const uploadResponse = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+        appCheckToken: "forged-app-check-token",
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(uploadResponse.status).toBe(401);
+    expect((await env.IMAGE_BUCKET.list({ prefix: "users/uid-a/" })).objects).toHaveLength(0);
+
+    const getResponse = await handleImageRequest(
+      buildGetRequest({
+        authorizationHeader: "Bearer valid-token-uid-a",
+        imageObjectKey: "users/uid-a/x.png",
+        appCheckToken: "forged-app-check-token",
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(getResponse.status).toBe(401);
+  });
+
+  it("有効な App Check token があっても Authorization ヘッダーが無い・不正なら 401 で拒否する (両方の検証が必要)", async () => {
+    const responseWithoutAuthorization = await handleImageRequest(
+      buildGetRequest({ authorizationHeader: null, imageObjectKey: "users/uid-a/x.png" }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(responseWithoutAuthorization.status).toBe(401);
+    const responseWithBrokenIdToken = await handleImageRequest(
+      buildGetRequest({ authorizationHeader: "Bearer broken-token", imageObjectKey: "users/uid-a/x.png" }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(responseWithBrokenIdToken.status).toBe(401);
   });
 
   it("検証に失敗するトークンを 401 で拒否する", async () => {
@@ -118,7 +212,7 @@ describe("認証", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(401);
   });
@@ -133,7 +227,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(201);
     const { imageObjectKey } = (await response.json()) as { imageObjectKey: string };
@@ -149,7 +243,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(415);
   });
@@ -162,7 +256,7 @@ describe("アップロード", () => {
         fileBytes: new Uint8Array(0),
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(400);
   });
@@ -176,7 +270,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(responseOfLimitedUser.status).toBe(429);
 
@@ -187,7 +281,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(responseOfOtherUser.status).toBe(201);
   });
@@ -202,7 +296,7 @@ describe("アップロード", () => {
           uploadId: invalidUploadId,
         }),
         env,
-        stubVerifyFirebaseIdToken,
+        stubTokenVerifiers,
       );
       expect(response.status, `uploadId=${invalidUploadId}`).toBe(400);
     }
@@ -216,7 +310,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     const retryResponse = await handleImageRequest(
       buildUploadRequest({
@@ -225,7 +319,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     const { imageObjectKey: firstImageObjectKey } = (await firstResponse.json()) as { imageObjectKey: string };
     const { imageObjectKey: retryImageObjectKey } = (await retryResponse.json()) as { imageObjectKey: string };
@@ -244,7 +338,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(429);
   });
@@ -258,7 +352,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(429);
   });
@@ -273,7 +367,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(firstResponse.status).toBe(201);
 
@@ -285,7 +379,7 @@ describe("アップロード", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(retryResponse.status).toBe(201);
     const { imageObjectKey: firstImageObjectKey } = (await firstResponse.json()) as { imageObjectKey: string };
@@ -307,7 +401,7 @@ describe("アップロード", () => {
               uploadId: parallelUploadId,
             }),
             env,
-            stubVerifyFirebaseIdToken,
+            stubTokenVerifiers,
           ),
       ),
     );
@@ -320,11 +414,15 @@ describe("アップロード", () => {
     const response = await handleImageRequest(
       new Request(`${workerBaseUrl}/images`, {
         method: "POST",
-        headers: { Authorization: "Bearer valid-token-uid-a", "X-Upload-Id": testUploadId },
+        headers: {
+          Authorization: "Bearer valid-token-uid-a",
+          "X-Upload-Id": testUploadId,
+          [firebaseAppCheckHeaderName]: validAppCheckToken,
+        },
         body: emptyFormData,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(400);
   });
@@ -339,7 +437,7 @@ describe("取得", () => {
         fileBytes: pngBytes,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     const { imageObjectKey } = (await response.json()) as { imageObjectKey: string };
     return imageObjectKey;
@@ -350,7 +448,7 @@ describe("取得", () => {
     const response = await handleImageRequest(
       buildGetRequest({ authorizationHeader: "Bearer valid-token-uid-a", imageObjectKey }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("image/png");
@@ -362,7 +460,7 @@ describe("取得", () => {
     const response = await handleImageRequest(
       buildGetRequest({ authorizationHeader: "Bearer valid-token-uid-b", imageObjectKey: imageObjectKeyOfUserA }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(403);
   });
@@ -376,7 +474,7 @@ describe("取得", () => {
         imageObjectKey: "users/uid-a/%2E%2E/uid-b/x.png",
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(403);
   });
@@ -388,7 +486,7 @@ describe("取得", () => {
         imageObjectKey: "users/uid-a/%GG.png",
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(400);
   });
@@ -400,18 +498,19 @@ describe("取得", () => {
         imageObjectKey: "users/uid-a/00000000-0000-0000-0000-000000000000.png",
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(response.status).toBe(404);
   });
 });
 
 describe("アカウント削除時の全消去", () => {
-  function buildDeleteAllRequest(authorizationHeader: string): Request {
-    return new Request(`${workerBaseUrl}/images`, {
-      method: "DELETE",
-      headers: { Authorization: authorizationHeader },
-    });
+  function buildDeleteAllRequest(authorizationHeader: string, appCheckToken: string | null = validAppCheckToken): Request {
+    const requestHeaders = new Headers({ Authorization: authorizationHeader });
+    if (appCheckToken !== null) {
+      requestHeaders.set(firebaseAppCheckHeaderName, appCheckToken);
+    }
+    return new Request(`${workerBaseUrl}/images`, { method: "DELETE", headers: requestHeaders });
   }
 
   async function uploadImageWithUploadId(uid: string, uploadId: string): Promise<void> {
@@ -423,7 +522,7 @@ describe("アカウント削除時の全消去", () => {
         uploadId,
       }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
   }
 
@@ -435,7 +534,7 @@ describe("アカウント削除時の全消去", () => {
     const deleteResponse = await handleImageRequest(
       buildDeleteAllRequest("Bearer valid-token-uid-delete-a"),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(deleteResponse.status).toBe(200);
     expect(((await deleteResponse.json()) as { deletedImageCount: string }).deletedImageCount).toBe("2");
@@ -448,7 +547,7 @@ describe("アカウント削除時の全消去", () => {
     const deleteResponse = await handleImageRequest(
       buildDeleteAllRequest("Bearer valid-token-uid-delete-empty"),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(deleteResponse.status).toBe(200);
     expect(((await deleteResponse.json()) as { deletedImageCount: string }).deletedImageCount).toBe("0");
@@ -456,10 +555,26 @@ describe("アカウント削除時の全消去", () => {
 
   it("Authorization ヘッダーなしの DELETE を 401 で拒否する", async () => {
     const deleteResponse = await handleImageRequest(
-      new Request(`${workerBaseUrl}/images`, { method: "DELETE" }),
+      new Request(`${workerBaseUrl}/images`, {
+        method: "DELETE",
+        headers: { [firebaseAppCheckHeaderName]: validAppCheckToken },
+      }),
       env,
-      stubVerifyFirebaseIdToken,
+      stubTokenVerifiers,
     );
     expect(deleteResponse.status).toBe(401);
+  });
+
+  it("App Check token なし・不正な DELETE を 401 で拒否し、画像を削除しない", async () => {
+    await uploadImageWithUploadId("uid-delete-app-check", "bbbbbbbb-0000-4000-8000-000000000004");
+    for (const invalidAppCheckToken of [null, "forged-app-check-token"]) {
+      const deleteResponse = await handleImageRequest(
+        buildDeleteAllRequest("Bearer valid-token-uid-delete-app-check", invalidAppCheckToken),
+        env,
+        stubTokenVerifiers,
+      );
+      expect(deleteResponse.status, `appCheckToken=${invalidAppCheckToken}`).toBe(401);
+    }
+    expect((await env.IMAGE_BUCKET.list({ prefix: "users/uid-delete-app-check/" })).objects).toHaveLength(1);
   });
 });
