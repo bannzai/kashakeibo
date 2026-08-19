@@ -10,12 +10,15 @@
 		114B49E4E94641A19B75CC82 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06B8CC4990874216103F197A /* Pods_Runner.framework */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
+		38F60A19E3075EA8D9E1DC37 /* StoreKitTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F74C54B24818E6CA5DDC183F /* StoreKitTest.framework */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
+		90E92AC319BB8FE4BEF15667 /* Kashakeibo.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 14F9CF5DDD8B1203172543BD /* Kashakeibo.storekit */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		B5122FCA51767111B9C9A665 /* StoreKitConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1EE898A701C298EACF12F /* StoreKitConfigurationTests.swift */; };
 		F60D94A6C482D50BB04B86C2 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 418A299F42F9D3F3C511A8FB /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -47,6 +50,7 @@
 		0DFC61580396EDD1AD74B05C /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		14F9CF5DDD8B1203172543BD /* Kashakeibo.storekit */ = {isa = PBXFileReference; includeInIndex = 1; path = Kashakeibo.storekit; sourceTree = "<group>"; };
 		1A5A98B16472E62D7AFB993E /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
 		292645ED5CBBF43601E95CB2 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
@@ -67,6 +71,8 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C1C1EE898A701C298EACF12F /* StoreKitConfigurationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StoreKitConfigurationTests.swift; sourceTree = "<group>"; };
+		F74C54B24818E6CA5DDC183F /* StoreKitTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKitTest.framework; path = System/Library/Frameworks/StoreKitTest.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +81,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F60D94A6C482D50BB04B86C2 /* Pods_RunnerTests.framework in Frameworks */,
+				38F60A19E3075EA8D9E1DC37 /* StoreKitTest.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -107,6 +114,7 @@
 			isa = PBXGroup;
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
+				C1C1EE898A701C298EACF12F /* StoreKitConfigurationTests.swift */,
 			);
 			path = RunnerTests;
 			sourceTree = "<group>";
@@ -116,6 +124,7 @@
 			children = (
 				06B8CC4990874216103F197A /* Pods_Runner.framework */,
 				418A299F42F9D3F3C511A8FB /* Pods_RunnerTests.framework */,
+				F74C54B24818E6CA5DDC183F /* StoreKitTest.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -140,6 +149,7 @@
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				0F339AB41650BC0618074C22 /* Pods */,
 				90BC110FD236741FB2613E50 /* Frameworks */,
+				14F9CF5DDD8B1203172543BD /* Kashakeibo.storekit */,
 			);
 			sourceTree = "<group>";
 		};
@@ -263,6 +273,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				90E92AC319BB8FE4BEF15667 /* Kashakeibo.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -412,6 +423,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
+				B5122FCA51767111B9C9A665 /* StoreKitConfigurationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
