@@ -28,5 +28,6 @@ Firebase ID token の取得と HTTP クライアントの用意を含めた呼�
 
 ## 有効期限・制約
 
-- ベース URL は `--dart-define=IMAGE_API_BASE_URL=https://...` で注入する。デプロイ済みの Worker は dev `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev` / prod `https://kashakeibo-image-worker-prod.star-kojiki.workers.dev` (配布 CI `.github/workflows/flutter-deploy.yml` は prod を渡す)。未指定 (空文字) のビルドでは画像 API の呼び出しが失敗する
+- ベース URL は Firebase の接続先と同様にビルド種別から選ぶ。debug ビルドは dev `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev`、release / profile ビルドは prod `https://kashakeibo-image-worker-prod.star-kojiki.workers.dev` を使う。ローカルの Worker 等へ向ける場合は `--dart-define=IMAGE_API_BASE_URL=https://...` で上書きできる
+- `USE_FIREBASE_EMULATOR=true` のビルドでは App Check を有効化しないため Worker は呼び出せず、`fetchFirebaseAppCheckToken` が `StateError` を返す
 - Firebase ID token は最長1時間で失効するため、呼び出しの都度 Firebase Auth から最新の token を取得して渡す

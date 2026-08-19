@@ -13,6 +13,38 @@ void main() {
   const testBaseUrl = 'https://image-worker.test';
   final testImageBytes = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47, 1, 2, 3]);
 
+  group('resolveImageApiBaseUrl', () {
+    test('上書き値が無い debug ビルドでは dev Worker の URL を返す', () {
+      expect(
+        resolveImageApiBaseUrl(
+          isDebugMode: true,
+          configuredImageApiBaseUrl: '',
+        ),
+        'https://kashakeibo-image-worker-dev.star-kojiki.workers.dev',
+      );
+    });
+
+    test('上書き値が無い release / profile ビルドでは prod Worker の URL を返す', () {
+      expect(
+        resolveImageApiBaseUrl(
+          isDebugMode: false,
+          configuredImageApiBaseUrl: '',
+        ),
+        'https://kashakeibo-image-worker-prod.star-kojiki.workers.dev',
+      );
+    });
+
+    test('IMAGE_API_BASE_URL の指定値をビルド種別より優先する', () {
+      expect(
+        resolveImageApiBaseUrl(
+          isDebugMode: true,
+          configuredImageApiBaseUrl: 'http://127.0.0.1:8787',
+        ),
+        'http://127.0.0.1:8787',
+      );
+    });
+  });
+
   group('uploadImage', () {
     test(
       'multipart/form-data の POST /images に Bearer トークン付きで送信し、オブジェクトキーを返す',
