@@ -61,11 +61,10 @@ Future<ImageAnalysisResult> analyzeImage({
   required String imageObjectKey,
   required String firebaseIdToken,
   required http.Client httpClient,
-  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
-  String baseUrl = imageApiBaseUrl,
+  String? baseUrl,
 }) async {
   final analysisResponse = await httpClient.post(
-    Uri.parse('$baseUrl/analyses'),
+    Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses'),
     headers: {
       'Authorization': 'Bearer $firebaseIdToken',
       'Content-Type': 'application/json',
@@ -76,7 +75,7 @@ Future<ImageAnalysisResult> analyzeImage({
     // エラーメッセージは加工せずそのまま伝える (コーディング規約)
     throw http.ClientException(
       '画像の解析に失敗しました (status=${analysisResponse.statusCode}): ${analysisResponse.body}',
-      Uri.parse('$baseUrl/analyses'),
+      Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses'),
     );
   }
   return ImageAnalysisResult.fromJson(

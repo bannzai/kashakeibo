@@ -53,6 +53,8 @@ npm run typecheck
 
 ローカルで Flutter アプリから叩く時は、`.dev.vars` (git 管理外) に `GEMINI_API_KEY=...` を置いて `npx wrangler dev --env dev --port 8787` で起動し、アプリを `--dart-define=IMAGE_API_BASE_URL=http://127.0.0.1:8787` で実行する (iOS シミュレータからホストの 127.0.0.1 に到達できる)。
 
+Flutter アプリは debug ビルドでは dev `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev`、release / profile ビルドでは prod `https://kashakeibo-image-worker-prod.star-kojiki.workers.dev` を既定で使う。`IMAGE_API_BASE_URL` は上記のローカル開発などで接続先を上書きするために使う。App Check 検証を導入する PR #41 のマージ後は、`USE_FIREBASE_EMULATOR=true` のビルドでは App Check を有効化しないため Worker は呼び出せず、`fetchFirebaseAppCheckToken` が `StateError` を返す。
+
 ## デプロイ
 
 Cloudflare 側のリソースは作成済み (2026-08-17):
@@ -71,5 +73,5 @@ npx wrangler deploy --env dev    # → kashakeibo-image-worker-dev
 npx wrangler deploy --env prod   # → kashakeibo-image-worker-prod
 ```
 
-- デプロイ後に表示される `*.workers.dev` URL を Flutter の `--dart-define=IMAGE_API_BASE_URL=...` に渡す
+- デプロイ後に表示される `*.workers.dev` URL が変わった場合は、Flutter の `lib/features/image_upload/image_upload_client.dart` にある既定値を更新する
 - 画像は機微情報のため、R2 バケットの公開アクセス (r2.dev ドメイン・カスタムドメイン直結) は有効化しない
