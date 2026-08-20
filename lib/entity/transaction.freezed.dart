@@ -36,7 +36,16 @@ mixin _$Transaction {
 /// [transactionDate] のローカルタイムから [yearMonthFrom] で導出し、両者は常に一致させる。
  String get yearMonth;/// 集計の計算対象から除外するかどうか。重複明細の片方を残したまま
 /// 集計に含めない、などの用途 (documents/PROJECT.md の MVP スコープ)。
- bool get excludedFromAggregation;/// 重複候補として提示済みで、ユーザーが「別物として残す」と判断した明細 ID。
+ bool get excludedFromAggregation;/// 元画像 (レシート写真・スクショ) の R2 オブジェクトキー
+/// (`users/{userID}/{uploadImageID}.{拡張子}`。lib/features/image_upload/README.md)。
+/// 「元の画像に戻れる」ための紐付けで、手動入力・画像を削除した明細は null。
+/// フィールドが無い旧データも null として読む。
+ String? get sourceImageObjectKey;/// AI 解析 (自動取込) の結果をユーザーが修正して登録したか。
+/// 出所の表示を「自動取込」「手調整」に分けるための記録 (documents/PROJECT.md の出所記録)。
+/// 手動入力 (source manual) は解析を経ないため常に false。
+/// 出所記録追加前の明細にはフィールドが無く、修正の有無を判別できないため
+/// 「修正していない」側 (false) に倒して読む。
+ bool get analysisAdjustedByUser;/// 重複候補として提示済みで、ユーザーが「別物として残す」と判断した明細 ID。
 /// 相手側にも自身の ID を保存し、どちらを先に読み込んでも同じ候補を再提示しない。
 /// フィールドが無い旧データは未判断として扱う。
  List<String> get confirmedDistinctTransactionIDs;@ServerCreatedTimestamp() DateTime? get serverCreatedDateTime;@ServerUpdatedTimestamp() DateTime? get serverUpdatedDateTime;
@@ -52,16 +61,16 @@ $TransactionCopyWith<Transaction> get copyWith => _$TransactionCopyWithImpl<Tran
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Transaction&&(identical(other.id, id) || other.id == id)&&(identical(other.userID, userID) || other.userID == userID)&&(identical(other.type, type) || other.type == type)&&(identical(other.source, source) || other.source == source)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.category, category) || other.category == category)&&(identical(other.title, title) || other.title == title)&&(identical(other.transactionDate, transactionDate) || other.transactionDate == transactionDate)&&(identical(other.transactionDateTimeZoneOffsetMinutes, transactionDateTimeZoneOffsetMinutes) || other.transactionDateTimeZoneOffsetMinutes == transactionDateTimeZoneOffsetMinutes)&&(identical(other.yearMonth, yearMonth) || other.yearMonth == yearMonth)&&(identical(other.excludedFromAggregation, excludedFromAggregation) || other.excludedFromAggregation == excludedFromAggregation)&&const DeepCollectionEquality().equals(other.confirmedDistinctTransactionIDs, confirmedDistinctTransactionIDs)&&(identical(other.serverCreatedDateTime, serverCreatedDateTime) || other.serverCreatedDateTime == serverCreatedDateTime)&&(identical(other.serverUpdatedDateTime, serverUpdatedDateTime) || other.serverUpdatedDateTime == serverUpdatedDateTime));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Transaction&&(identical(other.id, id) || other.id == id)&&(identical(other.userID, userID) || other.userID == userID)&&(identical(other.type, type) || other.type == type)&&(identical(other.source, source) || other.source == source)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.category, category) || other.category == category)&&(identical(other.title, title) || other.title == title)&&(identical(other.transactionDate, transactionDate) || other.transactionDate == transactionDate)&&(identical(other.transactionDateTimeZoneOffsetMinutes, transactionDateTimeZoneOffsetMinutes) || other.transactionDateTimeZoneOffsetMinutes == transactionDateTimeZoneOffsetMinutes)&&(identical(other.yearMonth, yearMonth) || other.yearMonth == yearMonth)&&(identical(other.excludedFromAggregation, excludedFromAggregation) || other.excludedFromAggregation == excludedFromAggregation)&&(identical(other.sourceImageObjectKey, sourceImageObjectKey) || other.sourceImageObjectKey == sourceImageObjectKey)&&(identical(other.analysisAdjustedByUser, analysisAdjustedByUser) || other.analysisAdjustedByUser == analysisAdjustedByUser)&&const DeepCollectionEquality().equals(other.confirmedDistinctTransactionIDs, confirmedDistinctTransactionIDs)&&(identical(other.serverCreatedDateTime, serverCreatedDateTime) || other.serverCreatedDateTime == serverCreatedDateTime)&&(identical(other.serverUpdatedDateTime, serverUpdatedDateTime) || other.serverUpdatedDateTime == serverUpdatedDateTime));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userID,type,source,amount,category,title,transactionDate,transactionDateTimeZoneOffsetMinutes,yearMonth,excludedFromAggregation,const DeepCollectionEquality().hash(confirmedDistinctTransactionIDs),serverCreatedDateTime,serverUpdatedDateTime);
+int get hashCode => Object.hash(runtimeType,id,userID,type,source,amount,category,title,transactionDate,transactionDateTimeZoneOffsetMinutes,yearMonth,excludedFromAggregation,sourceImageObjectKey,analysisAdjustedByUser,const DeepCollectionEquality().hash(confirmedDistinctTransactionIDs),serverCreatedDateTime,serverUpdatedDateTime);
 
 @override
 String toString() {
-  return 'Transaction(id: $id, userID: $userID, type: $type, source: $source, amount: $amount, category: $category, title: $title, transactionDate: $transactionDate, transactionDateTimeZoneOffsetMinutes: $transactionDateTimeZoneOffsetMinutes, yearMonth: $yearMonth, excludedFromAggregation: $excludedFromAggregation, confirmedDistinctTransactionIDs: $confirmedDistinctTransactionIDs, serverCreatedDateTime: $serverCreatedDateTime, serverUpdatedDateTime: $serverUpdatedDateTime)';
+  return 'Transaction(id: $id, userID: $userID, type: $type, source: $source, amount: $amount, category: $category, title: $title, transactionDate: $transactionDate, transactionDateTimeZoneOffsetMinutes: $transactionDateTimeZoneOffsetMinutes, yearMonth: $yearMonth, excludedFromAggregation: $excludedFromAggregation, sourceImageObjectKey: $sourceImageObjectKey, analysisAdjustedByUser: $analysisAdjustedByUser, confirmedDistinctTransactionIDs: $confirmedDistinctTransactionIDs, serverCreatedDateTime: $serverCreatedDateTime, serverUpdatedDateTime: $serverUpdatedDateTime)';
 }
 
 
@@ -72,7 +81,7 @@ abstract mixin class $TransactionCopyWith<$Res>  {
   factory $TransactionCopyWith(Transaction value, $Res Function(Transaction) _then) = _$TransactionCopyWithImpl;
 @useResult
 $Res call({
- String id, String userID, TransactionType type,@JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown) TransactionSource source, int amount,@JsonKey(unknownEnumValue: TransactionCategory.other) TransactionCategory category, String title,@TimestampConverter() DateTime transactionDate, int? transactionDateTimeZoneOffsetMinutes, String yearMonth, bool excludedFromAggregation, List<String> confirmedDistinctTransactionIDs,@ServerCreatedTimestamp() DateTime? serverCreatedDateTime,@ServerUpdatedTimestamp() DateTime? serverUpdatedDateTime
+ String id, String userID, TransactionType type,@JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown) TransactionSource source, int amount,@JsonKey(unknownEnumValue: TransactionCategory.other) TransactionCategory category, String title,@TimestampConverter() DateTime transactionDate, int? transactionDateTimeZoneOffsetMinutes, String yearMonth, bool excludedFromAggregation, String? sourceImageObjectKey, bool analysisAdjustedByUser, List<String> confirmedDistinctTransactionIDs,@ServerCreatedTimestamp() DateTime? serverCreatedDateTime,@ServerUpdatedTimestamp() DateTime? serverUpdatedDateTime
 });
 
 
@@ -89,7 +98,7 @@ class _$TransactionCopyWithImpl<$Res>
 
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userID = null,Object? type = null,Object? source = null,Object? amount = null,Object? category = null,Object? title = null,Object? transactionDate = null,Object? transactionDateTimeZoneOffsetMinutes = freezed,Object? yearMonth = null,Object? excludedFromAggregation = null,Object? confirmedDistinctTransactionIDs = null,Object? serverCreatedDateTime = freezed,Object? serverUpdatedDateTime = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userID = null,Object? type = null,Object? source = null,Object? amount = null,Object? category = null,Object? title = null,Object? transactionDate = null,Object? transactionDateTimeZoneOffsetMinutes = freezed,Object? yearMonth = null,Object? excludedFromAggregation = null,Object? sourceImageObjectKey = freezed,Object? analysisAdjustedByUser = null,Object? confirmedDistinctTransactionIDs = null,Object? serverCreatedDateTime = freezed,Object? serverUpdatedDateTime = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userID: null == userID ? _self.userID : userID // ignore: cast_nullable_to_non_nullable
@@ -102,6 +111,8 @@ as String,transactionDate: null == transactionDate ? _self.transactionDate : tra
 as DateTime,transactionDateTimeZoneOffsetMinutes: freezed == transactionDateTimeZoneOffsetMinutes ? _self.transactionDateTimeZoneOffsetMinutes : transactionDateTimeZoneOffsetMinutes // ignore: cast_nullable_to_non_nullable
 as int?,yearMonth: null == yearMonth ? _self.yearMonth : yearMonth // ignore: cast_nullable_to_non_nullable
 as String,excludedFromAggregation: null == excludedFromAggregation ? _self.excludedFromAggregation : excludedFromAggregation // ignore: cast_nullable_to_non_nullable
+as bool,sourceImageObjectKey: freezed == sourceImageObjectKey ? _self.sourceImageObjectKey : sourceImageObjectKey // ignore: cast_nullable_to_non_nullable
+as String?,analysisAdjustedByUser: null == analysisAdjustedByUser ? _self.analysisAdjustedByUser : analysisAdjustedByUser // ignore: cast_nullable_to_non_nullable
 as bool,confirmedDistinctTransactionIDs: null == confirmedDistinctTransactionIDs ? _self.confirmedDistinctTransactionIDs : confirmedDistinctTransactionIDs // ignore: cast_nullable_to_non_nullable
 as List<String>,serverCreatedDateTime: freezed == serverCreatedDateTime ? _self.serverCreatedDateTime : serverCreatedDateTime // ignore: cast_nullable_to_non_nullable
 as DateTime?,serverUpdatedDateTime: freezed == serverUpdatedDateTime ? _self.serverUpdatedDateTime : serverUpdatedDateTime // ignore: cast_nullable_to_non_nullable
@@ -190,10 +201,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userID,  TransactionType type, @JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown)  TransactionSource source,  int amount, @JsonKey(unknownEnumValue: TransactionCategory.other)  TransactionCategory category,  String title, @TimestampConverter()  DateTime transactionDate,  int? transactionDateTimeZoneOffsetMinutes,  String yearMonth,  bool excludedFromAggregation,  List<String> confirmedDistinctTransactionIDs, @ServerCreatedTimestamp()  DateTime? serverCreatedDateTime, @ServerUpdatedTimestamp()  DateTime? serverUpdatedDateTime)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userID,  TransactionType type, @JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown)  TransactionSource source,  int amount, @JsonKey(unknownEnumValue: TransactionCategory.other)  TransactionCategory category,  String title, @TimestampConverter()  DateTime transactionDate,  int? transactionDateTimeZoneOffsetMinutes,  String yearMonth,  bool excludedFromAggregation,  String? sourceImageObjectKey,  bool analysisAdjustedByUser,  List<String> confirmedDistinctTransactionIDs, @ServerCreatedTimestamp()  DateTime? serverCreatedDateTime, @ServerUpdatedTimestamp()  DateTime? serverUpdatedDateTime)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Transaction() when $default != null:
-return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that.category,_that.title,_that.transactionDate,_that.transactionDateTimeZoneOffsetMinutes,_that.yearMonth,_that.excludedFromAggregation,_that.confirmedDistinctTransactionIDs,_that.serverCreatedDateTime,_that.serverUpdatedDateTime);case _:
+return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that.category,_that.title,_that.transactionDate,_that.transactionDateTimeZoneOffsetMinutes,_that.yearMonth,_that.excludedFromAggregation,_that.sourceImageObjectKey,_that.analysisAdjustedByUser,_that.confirmedDistinctTransactionIDs,_that.serverCreatedDateTime,_that.serverUpdatedDateTime);case _:
   return orElse();
 
 }
@@ -211,10 +222,10 @@ return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userID,  TransactionType type, @JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown)  TransactionSource source,  int amount, @JsonKey(unknownEnumValue: TransactionCategory.other)  TransactionCategory category,  String title, @TimestampConverter()  DateTime transactionDate,  int? transactionDateTimeZoneOffsetMinutes,  String yearMonth,  bool excludedFromAggregation,  List<String> confirmedDistinctTransactionIDs, @ServerCreatedTimestamp()  DateTime? serverCreatedDateTime, @ServerUpdatedTimestamp()  DateTime? serverUpdatedDateTime)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userID,  TransactionType type, @JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown)  TransactionSource source,  int amount, @JsonKey(unknownEnumValue: TransactionCategory.other)  TransactionCategory category,  String title, @TimestampConverter()  DateTime transactionDate,  int? transactionDateTimeZoneOffsetMinutes,  String yearMonth,  bool excludedFromAggregation,  String? sourceImageObjectKey,  bool analysisAdjustedByUser,  List<String> confirmedDistinctTransactionIDs, @ServerCreatedTimestamp()  DateTime? serverCreatedDateTime, @ServerUpdatedTimestamp()  DateTime? serverUpdatedDateTime)  $default,) {final _that = this;
 switch (_that) {
 case _Transaction():
-return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that.category,_that.title,_that.transactionDate,_that.transactionDateTimeZoneOffsetMinutes,_that.yearMonth,_that.excludedFromAggregation,_that.confirmedDistinctTransactionIDs,_that.serverCreatedDateTime,_that.serverUpdatedDateTime);case _:
+return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that.category,_that.title,_that.transactionDate,_that.transactionDateTimeZoneOffsetMinutes,_that.yearMonth,_that.excludedFromAggregation,_that.sourceImageObjectKey,_that.analysisAdjustedByUser,_that.confirmedDistinctTransactionIDs,_that.serverCreatedDateTime,_that.serverUpdatedDateTime);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -231,10 +242,10 @@ return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userID,  TransactionType type, @JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown)  TransactionSource source,  int amount, @JsonKey(unknownEnumValue: TransactionCategory.other)  TransactionCategory category,  String title, @TimestampConverter()  DateTime transactionDate,  int? transactionDateTimeZoneOffsetMinutes,  String yearMonth,  bool excludedFromAggregation,  List<String> confirmedDistinctTransactionIDs, @ServerCreatedTimestamp()  DateTime? serverCreatedDateTime, @ServerUpdatedTimestamp()  DateTime? serverUpdatedDateTime)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userID,  TransactionType type, @JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown)  TransactionSource source,  int amount, @JsonKey(unknownEnumValue: TransactionCategory.other)  TransactionCategory category,  String title, @TimestampConverter()  DateTime transactionDate,  int? transactionDateTimeZoneOffsetMinutes,  String yearMonth,  bool excludedFromAggregation,  String? sourceImageObjectKey,  bool analysisAdjustedByUser,  List<String> confirmedDistinctTransactionIDs, @ServerCreatedTimestamp()  DateTime? serverCreatedDateTime, @ServerUpdatedTimestamp()  DateTime? serverUpdatedDateTime)?  $default,) {final _that = this;
 switch (_that) {
 case _Transaction() when $default != null:
-return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that.category,_that.title,_that.transactionDate,_that.transactionDateTimeZoneOffsetMinutes,_that.yearMonth,_that.excludedFromAggregation,_that.confirmedDistinctTransactionIDs,_that.serverCreatedDateTime,_that.serverUpdatedDateTime);case _:
+return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that.category,_that.title,_that.transactionDate,_that.transactionDateTimeZoneOffsetMinutes,_that.yearMonth,_that.excludedFromAggregation,_that.sourceImageObjectKey,_that.analysisAdjustedByUser,_that.confirmedDistinctTransactionIDs,_that.serverCreatedDateTime,_that.serverUpdatedDateTime);case _:
   return null;
 
 }
@@ -246,7 +257,7 @@ return $default(_that.id,_that.userID,_that.type,_that.source,_that.amount,_that
 
 @JsonSerializable(explicitToJson: true)
 class _Transaction extends Transaction {
-  const _Transaction({required this.id, required this.userID, required this.type, @JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown) required this.source, required this.amount, @JsonKey(unknownEnumValue: TransactionCategory.other) required this.category, required this.title, @TimestampConverter() required this.transactionDate, required this.transactionDateTimeZoneOffsetMinutes, required this.yearMonth, required this.excludedFromAggregation, final  List<String> confirmedDistinctTransactionIDs = const <String>[], @ServerCreatedTimestamp() this.serverCreatedDateTime, @ServerUpdatedTimestamp() this.serverUpdatedDateTime}): _confirmedDistinctTransactionIDs = confirmedDistinctTransactionIDs,super._();
+  const _Transaction({required this.id, required this.userID, required this.type, @JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown) required this.source, required this.amount, @JsonKey(unknownEnumValue: TransactionCategory.other) required this.category, required this.title, @TimestampConverter() required this.transactionDate, required this.transactionDateTimeZoneOffsetMinutes, required this.yearMonth, required this.excludedFromAggregation, required this.sourceImageObjectKey, this.analysisAdjustedByUser = false, final  List<String> confirmedDistinctTransactionIDs = const <String>[], @ServerCreatedTimestamp() this.serverCreatedDateTime, @ServerUpdatedTimestamp() this.serverUpdatedDateTime}): _confirmedDistinctTransactionIDs = confirmedDistinctTransactionIDs,super._();
   factory _Transaction.fromJson(Map<String, dynamic> json) => _$TransactionFromJson(json);
 
 /// ドキュメント ID (Firestore の自動生成 ID)。
@@ -281,6 +292,17 @@ class _Transaction extends Transaction {
 /// 集計の計算対象から除外するかどうか。重複明細の片方を残したまま
 /// 集計に含めない、などの用途 (documents/PROJECT.md の MVP スコープ)。
 @override final  bool excludedFromAggregation;
+/// 元画像 (レシート写真・スクショ) の R2 オブジェクトキー
+/// (`users/{userID}/{uploadImageID}.{拡張子}`。lib/features/image_upload/README.md)。
+/// 「元の画像に戻れる」ための紐付けで、手動入力・画像を削除した明細は null。
+/// フィールドが無い旧データも null として読む。
+@override final  String? sourceImageObjectKey;
+/// AI 解析 (自動取込) の結果をユーザーが修正して登録したか。
+/// 出所の表示を「自動取込」「手調整」に分けるための記録 (documents/PROJECT.md の出所記録)。
+/// 手動入力 (source manual) は解析を経ないため常に false。
+/// 出所記録追加前の明細にはフィールドが無く、修正の有無を判別できないため
+/// 「修正していない」側 (false) に倒して読む。
+@override@JsonKey() final  bool analysisAdjustedByUser;
 /// 重複候補として提示済みで、ユーザーが「別物として残す」と判断した明細 ID。
 /// 相手側にも自身の ID を保存し、どちらを先に読み込んでも同じ候補を再提示しない。
 /// フィールドが無い旧データは未判断として扱う。
@@ -310,16 +332,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Transaction&&(identical(other.id, id) || other.id == id)&&(identical(other.userID, userID) || other.userID == userID)&&(identical(other.type, type) || other.type == type)&&(identical(other.source, source) || other.source == source)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.category, category) || other.category == category)&&(identical(other.title, title) || other.title == title)&&(identical(other.transactionDate, transactionDate) || other.transactionDate == transactionDate)&&(identical(other.transactionDateTimeZoneOffsetMinutes, transactionDateTimeZoneOffsetMinutes) || other.transactionDateTimeZoneOffsetMinutes == transactionDateTimeZoneOffsetMinutes)&&(identical(other.yearMonth, yearMonth) || other.yearMonth == yearMonth)&&(identical(other.excludedFromAggregation, excludedFromAggregation) || other.excludedFromAggregation == excludedFromAggregation)&&const DeepCollectionEquality().equals(other._confirmedDistinctTransactionIDs, _confirmedDistinctTransactionIDs)&&(identical(other.serverCreatedDateTime, serverCreatedDateTime) || other.serverCreatedDateTime == serverCreatedDateTime)&&(identical(other.serverUpdatedDateTime, serverUpdatedDateTime) || other.serverUpdatedDateTime == serverUpdatedDateTime));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Transaction&&(identical(other.id, id) || other.id == id)&&(identical(other.userID, userID) || other.userID == userID)&&(identical(other.type, type) || other.type == type)&&(identical(other.source, source) || other.source == source)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.category, category) || other.category == category)&&(identical(other.title, title) || other.title == title)&&(identical(other.transactionDate, transactionDate) || other.transactionDate == transactionDate)&&(identical(other.transactionDateTimeZoneOffsetMinutes, transactionDateTimeZoneOffsetMinutes) || other.transactionDateTimeZoneOffsetMinutes == transactionDateTimeZoneOffsetMinutes)&&(identical(other.yearMonth, yearMonth) || other.yearMonth == yearMonth)&&(identical(other.excludedFromAggregation, excludedFromAggregation) || other.excludedFromAggregation == excludedFromAggregation)&&(identical(other.sourceImageObjectKey, sourceImageObjectKey) || other.sourceImageObjectKey == sourceImageObjectKey)&&(identical(other.analysisAdjustedByUser, analysisAdjustedByUser) || other.analysisAdjustedByUser == analysisAdjustedByUser)&&const DeepCollectionEquality().equals(other._confirmedDistinctTransactionIDs, _confirmedDistinctTransactionIDs)&&(identical(other.serverCreatedDateTime, serverCreatedDateTime) || other.serverCreatedDateTime == serverCreatedDateTime)&&(identical(other.serverUpdatedDateTime, serverUpdatedDateTime) || other.serverUpdatedDateTime == serverUpdatedDateTime));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userID,type,source,amount,category,title,transactionDate,transactionDateTimeZoneOffsetMinutes,yearMonth,excludedFromAggregation,const DeepCollectionEquality().hash(_confirmedDistinctTransactionIDs),serverCreatedDateTime,serverUpdatedDateTime);
+int get hashCode => Object.hash(runtimeType,id,userID,type,source,amount,category,title,transactionDate,transactionDateTimeZoneOffsetMinutes,yearMonth,excludedFromAggregation,sourceImageObjectKey,analysisAdjustedByUser,const DeepCollectionEquality().hash(_confirmedDistinctTransactionIDs),serverCreatedDateTime,serverUpdatedDateTime);
 
 @override
 String toString() {
-  return 'Transaction(id: $id, userID: $userID, type: $type, source: $source, amount: $amount, category: $category, title: $title, transactionDate: $transactionDate, transactionDateTimeZoneOffsetMinutes: $transactionDateTimeZoneOffsetMinutes, yearMonth: $yearMonth, excludedFromAggregation: $excludedFromAggregation, confirmedDistinctTransactionIDs: $confirmedDistinctTransactionIDs, serverCreatedDateTime: $serverCreatedDateTime, serverUpdatedDateTime: $serverUpdatedDateTime)';
+  return 'Transaction(id: $id, userID: $userID, type: $type, source: $source, amount: $amount, category: $category, title: $title, transactionDate: $transactionDate, transactionDateTimeZoneOffsetMinutes: $transactionDateTimeZoneOffsetMinutes, yearMonth: $yearMonth, excludedFromAggregation: $excludedFromAggregation, sourceImageObjectKey: $sourceImageObjectKey, analysisAdjustedByUser: $analysisAdjustedByUser, confirmedDistinctTransactionIDs: $confirmedDistinctTransactionIDs, serverCreatedDateTime: $serverCreatedDateTime, serverUpdatedDateTime: $serverUpdatedDateTime)';
 }
 
 
@@ -330,7 +352,7 @@ abstract mixin class _$TransactionCopyWith<$Res> implements $TransactionCopyWith
   factory _$TransactionCopyWith(_Transaction value, $Res Function(_Transaction) _then) = __$TransactionCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String userID, TransactionType type,@JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown) TransactionSource source, int amount,@JsonKey(unknownEnumValue: TransactionCategory.other) TransactionCategory category, String title,@TimestampConverter() DateTime transactionDate, int? transactionDateTimeZoneOffsetMinutes, String yearMonth, bool excludedFromAggregation, List<String> confirmedDistinctTransactionIDs,@ServerCreatedTimestamp() DateTime? serverCreatedDateTime,@ServerUpdatedTimestamp() DateTime? serverUpdatedDateTime
+ String id, String userID, TransactionType type,@JsonKey(defaultValue: TransactionSource.unknown, unknownEnumValue: TransactionSource.unknown) TransactionSource source, int amount,@JsonKey(unknownEnumValue: TransactionCategory.other) TransactionCategory category, String title,@TimestampConverter() DateTime transactionDate, int? transactionDateTimeZoneOffsetMinutes, String yearMonth, bool excludedFromAggregation, String? sourceImageObjectKey, bool analysisAdjustedByUser, List<String> confirmedDistinctTransactionIDs,@ServerCreatedTimestamp() DateTime? serverCreatedDateTime,@ServerUpdatedTimestamp() DateTime? serverUpdatedDateTime
 });
 
 
@@ -347,7 +369,7 @@ class __$TransactionCopyWithImpl<$Res>
 
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userID = null,Object? type = null,Object? source = null,Object? amount = null,Object? category = null,Object? title = null,Object? transactionDate = null,Object? transactionDateTimeZoneOffsetMinutes = freezed,Object? yearMonth = null,Object? excludedFromAggregation = null,Object? confirmedDistinctTransactionIDs = null,Object? serverCreatedDateTime = freezed,Object? serverUpdatedDateTime = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userID = null,Object? type = null,Object? source = null,Object? amount = null,Object? category = null,Object? title = null,Object? transactionDate = null,Object? transactionDateTimeZoneOffsetMinutes = freezed,Object? yearMonth = null,Object? excludedFromAggregation = null,Object? sourceImageObjectKey = freezed,Object? analysisAdjustedByUser = null,Object? confirmedDistinctTransactionIDs = null,Object? serverCreatedDateTime = freezed,Object? serverUpdatedDateTime = freezed,}) {
   return _then(_Transaction(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userID: null == userID ? _self.userID : userID // ignore: cast_nullable_to_non_nullable
@@ -360,6 +382,8 @@ as String,transactionDate: null == transactionDate ? _self.transactionDate : tra
 as DateTime,transactionDateTimeZoneOffsetMinutes: freezed == transactionDateTimeZoneOffsetMinutes ? _self.transactionDateTimeZoneOffsetMinutes : transactionDateTimeZoneOffsetMinutes // ignore: cast_nullable_to_non_nullable
 as int?,yearMonth: null == yearMonth ? _self.yearMonth : yearMonth // ignore: cast_nullable_to_non_nullable
 as String,excludedFromAggregation: null == excludedFromAggregation ? _self.excludedFromAggregation : excludedFromAggregation // ignore: cast_nullable_to_non_nullable
+as bool,sourceImageObjectKey: freezed == sourceImageObjectKey ? _self.sourceImageObjectKey : sourceImageObjectKey // ignore: cast_nullable_to_non_nullable
+as String?,analysisAdjustedByUser: null == analysisAdjustedByUser ? _self.analysisAdjustedByUser : analysisAdjustedByUser // ignore: cast_nullable_to_non_nullable
 as bool,confirmedDistinctTransactionIDs: null == confirmedDistinctTransactionIDs ? _self._confirmedDistinctTransactionIDs : confirmedDistinctTransactionIDs // ignore: cast_nullable_to_non_nullable
 as List<String>,serverCreatedDateTime: freezed == serverCreatedDateTime ? _self.serverCreatedDateTime : serverCreatedDateTime // ignore: cast_nullable_to_non_nullable
 as DateTime?,serverUpdatedDateTime: freezed == serverUpdatedDateTime ? _self.serverUpdatedDateTime : serverUpdatedDateTime // ignore: cast_nullable_to_non_nullable

@@ -6,12 +6,17 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/features/capture/add_record_sheet.dart';
+import 'package:kashakeibo/features/capture/capture_page.dart';
+import 'package:kashakeibo/features/capture/receipt_camera.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
 import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
+import 'package:kashakeibo/features/transaction_detail/transaction_detail_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/transaction_labels.dart';
 import 'package:kashakeibo/provider/transaction.dart';
+import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
 
@@ -41,23 +46,41 @@ class MonthlyPage extends HookConsumerWidget {
     final duplicateCandidateList = ref.watch(
       monthlyDuplicateCandidatesProvider(yearMonth: selectedYearMonth),
     );
+    final captureReceiptImage = ref.watch(captureReceiptImageProvider);
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        tooltip: l10n.manualEntryOpen,
+        tooltip: l10n.addRecordOpen,
         onPressed: () async {
-          unawaited(logAnalyticsEvent(name: 'manual_entry_open'));
-          final registered = await showManualEntrySheet(context: context);
-          if (!context.mounted || registered != true) {
+          unawaited(logAnalyticsEvent(name: 'add_record_open'));
+          final addRecordOption = await showAddRecordSheet(context: context);
+          if (!context.mounted) {
             return;
           }
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.manualEntryRegistered)));
+          switch (addRecordOption) {
+            case AddRecordOption.camera:
+              await runReceiptCaptureFlow(
+                context: context,
+                captureReceiptImage: captureReceiptImage,
+                logAnalyticsEvent: logAnalyticsEvent,
+              );
+            case AddRecordOption.manual:
+              unawaited(logAnalyticsEvent(name: 'manual_entry_open'));
+              final registered = await showManualEntrySheet(context: context);
+              if (!context.mounted || registered != true) {
+                return;
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.manualEntryRegistered)),
+              );
+            case null:
+              unawaited(logAnalyticsEvent(name: 'add_record_cancel'));
+          }
         },
-        icon: const Icon(Icons.edit_note),
-        label: Text(l10n.manualEntryOpen),
+        icon: const Icon(Icons.photo_camera_outlined),
+        label: Text(l10n.addRecordOpen),
       ),
       body: SafeArea(
         child: Column(
@@ -84,7 +107,7 @@ class MonthlyPage extends HookConsumerWidget {
                 // エラーメッセージは加工せずそのまま表示する (.claude/rules/coding-conventions.md)。
                 error: (error, _) => Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Text(error.toString()),
                   ),
                 ),
@@ -102,12 +125,6 @@ class MonthlyPage extends HookConsumerWidget {
                               context: context,
                               useSafeArea: true,
                               isScrollControlled: true,
-                              backgroundColor: AppColors.neutral100,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(28),
-                                ),
-                              ),
                               builder: (context) => _DuplicateCandidateSheet(
                                 candidate: duplicateCandidateList.first,
                               ),
@@ -117,14 +134,14 @@ class MonthlyPage extends HookConsumerWidget {
                       _CategoryBreakdownSection(transactions: transactions),
                       if (transactions.isEmpty)
                         Padding(
-                          padding: const EdgeInsets.all(32),
+                          padding: const EdgeInsets.all(AppSpacing.xxl),
                           child: Center(
                             child: Text(
                               l10n.monthlyTransactionsEmpty,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.neutral600,
+                                color: appColors.textMuted,
                               ),
                             ),
                           ),
@@ -133,6 +150,22 @@ class MonthlyPage extends HookConsumerWidget {
                         ..._groupedTransactionRows(
                           context: context,
                           transactions: transactions,
+                          onTransactionTap: (transaction) {
+                            unawaited(
+                              logAnalyticsEvent(
+                                name: 'transaction_detail_open',
+                                parameters: {'transactionID': transaction.id},
+                              ),
+                            );
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (context) => TransactionDetailPage(
+                                  transactionID: transaction.id,
+                                  logAnalyticsEvent: logAnalyticsEvent,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                     ],
                   );
@@ -174,8 +207,9 @@ class _MonthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 10, AppSpacing.xl, 2),
       child: Column(
         children: [
           Align(
@@ -220,10 +254,7 @@ class _MonthHeader extends StatelessWidget {
                           Localizations.localeOf(context).toString(),
                         ).format(displayMonth),
                         maxLines: 1,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: AppTextStyles.screenTitle,
                       ),
                       Text(
                         DateFormat(
@@ -231,9 +262,8 @@ class _MonthHeader extends StatelessWidget {
                           'en_US',
                         ).format(displayMonth).toUpperCase(),
                         maxLines: 1,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          color: AppColors.neutral600,
+                        style: AppTextStyles.caption.copyWith(
+                          color: appColors.textMuted,
                           letterSpacing: 0.63,
                         ),
                       ),
@@ -273,6 +303,7 @@ class _CircleGhostButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = context.appColors;
     return SizedBox(
       width: 34,
       height: 34,
@@ -281,8 +312,8 @@ class _CircleGhostButton extends StatelessWidget {
         iconSize: 20,
         tooltip: tooltip,
         style: IconButton.styleFrom(
-          foregroundColor: AppColors.neutral700,
-          side: const BorderSide(color: AppColors.divider),
+          foregroundColor: appColors.neutral700,
+          side: BorderSide(color: appColors.divider),
         ),
         onPressed: onPressed,
         icon: Icon(icon),
@@ -309,13 +340,19 @@ class _MonthlySummaryCard extends StatelessWidget {
       type: TransactionType.expense,
     );
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.xl,
+        0,
+      ),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
       decoration: BoxDecoration(
-        color: AppColors.neutral100,
-        border: Border.all(color: AppColors.divider),
-        borderRadius: BorderRadius.circular(28),
+        color: appColors.surface,
+        border: Border.all(color: appColors.divider),
+        borderRadius: BorderRadius.circular(AppRadius.sheet),
         boxShadow: appShadowSm,
       ),
       child: Row(
@@ -328,23 +365,18 @@ class _MonthlySummaryCard extends StatelessWidget {
                 Text.rich(
                   TextSpan(
                     children: [
-                      const TextSpan(
+                      TextSpan(
                         text: '¥',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.neutral600,
+                          color: appColors.textMuted,
                         ),
                       ),
                       TextSpan(text: formatAmountNumber(amount: expenseTotal)),
                     ],
                   ),
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.42,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
+                  style: AppTextStyles.amountSummary,
                 ),
               ],
             ),
@@ -364,7 +396,7 @@ class _MonthlySummaryCard extends StatelessWidget {
               _SummaryLabel(text: l10n.monthlyBalance),
               _SummarySubAmount(
                 amount: incomeTotal - expenseTotal,
-                color: AppColors.sage700,
+                color: appColors.sage700,
               ),
             ],
           ),
@@ -390,54 +422,58 @@ class _DuplicateCandidateBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.xl,
+        0,
+      ),
       child: Material(
-        color: AppColors.sage100,
+        color: appColors.sage100,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.sage300),
-          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: appColors.sage300),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.md,
+              horizontal: 14,
+            ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.content_copy_rounded,
                   size: 20,
-                  color: AppColors.sage700,
+                  color: appColors.sage700,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         l10n.duplicateCandidateCount(candidateCount),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.sage800,
+                          color: appColors.sage800,
                         ),
                       ),
                       Text(
                         l10n.duplicateCandidateReviewHint,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          color: AppColors.sage700,
+                        style: AppTextStyles.caption.copyWith(
+                          color: appColors.sage700,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: AppColors.sage700,
-                ),
+                Icon(Icons.chevron_right, size: 20, color: appColors.sage700),
               ],
             ),
           ),
@@ -464,6 +500,7 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
     final operationError = useState<Object?>(null);
     final selectedTransactionID = useState(candidate.primaryTransaction.id);
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
 
     Future<void> resolve({required Future<void> Function() operation}) async {
       isSubmitting.value = true;
@@ -483,25 +520,22 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-        20,
+        AppSpacing.xl,
         18,
-        20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
+        AppSpacing.xl,
+        AppSpacing.xl + MediaQuery.viewInsetsOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.duplicateCandidateTitle,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
-          ),
+          Text(l10n.duplicateCandidateTitle, style: AppTextStyles.screenTitle),
           const SizedBox(height: 6),
           Text(
             l10n.duplicateCandidateDescription,
-            style: const TextStyle(fontSize: 12, color: AppColors.neutral600),
+            style: TextStyle(fontSize: 12, color: appColors.textMuted),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           _DuplicateTransactionCard(
             transaction: candidate.primaryTransaction,
             isSelected:
@@ -518,23 +552,23 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   '≂',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.sage700,
+                    color: appColors.sage700,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Flexible(
                   child: Text(
                     l10n.duplicateCandidateReason,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.sage700,
+                      color: appColors.sage700,
                     ),
                   ),
                 ),
@@ -555,13 +589,10 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
           ),
           if (operationError.value != null)
             Padding(
-              padding: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.only(top: AppSpacing.md),
               child: Text(
                 operationError.value.toString(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.accent800,
-                ),
+                style: TextStyle(fontSize: 12, color: appColors.destructive),
               ),
             ),
           const SizedBox(height: 18),
@@ -585,8 +616,6 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
                   },
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
             ),
             child: isSubmitting.value
                 ? const SizedBox.square(
@@ -595,7 +624,7 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
                   )
                 : Text(l10n.mergeDuplicateCandidate),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           OutlinedButton(
             onPressed: isSubmitting.value
                 ? null
@@ -609,8 +638,8 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
                   },
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
-              foregroundColor: AppColors.onSurface,
-              side: const BorderSide(color: AppColors.divider),
+              foregroundColor: appColors.onSurface,
+              side: BorderSide(color: appColors.divider),
             ),
             child: Text(l10n.keepBothDuplicateCandidates),
           ),
@@ -639,20 +668,21 @@ class _DuplicateTransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = context.appColors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: appColors.background,
             border: Border.all(
-              color: isSelected ? AppColors.sage700 : AppColors.divider,
+              color: isSelected ? appColors.sage700 : appColors.divider,
               width: isSelected ? 2 : 1,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.card),
           ),
           child: Row(
             children: [
@@ -661,7 +691,7 @@ class _DuplicateTransactionCard extends StatelessWidget {
                     ? Icons.radio_button_checked
                     : Icons.radio_button_unchecked,
                 size: 20,
-                color: isSelected ? AppColors.sage700 : AppColors.neutral600,
+                color: isSelected ? appColors.sage700 : appColors.neutral600,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -680,26 +710,24 @@ class _DuplicateTransactionCard extends StatelessWidget {
                       DateFormat.yMd(
                         Localizations.localeOf(context).toString(),
                       ).format(transaction.transactionLocalDate),
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        color: AppColors.neutral600,
+                      style: AppTextStyles.caption.copyWith(
+                        color: appColors.textMuted,
                       ),
                     ),
                     if (isSelected) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         AppLocalizations.of(context).duplicateCandidateKeep,
-                        style: const TextStyle(
-                          fontSize: 10.5,
+                        style: AppTextStyles.caption.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.sage700,
+                          color: appColors.sage700,
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Text(
                 '¥${formatAmountNumber(amount: transaction.amount)}',
                 style: const TextStyle(
@@ -725,9 +753,10 @@ class _SummaryLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = context.appColors;
     return Text(
       text,
-      style: const TextStyle(fontSize: 10, color: AppColors.neutral600),
+      style: TextStyle(fontSize: 10, color: appColors.textMuted),
     );
   }
 }
@@ -746,12 +775,7 @@ class _SummarySubAmount extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       '¥${formatAmountNumber(amount: amount)}',
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: color,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      ),
+      style: AppTextStyles.amountSub.copyWith(color: color),
     );
   }
 }
@@ -775,15 +799,13 @@ class _CategoryBreakdownSection extends StatelessWidget {
     // 棒の長さは最大カテゴリとの比率 (レポート画面の pct と同じ計算)。
     final maxCategoryAmount = expenseCategoryTotals.values.first;
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.categoryBreakdown,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-          ),
+          Text(l10n.categoryBreakdown, style: AppTextStyles.sectionTitle),
           const SizedBox(height: 10),
           for (final entry in expenseCategoryTotals.entries)
             Padding(
@@ -805,8 +827,8 @@ class _CategoryBreakdownSection extends StatelessWidget {
                     child: Container(
                       height: 16,
                       decoration: BoxDecoration(
-                        color: AppColors.neutral200,
-                        borderRadius: BorderRadius.circular(999),
+                        color: appColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
                       alignment: Alignment.centerLeft,
                       child: FractionallySizedBox(
@@ -814,8 +836,11 @@ class _CategoryBreakdownSection extends StatelessWidget {
                         child: Container(
                           height: 16,
                           decoration: BoxDecoration(
-                            color: categoryColor(category: entry.key),
-                            borderRadius: BorderRadius.circular(999),
+                            color: categoryColor(
+                              appColors: appColors,
+                              category: entry.key,
+                            ),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
                           ),
                         ),
                       ),
@@ -827,11 +852,7 @@ class _CategoryBreakdownSection extends StatelessWidget {
                     child: Text(
                       '¥${formatAmountNumber(amount: entry.value)}',
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+                      style: AppTextStyles.amountSub,
                     ),
                   ),
                 ],
@@ -845,11 +866,14 @@ class _CategoryBreakdownSection extends StatelessWidget {
 
 /// 明細を日付ごとにグループ化し、日付見出しと明細行の Widget 列を返す。
 /// [transactions] は取引日時の降順で渡される前提 (クエリの orderBy と一致)。
+/// 明細行のタップで [onTransactionTap] を呼ぶ (明細詳細への遷移)。
 List<Widget> _groupedTransactionRows({
   required BuildContext context,
   required List<Transaction> transactions,
+  required ValueChanged<Transaction> onTransactionTap,
 }) {
-  final rows = <Widget>[const SizedBox(height: 8)];
+  final appColors = context.appColors;
+  final rows = <Widget>[const SizedBox(height: AppSpacing.sm)];
   DateTime? currentDate;
   for (final transaction in transactions) {
     final transactionDay = DateTime(
@@ -863,15 +887,14 @@ List<Widget> _groupedTransactionRows({
       currentDate = transactionDay;
       rows.add(
         Padding(
-          padding: const EdgeInsets.fromLTRB(22, 10, 22, 4),
+          padding: const EdgeInsets.fromLTRB(22, 10, 22, AppSpacing.xs),
           child: Text(
             DateFormat.MMMEd(
               Localizations.localeOf(context).toString(),
             ).format(transactionDay),
-            style: const TextStyle(
-              fontSize: 10.5,
+            style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.neutral600,
+              color: appColors.textMuted,
             ),
           ),
         ),
@@ -879,8 +902,11 @@ List<Widget> _groupedTransactionRows({
     }
     rows.add(
       Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-        child: _TransactionRow(transaction: transaction),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, 6),
+        child: _TransactionRow(
+          transaction: transaction,
+          onTap: () => onTransactionTap(transaction),
+        ),
       ),
     );
   }
@@ -888,73 +914,76 @@ List<Widget> _groupedTransactionRows({
 }
 
 /// 明細リストの 1 行 (明細タブの行デザイン)。計算対象外の明細は opacity 0.45。
+/// タップで明細詳細を開く。
 class _TransactionRow extends StatelessWidget {
   /// 表示する明細。
   final Transaction transaction;
 
-  const _TransactionRow({required this.transaction});
+  /// 行のタップ時の処理。
+  final VoidCallback onTap;
+
+  const _TransactionRow({required this.transaction, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
     final subTexts = [
       categoryLabel(category: transaction.category, l10n: l10n),
       transactionSourceLabel(source: transaction.source, l10n: l10n),
+      ?transactionProvenanceLabel(transaction: transaction, l10n: l10n),
       if (transaction.excludedFromAggregation) l10n.excludedFromAggregation,
     ];
     return Opacity(
       opacity: transaction.excludedFromAggregation ? 0.45 : 1,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
-        decoration: BoxDecoration(
-          color: AppColors.neutral100,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    transaction.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                    ),
+      child: Material(
+        color: appColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body,
+                      ),
+                      Text(
+                        subTexts.join(' · '),
+                        style: AppTextStyles.caption.copyWith(
+                          color: appColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    subTexts.join(' · '),
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      color: AppColors.neutral600,
-                    ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Text(
+                  switch (transaction.type) {
+                    TransactionType.income =>
+                      '+¥${formatAmountNumber(amount: transaction.amount)}',
+                    TransactionType.expense =>
+                      '-¥${formatAmountNumber(amount: transaction.amount)}',
+                  },
+                  // 赤は使わない (デザイントークンに赤が存在しない)。収入のみセージで強調する。
+                  style: AppTextStyles.amountRow.copyWith(
+                    color: switch (transaction.type) {
+                      TransactionType.income => appColors.sage700,
+                      TransactionType.expense => appColors.onSurface,
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Text(
-              switch (transaction.type) {
-                TransactionType.income =>
-                  '+¥${formatAmountNumber(amount: transaction.amount)}',
-                TransactionType.expense =>
-                  '-¥${formatAmountNumber(amount: transaction.amount)}',
-              },
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                // 赤は使わない (デザイントークンに赤が存在しない)。収入のみセージで強調する。
-                color: switch (transaction.type) {
-                  TransactionType.income => AppColors.sage700,
-                  TransactionType.expense => AppColors.onSurface,
-                },
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -966,14 +995,17 @@ String formatAmountNumber({required int amount}) =>
     NumberFormat.decimalPattern().format(amount);
 
 /// カテゴリ横棒の色 (design_handoff_kashakeibo/README.md のレポート画面の割当)。
-Color categoryColor({required TransactionCategory category}) =>
-    switch (category) {
-      TransactionCategory.food => AppColors.accent500,
-      TransactionCategory.eatingOut => AppColors.accent400,
-      TransactionCategory.dailyGoods => AppColors.sage500,
-      TransactionCategory.transportation => AppColors.sage400,
-      TransactionCategory.subscription => AppColors.neutral400,
-      // 給与は支出の内訳には現れないが、色は sage 系に寄せておく。
-      TransactionCategory.salary => AppColors.sage500,
-      TransactionCategory.other => AppColors.neutral300,
-    };
+/// 色はライト / ダークで切り替わるため、呼び出し側のテーマの [appColors] を受け取る。
+Color categoryColor({
+  required AppColorScheme appColors,
+  required TransactionCategory category,
+}) => switch (category) {
+  TransactionCategory.food => appColors.accent500,
+  TransactionCategory.eatingOut => appColors.accent400,
+  TransactionCategory.dailyGoods => appColors.sage500,
+  TransactionCategory.transportation => appColors.sage400,
+  TransactionCategory.subscription => appColors.neutral400,
+  // 給与は支出の内訳には現れないが、色は sage 系に寄せておく。
+  TransactionCategory.salary => appColors.sage500,
+  TransactionCategory.other => appColors.neutral300,
+};

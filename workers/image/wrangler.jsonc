@@ -49,7 +49,9 @@
         // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
         "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
         // App Check の JWKS キャッシュの KV キー名 (同じ KV namespace 内で PUBLIC_JWK_CACHE_KEY と別キーにする)
-        "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache"
+        "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache",
+        // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
+        "GEMINI_MODEL": "gemini-3.7-flash"
       }
     },
     "prod": {
@@ -90,7 +92,9 @@
         // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
         "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
         // App Check の JWKS キャッシュの KV キー名 (同じ KV namespace 内で PUBLIC_JWK_CACHE_KEY と別キーにする)
-        "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache"
+        "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache",
+        // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
+        "GEMINI_MODEL": "gemini-3.7-flash"
       }
     }
   }

@@ -1,7 +1,12 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/features/capture/capture_page.dart';
 import 'package:kashakeibo/provider/transaction.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
 
 /// DEBUG ビルド限定の開発者メニュー。
 ///
@@ -51,10 +56,91 @@ class DebugSheet extends ConsumerWidget {
               }
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.receipt_long),
+            title: const Text('サンプルレシートで撮影フローを試す'),
+            subtitle: const Text('端末カメラの無いシミュレータでも、描画したレシート画像で解析 → 確認 → 登録を通す'),
+            onTap: () async {
+              // シートを閉じてから撮影フロー画面を開くため、閉じる前に Navigator を確保する。
+              final navigator = Navigator.of(context);
+              final sampleReceiptImageBytes = await _renderSampleReceiptImage();
+              if (!context.mounted) {
+                return;
+              }
+              navigator.pop();
+              final captureFlowResult = await navigator.push<CaptureFlowResult>(
+                MaterialPageRoute<CaptureFlowResult>(
+                  fullscreenDialog: true,
+                  builder: (context) => CapturePage(
+                    imageBytes: sampleReceiptImageBytes,
+                    imageContentType: 'image/png',
+                    logAnalyticsEvent: recordAnalyticsEvent,
+                  ),
+                ),
+              );
+              final navigatorContext = navigator.context;
+              if (captureFlowResult == CaptureFlowResult.registered &&
+                  navigatorContext.mounted) {
+                showCaptureRegisteredToast(context: navigatorContext);
+              }
+            },
+          ),
         ],
       ),
     );
   }
+}
+
+/// 解析の動作確認用に、レシート風の画像 (店名・明細行・合計・日付) を描画して PNG にする。
+///
+/// 端末カメラの無いシミュレータでも撮影フロー (アップロード → Gemini 解析) を通すための
+/// 入力画像で、アセットを持たずにその場で描く。冪等 (同じ内容の画像を返す)。
+Future<Uint8List> _renderSampleReceiptImage() async {
+  const imageWidth = 600.0;
+  const imageHeight = 900.0;
+  final pictureRecorder = ui.PictureRecorder();
+  final canvas = Canvas(pictureRecorder)
+    ..drawRect(
+      const Rect.fromLTWH(0, 0, imageWidth, imageHeight),
+      Paint()..color = const Color(0xFFFAF8F2),
+    );
+  var textTop = 40.0;
+  void drawLine({required String text, double fontSize = 26}) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(fontSize: fontSize, color: const Color(0xFF1E1E1E)),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: imageWidth - 80);
+    textPainter.paint(canvas, Offset(40, textTop));
+    textTop += fontSize + 14;
+  }
+
+  drawLine(text: 'セブン-イレブン 三軒茶屋駅前店', fontSize: 34);
+  drawLine(text: '東京都世田谷区三軒茶屋2-11-22');
+  drawLine(text: '2026年08月16日(日) 12:34  レジ#3');
+  drawLine(text: '------------------------------');
+  drawLine(text: 'おにぎり 鮭            ¥150');
+  drawLine(text: 'サンドイッチ           ¥398');
+  drawLine(text: 'お茶 500ml            ¥140');
+  drawLine(text: 'キャンディ            ¥120');
+  drawLine(text: '------------------------------');
+  drawLine(text: '小計                  ¥808');
+  drawLine(text: '消費税(8%)             ¥64');
+  drawLine(text: '合計                  ¥872', fontSize: 34);
+  drawLine(text: 'お預り               ¥1,000');
+  drawLine(text: 'お釣り                ¥128');
+  drawLine(text: 'ありがとうございました');
+
+  final receiptImage = await pictureRecorder.endRecording().toImage(
+    imageWidth.toInt(),
+    imageHeight.toInt(),
+  );
+  final pngByteData = await receiptImage.toByteData(
+    format: ui.ImageByteFormat.png,
+  );
+  return pngByteData!.buffer.asUint8List();
 }
 
 /// 動作確認用のサンプル明細を今月の日付で書き込む。
@@ -119,6 +205,8 @@ Future<void> _addSampleTransactions({
         12,
       ),
       excludedFromAggregation: sample.excludedFromAggregation,
+      sourceImageObjectKey: null,
+      analysisAdjustedByUser: false,
     );
   }
 }

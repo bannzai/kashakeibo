@@ -15,7 +15,6 @@ env:
   BUILD_NUMBER_OFFSET: 0
   # ASC API で作成済みの App Store 配布 profile 名 (IOS_PROVISIONING_PROFILE_BASE64 の実体と一致させる)
   IOS_RUNNER_PROFILE_NAME: 'Kashakeibo Prod AppStore'
-
 jobs:
   build-ios:
     runs-on: macos-latest

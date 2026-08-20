@@ -20,6 +20,7 @@ Transaction buildTransaction({
   transactionDateTimeZoneOffsetMinutes: null,
   yearMonth: '2026-08',
   excludedFromAggregation: excludedFromAggregation,
+  sourceImageObjectKey: null,
 );
 
 void main() {
@@ -55,6 +56,33 @@ void main() {
       expect(transaction.yearMonth, '2026-08');
       expect(transaction.excludedFromAggregation, false);
       expect(transaction.confirmedDistinctTransactionIDs, isEmpty);
+      // 元画像・出所記録のフィールドが無い旧データは、画像なし・未修正として読む
+      expect(transaction.sourceImageObjectKey, isNull);
+      expect(transaction.analysisAdjustedByUser, false);
+    });
+
+    test('元画像のオブジェクトキーと AI 解析結果の修正有無を復元できる', () {
+      final transaction = Transaction.fromJson({
+        'id': 'transaction-id',
+        'userID': 'user-id',
+        'type': 'expense',
+        'source': 'receipt',
+        'amount': 872,
+        'category': 'food',
+        'title': 'コンビニ',
+        'transactionDate': Timestamp.fromDate(DateTime(2026, 8, 16, 12)),
+        'yearMonth': '2026-08',
+        'excludedFromAggregation': false,
+        'sourceImageObjectKey': 'users/user-id/image-id.jpg',
+        'analysisAdjustedByUser': true,
+      });
+      expect(transaction.sourceImageObjectKey, 'users/user-id/image-id.jpg');
+      expect(transaction.analysisAdjustedByUser, true);
+      expect(
+        transaction.toJson()['sourceImageObjectKey'],
+        'users/user-id/image-id.jpg',
+      );
+      expect(transaction.toJson()['analysisAdjustedByUser'], true);
     });
 
     test('未知のカテゴリは other として読む (旧クライアントの後方互換)', () {

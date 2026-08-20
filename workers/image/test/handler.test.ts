@@ -1,15 +1,16 @@
 // handler.ts の認可ロジックのテスト。
 // Firebase ID token / App Check token の検証はスタブ検証器 (トークン文字列の固定対応) で置き換え、
-// R2 / KV は vitest-pool-workers (miniflare) の実 binding を使う。
+// R2 / KV は vitest-pool-workers (miniflare) の実 binding を使う。Gemini API は fetchMock で応答を差し替える。
 // 実際の Google JWK 検証 (firebase-auth-cloudflare-workers) はライブラリ側の責務のためここでは検証しない。
 // App Check token の実際の JWT 検証は test/app_check.test.ts で検証する。
-import { env } from "cloudflare:test";
-import { describe, expect, it } from "vitest";
+import { env, fetchMock } from "cloudflare:test";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { VerifyFirebaseAppCheckToken } from "../src/app_check";
 import type { ImageWorkerEnv, TokenVerifiers, VerifyFirebaseIdToken } from "../src/handler";
 import {
   firebaseAppCheckHeaderName,
   handleImageRequest,
+  maxDailyAnalysisCountPerUser,
   maxDailyUploadCountPerIpAddress,
   maxDailyUploadCountPerUser,
   maxDailyUploadCountTotal,
@@ -576,5 +577,291 @@ describe("アカウント削除時の全消去", () => {
       expect(deleteResponse.status, `appCheckToken=${invalidAppCheckToken}`).toBe(401);
     }
     expect((await env.IMAGE_BUCKET.list({ prefix: "users/uid-delete-app-check/" })).objects).toHaveLength(1);
+  });
+});
+
+describe("画像 1 件の削除", () => {
+  async function uploadImageWithUploadId(uid: string, uploadId: string): Promise<string> {
+    const response = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: `Bearer valid-token-${uid}`,
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+        uploadId,
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    return ((await response.json()) as { imageObjectKey: string }).imageObjectKey;
+  }
+
+  function buildDeleteRequest({
+    authorizationHeader,
+    imageObjectKey,
+  }: {
+    authorizationHeader: string;
+    imageObjectKey: string;
+  }): Request {
+    return new Request(`${workerBaseUrl}/images/${imageObjectKey}`, {
+      method: "DELETE",
+      headers: { Authorization: authorizationHeader, [firebaseAppCheckHeaderName]: validAppCheckToken },
+    });
+  }
+
+  it("本人の uid 配下のオブジェクトだけを削除し、同じ uid の他のオブジェクトは残す", async () => {
+    const deletedKey = await uploadImageWithUploadId("uid-single-a", "cccccccc-0000-4000-8000-000000000001");
+    const keptKey = await uploadImageWithUploadId("uid-single-a", "cccccccc-0000-4000-8000-000000000002");
+
+    const deleteResponse = await handleImageRequest(
+      buildDeleteRequest({ authorizationHeader: "Bearer valid-token-uid-single-a", imageObjectKey: deletedKey }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(deleteResponse.status).toBe(200);
+    expect(await env.IMAGE_BUCKET.head(deletedKey)).toBeNull();
+    expect(await env.IMAGE_BUCKET.head(keptKey)).not.toBeNull();
+  });
+
+  it("他人の uid 配下のオブジェクトキーの削除を 403 で拒否し、オブジェクトを残す", async () => {
+    const imageObjectKeyOfUserA = await uploadImageWithUploadId("uid-single-a", "cccccccc-0000-4000-8000-000000000003");
+    const deleteResponse = await handleImageRequest(
+      buildDeleteRequest({ authorizationHeader: "Bearer valid-token-uid-single-b", imageObjectKey: imageObjectKeyOfUserA }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(deleteResponse.status).toBe(403);
+    expect(await env.IMAGE_BUCKET.head(imageObjectKeyOfUserA)).not.toBeNull();
+  });
+
+  it("削除対象が無い場合も 200 を返す (冪等)", async () => {
+    const deleteResponse = await handleImageRequest(
+      buildDeleteRequest({
+        authorizationHeader: "Bearer valid-token-uid-single-a",
+        imageObjectKey: "users/uid-single-a/00000000-0000-0000-0000-000000000000.png",
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(deleteResponse.status).toBe(200);
+  });
+});
+
+describe("画像解析", () => {
+  const geminiApiOrigin = "https://generativelanguage.googleapis.com";
+  const geminiGenerateContentPath = `/v1beta/models/${env.GEMINI_MODEL}:generateContent`;
+
+  beforeAll(() => {
+    fetchMock.activate();
+    // Gemini 以外への実通信を伴わないことを保証する
+    fetchMock.disableNetConnect();
+  });
+
+  afterEach(() => {
+    fetchMock.assertNoPendingInterceptors();
+  });
+
+  async function uploadImageWithUploadId(uid: string, uploadId: string): Promise<string> {
+    const response = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: `Bearer valid-token-${uid}`,
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+        uploadId,
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    return ((await response.json()) as { imageObjectKey: string }).imageObjectKey;
+  }
+
+  function buildAnalysisRequest({
+    authorizationHeader,
+    body,
+  }: {
+    authorizationHeader: string;
+    body: string;
+  }): Request {
+    return new Request(`${workerBaseUrl}/analyses`, {
+      method: "POST",
+      headers: {
+        Authorization: authorizationHeader,
+        "Content-Type": "application/json",
+        [firebaseAppCheckHeaderName]: validAppCheckToken,
+      },
+      body,
+    });
+  }
+
+  // Gemini generateContent の応答 (candidates[0].content.parts[0].text に構造化出力の JSON 文字列) を組み立てる
+  function buildGeminiResponseBody(outputJson: unknown): string {
+    return JSON.stringify({
+      candidates: [{ content: { role: "model", parts: [{ text: JSON.stringify(outputJson) }] } }],
+    });
+  }
+
+  it("本人の画像を Gemini に渡し、抽出した明細を返す", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000001");
+    let capturedGeminiRequest: { headers: Record<string, string>; body: string } | undefined;
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(200, (request) => {
+        capturedGeminiRequest = { headers: request.headers as Record<string, string>, body: String(request.body) };
+        return buildGeminiResponseBody({
+          transactions: [
+            { title: "セブンイレブン 三軒茶屋店", amount: 1234, transactionDate: "2026-08-16", type: "expense", category: "food" },
+          ],
+        });
+      });
+
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({ imageObjectKey }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      transactions: [
+        { title: "セブンイレブン 三軒茶屋店", amount: 1234, transactionDate: "2026-08-16", type: "expense", category: "food" },
+      ],
+    });
+    // API キーはヘッダーで渡し、画像は R2 のバイト列を base64 化して inline_data で渡す
+    expect(capturedGeminiRequest?.headers["x-goog-api-key"]).toBe(env.GEMINI_API_KEY);
+    const geminiRequestBody = JSON.parse(capturedGeminiRequest!.body) as {
+      contents: { parts: { inline_data?: { mime_type: string; data: string } }[] }[];
+      generationConfig: { responseMimeType: string };
+    };
+    expect(geminiRequestBody.contents[0].parts[0].inline_data).toEqual({
+      mime_type: "image/png",
+      data: btoa(String.fromCharCode(...pngBytes)),
+    });
+    expect(geminiRequestBody.generationConfig.responseMimeType).toBe("application/json");
+  });
+
+  it("Gemini の出力のうち不正な明細 (金額が正の整数でない・enum 外) を取り除き、不正な日付は null にする", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000002");
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(
+        200,
+        buildGeminiResponseBody({
+          transactions: [
+            { title: "  スーパー  ", amount: 980, transactionDate: "2026-02-30", type: "expense", category: "food" },
+            { title: "金額なし", amount: 0, transactionDate: "2026-08-16", type: "expense", category: "food" },
+            { title: "小数", amount: 12.5, transactionDate: "2026-08-16", type: "expense", category: "food" },
+            { title: "未知カテゴリ", amount: 100, transactionDate: "2026-08-16", type: "expense", category: "travel" },
+            { title: "未知種別", amount: 100, transactionDate: "2026-08-16", type: "transfer", category: "other" },
+            { title: 42, amount: 500, transactionDate: "2026/08/16", type: "income", category: "salary" },
+          ],
+        }),
+      );
+
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({ imageObjectKey }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      transactions: [
+        { title: "スーパー", amount: 980, transactionDate: null, type: "expense", category: "food" },
+        { title: "", amount: 500, transactionDate: null, type: "income", category: "salary" },
+      ],
+    });
+  });
+
+  it("Gemini がエラーを返した場合は 502 とエラー本文を返す", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000003");
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(503, JSON.stringify({ error: { message: "The model is overloaded." } }));
+
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({ imageObjectKey }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(502);
+    expect(((await response.json()) as { error: string }).error).toContain("status=503");
+  });
+
+  it("他人の uid 配下のオブジェクトキーの解析を 403 で拒否し、Gemini を呼ばない", async () => {
+    const imageObjectKeyOfUserA = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000004");
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-b",
+        body: JSON.stringify({ imageObjectKey: imageObjectKeyOfUserA }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("存在しないオブジェクトキーは 404 を返し、Gemini を呼ばない", async () => {
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({ imageObjectKey: "users/uid-analysis-a/00000000-0000-0000-0000-000000000000.png" }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("imageObjectKey の無いリクエスト・JSON でないリクエストを 400 で拒否する", async () => {
+    const missingKeyResponse = await handleImageRequest(
+      buildAnalysisRequest({ authorizationHeader: "Bearer valid-token-uid-analysis-a", body: JSON.stringify({}) }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(missingKeyResponse.status).toBe(400);
+
+    const invalidJsonResponse = await handleImageRequest(
+      buildAnalysisRequest({ authorizationHeader: "Bearer valid-token-uid-analysis-a", body: "not json" }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(invalidJsonResponse.status).toBe(400);
+  });
+
+  it("uid の日次解析回数が上限に達している場合は 429 を返し Gemini を呼ばない。アップロードの回数とは独立に数える", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-limit", "dddddddd-0000-4000-8000-000000000005");
+    await seedUploadCount("analysis:uid:uid-analysis-limit", maxDailyAnalysisCountPerUser);
+
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-limit",
+        body: JSON.stringify({ imageObjectKey }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(429);
+
+    // 解析の上限に達していても、同じ uid のアップロードは別カウンターのため成功する
+    const uploadResponse = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-limit",
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+        uploadId: "dddddddd-0000-4000-8000-000000000006",
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(uploadResponse.status).toBe(201);
   });
 });

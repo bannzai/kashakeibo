@@ -56,6 +56,10 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
   url_launcher: ^6.3.2
+  # レシート撮影 (端末カメラ) の起動に使用 (features/capture)
+  image_picker: ^1.2.3
+  # 画像アップロードの論理アップロード ID (X-Upload-Id) の UUID 生成に使用
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:

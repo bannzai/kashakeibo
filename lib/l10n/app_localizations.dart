@@ -475,6 +475,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown source'**
   String get transactionSourceUnknown;
+
+  /// No description provided for @addRecordOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a record'**
+  String get addRecordOpen;
+
+  /// No description provided for @addRecordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a record'**
+  String get addRecordTitle;
+
+  /// No description provided for @captureReceiptWithCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get captureReceiptWithCamera;
+
+  /// No description provided for @captureReceiptWithCameraDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Snap a receipt and AI reads the details'**
+  String get captureReceiptWithCameraDescription;
+
+  /// No description provided for @manualEntryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter cash spending without an image'**
+  String get manualEntryDescription;
+
+  /// No description provided for @captureAnalyzingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is reading your receipt'**
+  String get captureAnalyzingTitle;
+
+  /// No description provided for @captureAnalyzingStepLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the image'**
+  String get captureAnalyzingStepLoading;
+
+  /// No description provided for @captureAnalyzingStepReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading amount and date'**
+  String get captureAnalyzingStepReading;
+
+  /// No description provided for @captureAnalyzingStepCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Guessing the category'**
+  String get captureAnalyzingStepCategory;
+
+  /// No description provided for @captureAnalysisFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read the image'**
+  String get captureAnalysisFailedTitle;
+
+  /// No description provided for @captureAnalysisNoTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'No transaction could be read from the image'**
+  String get captureAnalysisNoTransactions;
+
+  /// No description provided for @captureRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get captureRetry;
+
+  /// No description provided for @captureManualFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter manually'**
+  String get captureManualFallback;
+
+  /// No description provided for @captureRetake.
+  ///
+  /// In en, this message translates to:
+  /// **'Retake'**
+  String get captureRetake;
+
+  /// No description provided for @captureConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review details'**
+  String get captureConfirmTitle;
+
+  /// No description provided for @captureSourceImageNote.
+  ///
+  /// In en, this message translates to:
+  /// **'You can always revisit the source image from the transaction'**
+  String get captureSourceImageNote;
+
+  /// No description provided for @captureRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get captureRegister;
+
+  /// No description provided for @captureRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged ✓'**
+  String get captureRegistered;
+
+  /// No description provided for @transactionDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction'**
+  String get transactionDetailTitle;
+
+  /// No description provided for @transactionDetailSourceImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Source image'**
+  String get transactionDetailSourceImage;
+
+  /// No description provided for @transactionDetailSourceImageNote.
+  ///
+  /// In en, this message translates to:
+  /// **'You can revisit the source image anytime'**
+  String get transactionDetailSourceImageNote;
+
+  /// No description provided for @transactionDetailNoImageManual.
+  ///
+  /// In en, this message translates to:
+  /// **'No image · entered manually'**
+  String get transactionDetailNoImageManual;
+
+  /// No description provided for @transactionDetailNoImage.
+  ///
+  /// In en, this message translates to:
+  /// **'No source image'**
+  String get transactionDetailNoImage;
+
+  /// No description provided for @transactionDetailZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom'**
+  String get transactionDetailZoom;
+
+  /// No description provided for @transactionDetailDeleteImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete image only'**
+  String get transactionDetailDeleteImage;
+
+  /// No description provided for @transactionDetailDeleteImageConfirmationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the source image?'**
+  String get transactionDetailDeleteImageConfirmationTitle;
+
+  /// No description provided for @transactionDetailDeleteImageConfirmationMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The transaction stays and only the image is deleted. This cannot be undone.'**
+  String get transactionDetailDeleteImageConfirmationMessage;
+
+  /// No description provided for @transactionDetailImageDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Source image deleted'**
+  String get transactionDetailImageDeleted;
+
+  /// No description provided for @transactionDetailDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete transaction'**
+  String get transactionDetailDelete;
+
+  /// No description provided for @transactionDetailDeleteConfirmationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this transaction?'**
+  String get transactionDetailDeleteConfirmationTitle;
+
+  /// No description provided for @transactionDetailDeleteConfirmationMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The transaction and its source image will be permanently deleted. This cannot be undone.'**
+  String get transactionDetailDeleteConfirmationMessage;
+
+  /// No description provided for @transactionDetailDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction deleted'**
+  String get transactionDetailDeleted;
+
+  /// No description provided for @transactionDetailNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This transaction was deleted'**
+  String get transactionDetailNotFound;
+
+  /// No description provided for @transactionDetailProvenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get transactionDetailProvenance;
+
+  /// No description provided for @transactionDetailExcludeFromAggregation.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclude from totals'**
+  String get transactionDetailExcludeFromAggregation;
+
+  /// No description provided for @transactionDetailExcludeFromAggregationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, this is left out of totals and the category breakdown'**
+  String get transactionDetailExcludeFromAggregationDescription;
+
+  /// No description provided for @transactionProvenanceAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-imported'**
+  String get transactionProvenanceAutomatic;
+
+  /// No description provided for @transactionProvenanceAdjusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusted'**
+  String get transactionProvenanceAdjusted;
 }
 
 class _AppLocalizationsDelegate

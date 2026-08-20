@@ -13,6 +13,38 @@ void main() {
   const testBaseUrl = 'https://image-worker.test';
   final testImageBytes = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47, 1, 2, 3]);
 
+  group('resolveImageApiBaseUrl', () {
+    test('上書き値が無い debug ビルドでは dev Worker の URL を返す', () {
+      expect(
+        resolveImageApiBaseUrl(
+          isDebugMode: true,
+          configuredImageApiBaseUrl: '',
+        ),
+        'https://kashakeibo-image-worker-dev.star-kojiki.workers.dev',
+      );
+    });
+
+    test('上書き値が無い release / profile ビルドでは prod Worker の URL を返す', () {
+      expect(
+        resolveImageApiBaseUrl(
+          isDebugMode: false,
+          configuredImageApiBaseUrl: '',
+        ),
+        'https://kashakeibo-image-worker-prod.star-kojiki.workers.dev',
+      );
+    });
+
+    test('IMAGE_API_BASE_URL の指定値をビルド種別より優先する', () {
+      expect(
+        resolveImageApiBaseUrl(
+          isDebugMode: true,
+          configuredImageApiBaseUrl: 'http://127.0.0.1:8787',
+        ),
+        'http://127.0.0.1:8787',
+      );
+    });
+  });
+
   group('uploadImage', () {
     test(
       'multipart/form-data の POST /images に Bearer トークンと App Check トークン付きで送信し、オブジェクトキーを返す',
@@ -193,6 +225,58 @@ void main() {
             (clientException) => clientException.message,
             'message',
             allOf(contains('status=403'), contains('アクセス権限がありません')),
+          ),
+        ),
+      );
+    });
+  });
+
+  group('deleteImage', () {
+    test('DELETE /images/{オブジェクトキー} に Bearer トークン付きで送信する', () async {
+      late http.Request capturedRequest;
+      await deleteImage(
+        imageObjectKey: 'users/uid-a/uuid.png',
+        firebaseIdToken: 'test-id-token',
+        firebaseAppCheckToken: 'test-app-check-token',
+        httpClient: MockClient((request) async {
+          capturedRequest = request;
+          return http.Response('{"deleted":true}', 200);
+        }),
+        baseUrl: testBaseUrl,
+      );
+
+      expect(capturedRequest.method, 'DELETE');
+      expect(
+        capturedRequest.url.toString(),
+        '$testBaseUrl/images/users/uid-a/uuid.png',
+      );
+      expect(capturedRequest.headers['Authorization'], 'Bearer test-id-token');
+      expect(
+        capturedRequest.headers[firebaseAppCheckHeaderName],
+        'test-app-check-token',
+      );
+    });
+
+    test('200 以外のレスポンスはボディを加工せず例外として伝える', () async {
+      await expectLater(
+        deleteImage(
+          imageObjectKey: 'users/uid-a/missing.png',
+          firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
+          httpClient: MockClient(
+            (request) async => http.Response(
+              '{"error":"画像が見つかりません"}',
+              404,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            ),
+          ),
+          baseUrl: testBaseUrl,
+        ),
+        throwsA(
+          isA<http.ClientException>().having(
+            (clientException) => clientException.message,
+            'message',
+            allOf(contains('status=404'), contains('画像が見つかりません')),
           ),
         ),
       );

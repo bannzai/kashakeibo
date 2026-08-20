@@ -1,0 +1,13 @@
+# tmux-issue-setup / tmux-branch-setup が worktree 作成時にメイン checkout から symlink する git 管理外ファイル。
+# 無いと debug ビルドが起動時に [core/not-initialized] でクラッシュする (ビルド自体は通るため気づきにくい)。
+# 取得方法は .gitignore の同項目のコメントを参照
+
+# Firebase クライアント設定 (iOS: Copy GoogleService-Info.plist ビルドフェーズが dev / prod を選択)
+ios/Firebase/dev/GoogleService-Info.plist
+ios/Firebase/prod/GoogleService-Info.plist
+# Firebase クライアント設定 (Android: src/debug = dev、app 直下 = prod)
+android/app/src/debug/google-services.json
+android/app/google-services.json
+
+# 画像 Worker をローカル (wrangler dev) で動かす時の secret (GEMINI_API_KEY)。workers/image/README.md の「開発」を参照
+workers/image/.dev.vars

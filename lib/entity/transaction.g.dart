@@ -31,6 +31,8 @@ _Transaction _$TransactionFromJson(Map<String, dynamic> json) => _Transaction(
       (json['transactionDateTimeZoneOffsetMinutes'] as num?)?.toInt(),
   yearMonth: json['yearMonth'] as String,
   excludedFromAggregation: json['excludedFromAggregation'] as bool,
+  sourceImageObjectKey: json['sourceImageObjectKey'] as String?,
+  analysisAdjustedByUser: json['analysisAdjustedByUser'] as bool? ?? false,
   confirmedDistinctTransactionIDs:
       (json['confirmedDistinctTransactionIDs'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -61,6 +63,8 @@ Map<String, dynamic> _$TransactionToJson(
       instance.transactionDateTimeZoneOffsetMinutes,
   'yearMonth': instance.yearMonth,
   'excludedFromAggregation': instance.excludedFromAggregation,
+  'sourceImageObjectKey': instance.sourceImageObjectKey,
+  'analysisAdjustedByUser': instance.analysisAdjustedByUser,
   'confirmedDistinctTransactionIDs': instance.confirmedDistinctTransactionIDs,
   'serverCreatedDateTime': const ServerCreatedTimestamp().toJson(
     instance.serverCreatedDateTime,

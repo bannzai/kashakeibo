@@ -29,6 +29,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Used to photograph receipts so AI can read the details. / レシートを撮影して AI が明細を読み取るために使います。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Used to pick receipt or statement screenshots to read the details. / レシートや明細のスクリーンショットを選んで読み取るために使います。</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
