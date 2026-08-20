@@ -159,8 +159,8 @@ void main() {
           firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient(
             (request) async => http.Response(
-              '{"error":"今月の無料スキャン回数を使い切りました"}',
-              402,
+              '{"error":"1日の解析回数の上限に達しました"}',
+              429,
               headers: {'content-type': 'application/json; charset=utf-8'},
             ),
           ),
@@ -170,7 +170,92 @@ void main() {
           isA<http.ClientException>().having(
             (clientException) => clientException.message,
             'message',
-            allOf(contains('status=402'), contains('今月の無料スキャン回数を使い切りました')),
+            allOf(contains('status=429'), contains('1日の解析回数の上限に達しました')),
+          ),
+        ),
+      );
+    });
+
+    test('402 (無料枠超過) は ScanQuotaExceededException として、回数と上限を添えて伝える', () async {
+      await expectLater(
+        analyzeImage(
+          imageObjectKey: 'users/uid-a/uuid.png',
+          firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
+          httpClient: MockClient(
+            (request) async => http.Response(
+              jsonEncode({
+                'error': '今月の無料スキャン (10回) を使い切りました',
+                'monthlyScanCount': 10,
+                'monthlyFreeScanLimit': 10,
+              }),
+              402,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            ),
+          ),
+          baseUrl: testBaseUrl,
+        ),
+        throwsA(
+          isA<ScanQuotaExceededException>()
+              .having(
+                (exception) => exception.toString(),
+                'toString',
+                '今月の無料スキャン (10回) を使い切りました',
+              )
+              .having(
+                (exception) => exception.scanQuota,
+                'scanQuota',
+                const ScanQuota(monthlyScanCount: 10, monthlyFreeScanLimit: 10),
+              ),
+        ),
+      );
+    });
+  });
+
+  group('fetchScanQuota', () {
+    test('GET /analyses/quota に Bearer トークンを送り、回数と上限をデコードする', () async {
+      late http.Request capturedRequest;
+      final scanQuota = await fetchScanQuota(
+        firebaseIdToken: 'test-id-token',
+        firebaseAppCheckToken: 'test-app-check-token',
+        httpClient: MockClient((request) async {
+          capturedRequest = request;
+          return http.Response(
+            jsonEncode({'monthlyScanCount': 3, 'monthlyFreeScanLimit': 10}),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+        baseUrl: testBaseUrl,
+      );
+      expect(capturedRequest.method, 'GET');
+      expect(capturedRequest.url.toString(), '$testBaseUrl/analyses/quota');
+      expect(capturedRequest.headers['Authorization'], 'Bearer test-id-token');
+      expect(
+        capturedRequest.headers['X-Firebase-AppCheck'],
+        'test-app-check-token',
+      );
+      expect(
+        scanQuota,
+        const ScanQuota(monthlyScanCount: 3, monthlyFreeScanLimit: 10),
+      );
+    });
+
+    test('200 以外のレスポンスはボディを加工せず例外として伝える', () async {
+      await expectLater(
+        fetchScanQuota(
+          firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
+          httpClient: MockClient(
+            (request) async => http.Response('{"error":"not found"}', 404),
+          ),
+          baseUrl: testBaseUrl,
+        ),
+        throwsA(
+          isA<http.ClientException>().having(
+            (clientException) => clientException.message,
+            'message',
+            allOf(contains('status=404'), contains('not found')),
           ),
         ),
       );

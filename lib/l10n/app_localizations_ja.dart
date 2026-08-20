@@ -318,4 +318,97 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transactionProvenanceAdjusted => '手調整';
+
+  @override
+  String get capturesSection => 'とった記録';
+
+  @override
+  String scanQuotaRemaining(int count) {
+    return 'スキャン残り$count回';
+  }
+
+  @override
+  String get scanQuotaUnlimited => 'スキャン無制限';
+
+  @override
+  String get scanQuotaExhausted => '今月の無料スキャンを使い切りました';
+
+  @override
+  String get paywallTitle => 'スキャン、し放題に。';
+
+  @override
+  String get paywallSubtitle => '連携しないから壊れない。撮るだけで、レシートも明細も AI が読み取ります。';
+
+  @override
+  String paywallFreeQuota(int used, int limit) {
+    return '今月の無料スキャン $used/$limit';
+  }
+
+  @override
+  String get paywallBenefitUnlimitedScans => 'スキャン無制限';
+
+  @override
+  String get paywallBenefitFullHistory => '全期間の履歴';
+
+  @override
+  String get paywallBenefitFutureFeatures => '今後の新機能';
+
+  @override
+  String get paywallMonthlyPlan => '月額';
+
+  @override
+  String get paywallAnnualPlan => '年額';
+
+  @override
+  String get paywallRecommended => 'おすすめ';
+
+  @override
+  String paywallAnnualSavings(int percent) {
+    return '$percent%お得';
+  }
+
+  @override
+  String paywallPerMonthEquivalent(String price) {
+    return '$price/月換算';
+  }
+
+  @override
+  String get paywallStartPremium => 'プレミアムを始める';
+
+  @override
+  String get paywallCancelAnytime => 'いつでも解約できます';
+
+  @override
+  String get paywallRestore => '購入の復元';
+
+  @override
+  String get paywallRestored => '購入を復元しました。プレミアムが有効です';
+
+  @override
+  String get paywallRestoreNotFound => '復元できる購入がありません';
+
+  @override
+  String get paywallPurchased => 'プレミアムを開始しました。スキャンし放題です!';
+
+  @override
+  String get paywallPremiumActive => 'プレミアム利用中';
+
+  @override
+  String get paywallPremiumActiveDescription => 'スキャン無制限と全期間の履歴が使えます。';
+
+  @override
+  String get paywallOfferingUnavailable => '料金プランを取得できませんでした';
+
+  @override
+  String get paywallSubscriptionNote =>
+      '購入の確認時にストアのアカウントに課金されます。期間終了の24時間前までに解約しない限り自動更新されます。解約・管理はストアのアカウント設定から行えます。';
+
+  @override
+  String get settingsPlan => 'プラン';
+
+  @override
+  String get planFree => '無料';
+
+  @override
+  String get planPremium => 'プレミアム';
 }

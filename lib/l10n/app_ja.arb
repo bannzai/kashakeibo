@@ -107,5 +107,64 @@
   "transactionDetailExcludeFromAggregation": "計算対象から除外",
   "transactionDetailExcludeFromAggregationDescription": "オンにすると合計・カテゴリ内訳に含めません",
   "transactionProvenanceAutomatic": "自動取込",
-  "transactionProvenanceAdjusted": "手調整"
+  "transactionProvenanceAdjusted": "手調整",
+  "capturesSection": "とった記録",
+  "scanQuotaRemaining": "スキャン残り{count}回",
+  "@scanQuotaRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuotaUnlimited": "スキャン無制限",
+  "scanQuotaExhausted": "今月の無料スキャンを使い切りました",
+  "paywallTitle": "スキャン、し放題に。",
+  "paywallSubtitle": "連携しないから壊れない。撮るだけで、レシートも明細も AI が読み取ります。",
+  "paywallFreeQuota": "今月の無料スキャン {used}/{limit}",
+  "@paywallFreeQuota": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "paywallBenefitUnlimitedScans": "スキャン無制限",
+  "paywallBenefitFullHistory": "全期間の履歴",
+  "paywallBenefitFutureFeatures": "今後の新機能",
+  "paywallMonthlyPlan": "月額",
+  "paywallAnnualPlan": "年額",
+  "paywallRecommended": "おすすめ",
+  "paywallAnnualSavings": "{percent}%お得",
+  "@paywallAnnualSavings": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "paywallPerMonthEquivalent": "{price}/月換算",
+  "@paywallPerMonthEquivalent": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallStartPremium": "プレミアムを始める",
+  "paywallCancelAnytime": "いつでも解約できます",
+  "paywallRestore": "購入の復元",
+  "paywallRestored": "購入を復元しました。プレミアムが有効です",
+  "paywallRestoreNotFound": "復元できる購入がありません",
+  "paywallPurchased": "プレミアムを開始しました。スキャンし放題です!",
+  "paywallPremiumActive": "プレミアム利用中",
+  "paywallPremiumActiveDescription": "スキャン無制限と全期間の履歴が使えます。",
+  "paywallOfferingUnavailable": "料金プランを取得できませんでした",
+  "paywallSubscriptionNote": "購入の確認時にストアのアカウントに課金されます。期間終了の24時間前までに解約しない限り自動更新されます。解約・管理はストアのアカウント設定から行えます。",
+  "settingsPlan": "プラン",
+  "planFree": "無料",
+  "planPremium": "プレミアム"
 }

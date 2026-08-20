@@ -9,6 +9,7 @@ import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:kashakeibo/utils/config/environment.dart';
 import 'package:kashakeibo/utils/firebase_app_check/firebase_app_check.dart';
 import 'package:kashakeibo/utils/firebase_emulator/firebase_emulator.dart';
+import 'package:kashakeibo/utils/purchase/purchase.dart';
 
 void main() async {
   // debug ビルド = kashakeibo-dev、release / profile ビルド = kashakeibo-prod。
@@ -23,6 +24,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeFirebase();
   await activateAppCheck();
+  await initializePurchases();
 
   runApp(const ProviderScope(child: App()));
 }

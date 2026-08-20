@@ -703,6 +703,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Adjusted'**
   String get transactionProvenanceAdjusted;
+
+  /// No description provided for @capturesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Captures'**
+  String get capturesSection;
+
+  /// No description provided for @scanQuotaRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} scans left'**
+  String scanQuotaRemaining(int count);
+
+  /// No description provided for @scanQuotaUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited scans'**
+  String get scanQuotaUnlimited;
+
+  /// No description provided for @scanQuotaExhausted.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used all free scans this month'**
+  String get scanQuotaExhausted;
+
+  /// No description provided for @paywallTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Go unlimited with Premium'**
+  String get paywallTitle;
+
+  /// No description provided for @paywallSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No account linking. Just snap, and Premium reads every receipt and statement for you.'**
+  String get paywallSubtitle;
+
+  /// No description provided for @paywallFreeQuota.
+  ///
+  /// In en, this message translates to:
+  /// **'Free scans this month {used}/{limit}'**
+  String paywallFreeQuota(int used, int limit);
+
+  /// No description provided for @paywallBenefitUnlimitedScans.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited scans'**
+  String get paywallBenefitUnlimitedScans;
+
+  /// No description provided for @paywallBenefitFullHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Full history, every month'**
+  String get paywallBenefitFullHistory;
+
+  /// No description provided for @paywallBenefitFutureFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming features'**
+  String get paywallBenefitFutureFeatures;
+
+  /// No description provided for @paywallMonthlyPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get paywallMonthlyPlan;
+
+  /// No description provided for @paywallAnnualPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Annual'**
+  String get paywallAnnualPlan;
+
+  /// No description provided for @paywallRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Best value'**
+  String get paywallRecommended;
+
+  /// No description provided for @paywallAnnualSavings.
+  ///
+  /// In en, this message translates to:
+  /// **'Save {percent}%'**
+  String paywallAnnualSavings(int percent);
+
+  /// No description provided for @paywallPerMonthEquivalent.
+  ///
+  /// In en, this message translates to:
+  /// **'{price}/mo'**
+  String paywallPerMonthEquivalent(String price);
+
+  /// No description provided for @paywallStartPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Premium'**
+  String get paywallStartPremium;
+
+  /// No description provided for @paywallCancelAnytime.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel anytime'**
+  String get paywallCancelAnytime;
+
+  /// No description provided for @paywallRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore purchases'**
+  String get paywallRestore;
+
+  /// No description provided for @paywallRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchases restored. Premium is active.'**
+  String get paywallRestored;
+
+  /// No description provided for @paywallRestoreNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No purchases to restore'**
+  String get paywallRestoreNotFound;
+
+  /// No description provided for @paywallPurchased.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium is active. Scan as much as you like!'**
+  String get paywallPurchased;
+
+  /// No description provided for @paywallPremiumActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium is active'**
+  String get paywallPremiumActive;
+
+  /// No description provided for @paywallPremiumActiveDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unlimited scans and full history.'**
+  String get paywallPremiumActiveDescription;
+
+  /// No description provided for @paywallOfferingUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans are unavailable right now'**
+  String get paywallOfferingUnavailable;
+
+  /// No description provided for @paywallSubscriptionNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment is charged to your store account at confirmation. The subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel it in your store account settings.'**
+  String get paywallSubscriptionNote;
+
+  /// No description provided for @settingsPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get settingsPlan;
+
+  /// No description provided for @planFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get planFree;
+
+  /// No description provided for @planPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get planPremium;
 }
 
 class _AppLocalizationsDelegate

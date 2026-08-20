@@ -4,9 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:kashakeibo/features/paywall/paywall_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/provider/account.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
@@ -27,8 +29,8 @@ Future<void> openExternalUri({required Uri uri}) async {
   }
 }
 
-/// バックアップ用アカウントリンク、法務ドキュメントへの導線、アカウント削除を
-/// 提供する設定画面。
+/// バックアップ用アカウントリンク、プラン (ペイウォールへの導線)、法務ドキュメントへの導線、
+/// アカウント削除を提供する設定画面。
 class SettingsPage extends HookConsumerWidget {
   /// 外部URLを開く処理。
   final OpenExternalUri openExternalUri;
@@ -49,6 +51,7 @@ class SettingsPage extends HookConsumerWidget {
     final linkOrSignInWithGoogle = ref.watch(linkOrSignInWithGoogleProvider);
     final hasCurrentUserData = ref.watch(hasCurrentUserDataProvider);
     final deleteAccount = ref.watch(deleteAccountProvider);
+    final isPremium = ref.watch(isPremiumProvider);
     final operationInProgress = useState(false);
     // 戻る操作を経路 (AppBar の戻るボタン / スワイプ) によらず一度だけ記録する。
     final settingsCloseLogged = useRef(false);
@@ -185,12 +188,59 @@ class SettingsPage extends HookConsumerWidget {
                     color: appColors.surface,
                     borderRadius: BorderRadius.circular(AppRadius.card),
                     clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      minTileHeight: 50,
+                      title: Text(
+                        l10n.settingsPlan,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isPremium ? l10n.planPremium : l10n.planFree,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isPremium
+                                  ? appColors.sage700
+                                  : appColors.textMuted,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Icon(
+                            Icons.chevron_right,
+                            color: appColors.neutral500,
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        unawaited(
+                          logAnalyticsEvent(name: 'settings_plan_open'),
+                        );
+                        showPaywall(
+                          context: context,
+                          trigger: 'settings_plan',
+                          openExternalUri: openExternalUri,
+                          logAnalyticsEvent: logAnalyticsEvent,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Material(
+                    color: appColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
                         _LegalDocumentRow(
                           label: l10n.termsOfService,
                           document: 'terms',
-                          uri: _legalDocumentUri(path: 'Terms'),
+                          uri: legalDocumentUri(path: 'Terms'),
                           openExternalUri: openExternalUri,
                           logAnalyticsEvent: logAnalyticsEvent,
                         ),
@@ -198,7 +248,7 @@ class SettingsPage extends HookConsumerWidget {
                         _LegalDocumentRow(
                           label: l10n.privacyPolicy,
                           document: 'privacy_policy',
-                          uri: _legalDocumentUri(path: privacyPolicyPath),
+                          uri: legalDocumentUri(path: privacyPolicyPath),
                           openExternalUri: openExternalUri,
                           logAnalyticsEvent: logAnalyticsEvent,
                         ),
@@ -206,7 +256,7 @@ class SettingsPage extends HookConsumerWidget {
                         _LegalDocumentRow(
                           label: l10n.specifiedCommercialTransactionAct,
                           document: 'specified_commercial_transaction_act',
-                          uri: _legalDocumentUri(
+                          uri: legalDocumentUri(
                             path: 'SpecifiedCommercialTransactionAct-ja',
                           ),
                           openExternalUri: openExternalUri,
@@ -278,7 +328,7 @@ class SettingsPage extends HookConsumerWidget {
 }
 
 /// GitHub Pages上の法務ドキュメントURLを返す。
-Uri _legalDocumentUri({required String path}) =>
+Uri legalDocumentUri({required String path}) =>
     Uri.https(_legalDocumentsHost, '$_legalDocumentsBasePath/$path');
 
 /// 設定画面の法務ドキュメント1行。

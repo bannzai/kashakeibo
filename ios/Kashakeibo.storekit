@@ -1,0 +1,130 @@
+{
+  "appPolicies": {
+    "eula": "",
+    "policies": [
+      {
+        "locale": "ja_JP",
+        "policyText": "",
+        "policyURL": ""
+      }
+    ]
+  },
+  "identifier": "KASHAKEIBO",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "ja_JP",
+    "_storefront": "JPN",
+    "_storeKitErrors": [
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Load Products"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Purchase"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Verification"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "App Store Sync"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Subscription Status"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "App Transaction"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Manage Subscriptions Sheet"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Refund Request Sheet"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups": [
+    {
+      "id": "B1000001",
+      "localizations": [
+        {
+          "description": "カシャケイボ プレミアム",
+          "displayName": "カシャケイボ プレミアム",
+          "locale": "ja_JP"
+        }
+      ],
+      "name": "Kashakeibo Premium",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "480",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "S1000001",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "スキャン無制限と全期間の履歴を毎月更新で使えます",
+              "displayName": "プレミアム (月額)",
+              "locale": "ja_JP"
+            }
+          ],
+          "productID": "kashakeibo_premium_monthly_480yen",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "kashakeibo_premium_monthly_480yen",
+          "subscriptionGroupID": "B1000001",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "3800",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "S1000002",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "スキャン無制限と全期間の履歴を年額でお得に使えます",
+              "displayName": "プレミアム (年額)",
+              "locale": "ja_JP"
+            }
+          ],
+          "productID": "kashakeibo_premium_annual_3800yen",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "kashakeibo_premium_annual_3800yen",
+          "subscriptionGroupID": "B1000001",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
+}

@@ -18,6 +18,7 @@
 - Android ビルド: `flutter build apk`
 - シミュレータでの動作確認: `/ios-simulator` skill を起点に `/sim-manager` でプロジェクト固有シミュレータを起動し、`flutter run` する
 - E2E: Maestro を導入したら `maestro test maestro/flows/` (`/flutter-maestro` skill)。導入までは上記の手動確認で代替する
+- 課金 (StoreKit): `cd ios && xcodebuild test -workspace Runner.xcworkspace -scheme Runner -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=26.2" -only-testing:RunnerTests/StoreKitConfigurationTests` (`/ios-storekit-testing` skill。`ios/Kashakeibo.storekit` の商品定義で商品解決 → 購入 → entitlement を検証する。iOS 26.5 simulator では既知の問題で skip される)
 
 ## Plan 時に考慮すること
 

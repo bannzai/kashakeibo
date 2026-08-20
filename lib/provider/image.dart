@@ -7,6 +7,7 @@ import 'package:kashakeibo/features/capture/image_analysis_client.dart'
     as image_analysis;
 import 'package:kashakeibo/features/image_upload/image_upload_client.dart'
     as image_upload;
+import 'package:kashakeibo/provider/firebase_user.dart';
 import 'package:kashakeibo/utils/firebase_app_check/firebase_app_check.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -34,6 +35,9 @@ typedef FetchStoredImage =
 typedef DeleteStoredImage =
     Future<void> Function({required String imageObjectKey});
 
+/// 今月のスキャン回数と無料枠を Worker から取得する操作。
+typedef FetchScanQuota = Future<image_analysis.ScanQuota> Function();
+
 /// 撮影・選択した画像のアップロード操作。テストでは差し替える。
 final uploadCapturedImageProvider = Provider<UploadCapturedImage>(
   (ref) => uploadCapturedImage,
@@ -53,6 +57,34 @@ final fetchStoredImageProvider = Provider<FetchStoredImage>(
 final deleteStoredImageProvider = Provider<DeleteStoredImage>(
   (ref) => deleteStoredImage,
 );
+
+/// 今月のスキャン回数と無料枠の取得操作。テストでは差し替える。
+final fetchScanQuotaProvider = Provider<FetchScanQuota>(
+  (ref) => fetchScanQuota,
+);
+
+/// 今月のスキャン回数と無料枠 (残量チップ・ペイウォールの表示判定に使う)。
+///
+/// サインイン中のユーザーが変わると取り直す。解析のたびに Worker 側の回数が進むため、
+/// 撮影フローの終了後などに [refresh] で取り直す (画面が unmount され得るコールバックから
+/// 呼べるよう keepAlive にし、notifier を build 時に確保して使う。`.claude/rules/riverpod-rules.md`)。
+@Riverpod(keepAlive: true)
+class MonthlyScanQuota extends _$MonthlyScanQuota {
+  @override
+  Future<image_analysis.ScanQuota> build() {
+    // サインイン中の uid が変わった時 (アカウント切替・削除後の匿名再サインイン) だけ取り直す。
+    // token 更新などの他の userChanges イベントでは取り直さない
+    ref.watch(
+      firebaseUserChangesProvider.select(
+        (firebaseUserAsync) => firebaseUserAsync.valueOrNull?.uid,
+      ),
+    );
+    return ref.watch(fetchScanQuotaProvider)();
+  }
+
+  /// Worker から取り直す。取得中も直前の値を保持する (AsyncValue の previous 値)。
+  void refresh() => ref.invalidateSelf();
+}
 
 /// 明細に紐づく元画像のバイト列。明細詳細の元画像表示に使う。
 ///
@@ -153,6 +185,20 @@ Future<Uint8List> fetchStoredImage({required String imageObjectKey}) =>
             httpClient: httpClient,
           ),
     );
+
+/// 今月のスキャン回数と無料枠を取得する。冪等 (読み取りのみ)。
+Future<image_analysis.ScanQuota> fetchScanQuota() => _callImageApi(
+  imageApiCall:
+      ({
+        required firebaseIdToken,
+        required firebaseAppCheckToken,
+        required httpClient,
+      }) => image_analysis.fetchScanQuota(
+        firebaseIdToken: firebaseIdToken,
+        firebaseAppCheckToken: firebaseAppCheckToken,
+        httpClient: httpClient,
+      ),
+);
 
 /// アップロード済み画像 1 件を削除する。冪等 (対象が無くても成功する。Worker 側の契約)。
 Future<void> deleteStoredImage({required String imageObjectKey}) =>

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://raw.githubusercontent.com/bannzai/castle/main/home/.claude/skills/appstore-in-app-purchase/config.schema.json",
+  "comment": "App Store Connect の自動更新サブスクリプション定義 (documents/PROJECT.md の課金設計)。~/.claude/skills/appstore-in-app-purchase の iap_apply_subscriptions.sh --config <このファイル> で冪等に適用する。appId は本番アプリ (bundle ID com.bannzai.kashakeibo)",
+  "appId": "6802552690",
+  "defaults": {
+    "fail_strategy": "fail-fast",
+    "base_territory": "JPN"
+  },
+  "iaps": [],
+  "subscriptionGroups": [
+    {
+      "referenceName": "Kashakeibo Premium",
+      "locales": [
+        { "locale": "ja", "name": "カシャケイボ プレミアム" },
+        { "locale": "en-US", "name": "Kashakeibo Premium" }
+      ],
+      "subscriptions": [
+        {
+          "productId": "kashakeibo_premium_monthly_480yen",
+          "referenceName": "Premium Monthly",
+          "subscriptionPeriod": "ONE_MONTH",
+          "groupLevel": 1,
+          "reviewNote": "無料枠 (月10スキャン) を超えたユーザー向けのプレミアム月額プランです。ホーム画面のスキャン残量チップ、または設定 > プランからペイウォールを開き購入できます。",
+          "price": {
+            "base_territory": "JPN",
+            "customer_price": "480"
+          },
+          "availability": {
+            "available_in_new_territories": true,
+            "territories": "ALL"
+          },
+          "locales": [
+            {
+              "locale": "ja",
+              "name": "プレミアム (月額)",
+              "description": "スキャン無制限と全期間の履歴を毎月更新で使えます"
+            },
+            {
+              "locale": "en-US",
+              "name": "Premium (Monthly)",
+              "description": "Unlimited scans and full history, billed monthly"
+            }
+          ]
+        },
+        {
+          "productId": "kashakeibo_premium_annual_3800yen",
+          "referenceName": "Premium Annual",
+          "subscriptionPeriod": "ONE_YEAR",
+          "groupLevel": 1,
+          "reviewNote": "無料枠 (月10スキャン) を超えたユーザー向けのプレミアム年額プランです。ホーム画面のスキャン残量チップ、または設定 > プランからペイウォールを開き購入できます。",
+          "price": {
+            "base_territory": "JPN",
+            "customer_price": "3800"
+          },
+          "availability": {
+            "available_in_new_territories": true,
+            "territories": "ALL"
+          },
+          "locales": [
+            {
+              "locale": "ja",
+              "name": "プレミアム (年額)",
+              "description": "スキャン無制限と全期間の履歴を年額でお得に使えます"
+            },
+            {
+              "locale": "en-US",
+              "name": "Premium (Annual)",
+              "description": "Unlimited scans and full history, billed yearly"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

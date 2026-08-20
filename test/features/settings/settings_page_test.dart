@@ -4,11 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:kashakeibo/features/capture/image_analysis_client.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/app_localizations_en.dart';
 import 'package:kashakeibo/provider/account.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
+import 'package:kashakeibo/provider/image.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -38,11 +41,23 @@ Widget buildSettingsApp({
   required DeleteAccount deleteAccount,
   required LogAnalyticsEvent logAnalyticsEvent,
   HasCurrentUserData? hasCurrentUserData,
+  bool isPremium = false,
 }) => ProviderScope(
   overrides: [
     firebaseUserChangesProvider.overrideWith(
       (ref) => Stream.value(firebaseUser),
     ),
+    isPremiumProvider.overrideWithValue(isPremium),
+    // プラン行から開くペイウォール用。Offering 無し (SDK 未設定相当) で表示だけ確認する
+    fetchScanQuotaProvider.overrideWithValue(
+      () async =>
+          const ScanQuota(monthlyScanCount: 2, monthlyFreeScanLimit: 10),
+    ),
+    premiumOfferingProvider.overrideWith((ref) async => null),
+    purchasePremiumPackageProvider.overrideWithValue(
+      ({required package}) async => false,
+    ),
+    restorePurchasesProvider.overrideWithValue(() async => false),
     linkOrSignInWithAppleProvider.overrideWithValue(linkOrSignInWithApple),
     linkOrSignInWithGoogleProvider.overrideWithValue(linkOrSignInWithGoogle),
     hasCurrentUserDataProvider.overrideWithValue(
@@ -115,6 +130,58 @@ void main() {
       analyticsEvents,
       containsAll(['link_apple_account', 'link_google_account']),
     );
+  });
+
+  testWidgets('プラン行に現在のプラン (無料 / プレミアム) を表示し、タップでペイウォールを開く', (tester) async {
+    final firebaseUser = MockSettingsUser();
+    final analyticsEvents = <String>[];
+    when(() => firebaseUser.isAnonymous).thenReturn(true);
+    when(() => firebaseUser.providerData).thenReturn(const []);
+
+    await tester.pumpWidget(
+      buildSettingsApp(
+        firebaseUser: firebaseUser,
+        linkOrSignInWithApple: () async => AccountActionResult.linked,
+        linkOrSignInWithGoogle: () async => AccountActionResult.linked,
+        deleteAccount: FakeDeleteAccount(),
+        logAnalyticsEvent: ({required name, parameters}) async {
+          analyticsEvents.add(name);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().settingsPlan), findsOneWidget);
+    expect(find.text(AppLocalizationsEn().planFree), findsOneWidget);
+
+    await tester.tap(find.text(AppLocalizationsEn().settingsPlan));
+    await tester.pumpAndSettle();
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsOneWidget);
+    expect(
+      analyticsEvents,
+      containsAll(['settings_plan_open', 'paywall_open']),
+    );
+  });
+
+  testWidgets('プレミアムのユーザーにはプラン行にプレミアムと表示する', (tester) async {
+    final firebaseUser = MockSettingsUser();
+    when(() => firebaseUser.isAnonymous).thenReturn(false);
+    when(() => firebaseUser.providerData).thenReturn(const []);
+
+    await tester.pumpWidget(
+      buildSettingsApp(
+        firebaseUser: firebaseUser,
+        linkOrSignInWithApple: () async => AccountActionResult.linked,
+        linkOrSignInWithGoogle: () async => AccountActionResult.linked,
+        deleteAccount: FakeDeleteAccount(),
+        logAnalyticsEvent: ({required name, parameters}) async {},
+        isPremium: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().planPremium), findsOneWidget);
+    expect(find.text(AppLocalizationsEn().planFree), findsNothing);
   });
 
   testWidgets('既存アカウントへサインインした場合はリンクではなく切替完了を表示する', (tester) async {
