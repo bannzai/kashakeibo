@@ -18,7 +18,7 @@ env:
   # 共有 Extension (bundle ID com.bannzai.kashakeibo.ShareExtension) 用の App Store 配布 profile 名
   # (IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 の実体と一致させる)。
   # Runner 側の profile にも App Groups (group.com.bannzai.kashakeibo) の capability が必要
-  IOS_SHARE_EXTENSION_PROFILE_NAME: 'Kashakeibo Prod ShareExtension AppStore'
+  IOS_SHARE_EXTENSION_PROFILE_NAME: 'Kashakeibo.ShareExtension.AppStore.Prod'
 jobs:
   build-ios:
     runs-on: macos-latest
