@@ -185,3 +185,33 @@ jobs:
           rm -f ~/Library/MobileDevice/Provisioning\ Profiles/runner.mobileprovision || true
           rm -f ~/Library/MobileDevice/Provisioning\ Profiles/share_extension.mobileprovision || true
           rm -f ~/.appstoreconnect/private_keys/AuthKey_*.p8 || true
+
+      # GitHub からの通知メールはフィルタで見落とすため、配布結果を Slack にも通知する
+      # (bot token + chat.postMessage。slack-notification-setup の標準経路)
+      - name: Slack に配布結果を通知
+        if: always()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_NOTIFY_CHANNEL: kashakeibo-notification
+          JOB_STATUS: ${{ job.status }}
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+          APP_BUILD_NUMBER: ${{ steps.version.outputs.app_build_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$SLACK_BOT_TOKEN" ]; then
+            echo "SLACK_BOT_TOKEN が未設定のため Slack 通知をスキップしました" >&2
+            exit 0
+          fi
+          if [ "$JOB_STATUS" = "success" ]; then
+            TEXT="✅ flutter-deploy 成功: v${APP_VERSION} (${APP_BUILD_NUMBER}) を TestFlight にアップロードしました: $RUN_URL"
+          else
+            TEXT="❌ flutter-deploy 失敗 (${JOB_STATUS}): $RUN_URL"
+          fi
+          # chat.postMessage はエラーでも HTTP 200 を返すため、レスポンスの ok で成否を判定する
+          jq -n --arg channel "$SLACK_NOTIFY_CHANNEL" --arg text "$TEXT" \
+                '{channel: $channel, text: $text}' \
+            | curl -sf -X POST -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+                -H 'Content-Type: application/json; charset=utf-8' \
+                --data @- https://slack.com/api/chat.postMessage \
+            | jq -e '.ok' > /dev/null \
+            || { echo "Slack 通知の送信に失敗しました" >&2; exit 1; }
