@@ -44,6 +44,9 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- 通信は HTTPS 等の OS 標準暗号のみで独自暗号を含まないため、輸出コンプライアンスの確認 (TestFlight の Missing Compliance) を免除対象として宣言する -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Used to photograph receipts so AI can read the details. / レシートを撮影して AI が明細を読み取るために使います。</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -20,6 +20,9 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- 通信は HTTPS 等の OS 標準暗号のみで独自暗号を含まないため、輸出コンプライアンスの確認 (TestFlight の Missing Compliance) を免除対象として宣言する -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>
