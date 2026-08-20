@@ -1,6 +1,7 @@
 {
   // カシャケイボの画像アップロード・取得 Worker。
-  // R2 への読み書きはこの Worker に一本化し、Firebase Auth の ID token 検証を通ったリクエストだけを許可する。
+  // R2 への読み書きはこの Worker に一本化し、Firebase Auth の ID token 検証と Firebase App Check token 検証の
+  // 両方を通ったリクエストだけを許可する。
   // レシート・明細スクショは機微情報のため、R2 の公開バケット配信は使わない (documents/adr/0001-tech-stack.md)。
   //
   // デプロイは environment 必須: `wrangler deploy --env dev` / `wrangler deploy --env prod`。
@@ -47,6 +48,8 @@
         "FIREBASE_PROJECT_ID": "kashakeibo-dev",
         // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
         "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
+        // App Check の JWKS キャッシュの KV キー名 (同じ KV namespace 内で PUBLIC_JWK_CACHE_KEY と別キーにする)
+        "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache",
         // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
         "GEMINI_MODEL": "gemini-3.7-flash"
       }
@@ -88,6 +91,8 @@
         "FIREBASE_PROJECT_ID": "kashakeibo-prod",
         // JWK キャッシュの KV キー名。firebase-auth-cloudflare-workers が KV の read/write に使う任意の固定文字列
         "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
+        // App Check の JWKS キャッシュの KV キー名 (同じ KV namespace 内で PUBLIC_JWK_CACHE_KEY と別キーにする)
+        "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache",
         // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
         "GEMINI_MODEL": "gemini-3.7-flash"
       }

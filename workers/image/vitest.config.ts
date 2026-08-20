@@ -21,6 +21,7 @@ export default defineWorkersConfig({
           bindings: {
             FIREBASE_PROJECT_ID: "kashakeibo-test",
             PUBLIC_JWK_CACHE_KEY: "firebase-public-jwk-cache",
+            APP_CHECK_JWKS_CACHE_KEY: "firebase-app-check-jwks-cache",
             GEMINI_API_KEY: "test-gemini-api-key",
             GEMINI_MODEL: "gemini-test-model",
           },

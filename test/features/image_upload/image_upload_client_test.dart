@@ -1,5 +1,5 @@
 // image_upload_client の HTTP リクエスト組み立てとレスポンス処理のテスト。
-// Worker 側の認可ロジック (uid 強制・未認証拒否) は workers/image/test/handler.test.ts が検証するため、
+// Worker 側の認可ロジック (uid 強制・未認証拒否・App Check 検証) は workers/image/test/handler.test.ts が検証するため、
 // ここでは MockClient でクライアント側の責務 (multipart 組み立て・ヘッダー・エラー伝播) だけを検証する。
 import 'dart:convert';
 import 'dart:typed_data';
@@ -47,7 +47,7 @@ void main() {
 
   group('uploadImage', () {
     test(
-      'multipart/form-data の POST /images に Bearer トークン付きで送信し、オブジェクトキーを返す',
+      'multipart/form-data の POST /images に Bearer トークンと App Check トークン付きで送信し、オブジェクトキーを返す',
       () async {
         late http.Request capturedRequest;
         final uploadedImageObjectKey = await uploadImage(
@@ -55,6 +55,7 @@ void main() {
           imageContentType: 'image/png',
           uploadImageID: '11111111-2222-4333-8444-555555555555',
           firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient((request) async {
             capturedRequest = request;
             return http.Response(
@@ -71,6 +72,10 @@ void main() {
         expect(
           capturedRequest.headers['Authorization'],
           'Bearer test-id-token',
+        );
+        expect(
+          capturedRequest.headers[firebaseAppCheckHeaderName],
+          'test-app-check-token',
         );
         expect(
           capturedRequest.headers['X-Upload-Id'],
@@ -99,6 +104,7 @@ void main() {
           imageContentType: 'image/png',
           uploadImageID: '11111111-2222-4333-8444-555555555555',
           firebaseIdToken: 'expired-token',
+          firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient(
             (request) async => http.Response(
               '{"error":"Firebase ID token が無効です"}',
@@ -120,10 +126,11 @@ void main() {
   });
 
   group('deleteAllImages', () {
-    test('DELETE /images に Bearer トークン付きで送信する', () async {
+    test('DELETE /images に Bearer トークンと App Check トークン付きで送信する', () async {
       late http.Request capturedRequest;
       await deleteAllImages(
         firebaseIdToken: 'test-id-token',
+        firebaseAppCheckToken: 'test-app-check-token',
         httpClient: MockClient((request) async {
           capturedRequest = request;
           return http.Response('{"deletedImageCount":"2"}', 200);
@@ -134,12 +141,17 @@ void main() {
       expect(capturedRequest.method, 'DELETE');
       expect(capturedRequest.url.toString(), '$testBaseUrl/images');
       expect(capturedRequest.headers['Authorization'], 'Bearer test-id-token');
+      expect(
+        capturedRequest.headers[firebaseAppCheckHeaderName],
+        'test-app-check-token',
+      );
     });
 
     test('200 以外のレスポンスはボディを加工せず例外として伝える', () async {
       expect(
         () => deleteAllImages(
           firebaseIdToken: 'expired-token',
+          firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient(
             (request) async => http.Response(
               '{"error":"Firebase ID token が無効です"}',
@@ -161,32 +173,44 @@ void main() {
   });
 
   group('fetchImage', () {
-    test('GET /images/{オブジェクトキー} に Bearer トークン付きで送信し、バイト列を返す', () async {
-      late http.Request capturedRequest;
-      final fetchedImageBytes = await fetchImage(
-        imageObjectKey: 'users/uid-a/uuid.png',
-        firebaseIdToken: 'test-id-token',
-        httpClient: MockClient((request) async {
-          capturedRequest = request;
-          return http.Response.bytes(testImageBytes, 200);
-        }),
-        baseUrl: testBaseUrl,
-      );
+    test(
+      'GET /images/{オブジェクトキー} に Bearer トークンと App Check トークン付きで送信し、バイト列を返す',
+      () async {
+        late http.Request capturedRequest;
+        final fetchedImageBytes = await fetchImage(
+          imageObjectKey: 'users/uid-a/uuid.png',
+          firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
+          httpClient: MockClient((request) async {
+            capturedRequest = request;
+            return http.Response.bytes(testImageBytes, 200);
+          }),
+          baseUrl: testBaseUrl,
+        );
 
-      expect(fetchedImageBytes, testImageBytes);
-      expect(capturedRequest.method, 'GET');
-      expect(
-        capturedRequest.url.toString(),
-        '$testBaseUrl/images/users/uid-a/uuid.png',
-      );
-      expect(capturedRequest.headers['Authorization'], 'Bearer test-id-token');
-    });
+        expect(fetchedImageBytes, testImageBytes);
+        expect(capturedRequest.method, 'GET');
+        expect(
+          capturedRequest.url.toString(),
+          '$testBaseUrl/images/users/uid-a/uuid.png',
+        );
+        expect(
+          capturedRequest.headers['Authorization'],
+          'Bearer test-id-token',
+        );
+        expect(
+          capturedRequest.headers[firebaseAppCheckHeaderName],
+          'test-app-check-token',
+        );
+      },
+    );
 
     test('200 以外のレスポンスはボディを加工せず例外として伝える', () async {
       expect(
         () => fetchImage(
           imageObjectKey: 'users/other-uid/uuid.png',
           firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient(
             (request) async => http.Response(
               '{"error":"このオブジェクトキーへのアクセス権限がありません"}',
@@ -213,6 +237,7 @@ void main() {
       await deleteImage(
         imageObjectKey: 'users/uid-a/uuid.png',
         firebaseIdToken: 'test-id-token',
+        firebaseAppCheckToken: 'test-app-check-token',
         httpClient: MockClient((request) async {
           capturedRequest = request;
           return http.Response('{"deleted":true}', 200);
@@ -226,6 +251,10 @@ void main() {
         '$testBaseUrl/images/users/uid-a/uuid.png',
       );
       expect(capturedRequest.headers['Authorization'], 'Bearer test-id-token');
+      expect(
+        capturedRequest.headers[firebaseAppCheckHeaderName],
+        'test-app-check-token',
+      );
     });
 
     test('200 以外のレスポンスはボディを加工せず例外として伝える', () async {
@@ -233,6 +262,7 @@ void main() {
         deleteImage(
           imageObjectKey: 'users/uid-a/missing.png',
           firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient(
             (request) async => http.Response(
               '{"error":"画像が見つかりません"}',

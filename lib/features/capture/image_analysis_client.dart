@@ -1,6 +1,6 @@
 // 画像解析 (workers/image の POST /analyses) への Flutter クライアント。
 // Worker が R2 のアップロード済み画像を Gemini に渡して明細を抽出する (API 仕様は workers/image/README.md)。
-// Firebase ID token は引数で受け取り、この feature は HTTP 通信と応答のデコードだけを担当する
+// Firebase ID token と App Check token は引数で受け取り、この feature は HTTP 通信と応答のデコードだけを担当する
 // (token の取得と HTTP クライアントの用意は lib/provider/image.dart)。
 import 'dart:convert';
 
@@ -60,6 +60,7 @@ abstract class ImageAnalysisResult with _$ImageAnalysisResult {
 Future<ImageAnalysisResult> analyzeImage({
   required String imageObjectKey,
   required String firebaseIdToken,
+  required String firebaseAppCheckToken,
   required http.Client httpClient,
   String? baseUrl,
 }) async {
@@ -67,6 +68,7 @@ Future<ImageAnalysisResult> analyzeImage({
     Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses'),
     headers: {
       'Authorization': 'Bearer $firebaseIdToken',
+      firebaseAppCheckHeaderName: firebaseAppCheckToken,
       'Content-Type': 'application/json',
     },
     body: jsonEncode({'imageObjectKey': imageObjectKey}),
