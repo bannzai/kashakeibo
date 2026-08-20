@@ -31,9 +31,9 @@
       "durable_objects": {
         "bindings": [
           {
-            // 日次アップロード回数カウンター。判定と加算を直列化して並行リクエストの上限すり抜けを防ぐ
-            "name": "DAILY_UPLOAD_COUNTER",
-            "class_name": "DailyUploadCounter"
+            // 日次 (アップロード・解析) と月次 (スキャン無料枠) の回数カウンター。判定と加算を直列化して並行リクエストの上限すり抜けを防ぐ
+            "name": "USAGE_COUNTER",
+            "class_name": "UsageCounter"
           }
         ]
       },
@@ -41,6 +41,11 @@
         {
           "tag": "v1",
           "new_sqlite_classes": ["DailyUploadCounter"]
+        },
+        {
+          // 月次スキャン回数の追加に伴い、日次専用の名前から用途を限定しない名前へ改名 (既存インスタンスのデータは引き継がれる)
+          "tag": "v2",
+          "renamed_classes": [{ "from": "DailyUploadCounter", "to": "UsageCounter" }]
         }
       ],
       "vars": {
@@ -51,7 +56,12 @@
         // App Check の JWKS キャッシュの KV キー名 (同じ KV namespace 内で PUBLIC_JWK_CACHE_KEY と別キーにする)
         "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache",
         // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
-        "GEMINI_MODEL": "gemini-3.7-flash"
+        "GEMINI_MODEL": "gemini-3.7-flash",
+        // スキャン無料枠超過時のプレミアム判定に使う RevenueCat の project (Kashakeibo-dev) と、プレミアム entitlement の ID。
+        // secret API key は wrangler secret REVENUECAT_SECRET_API_KEY (README のデプロイ手順)。
+        // secret が未登録の間は Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)
+        "REVENUECAT_PROJECT_ID": "proje2d79a89",
+        "REVENUECAT_PREMIUM_ENTITLEMENT_ID": "entl34c3809c32"
       }
     },
     "prod": {
@@ -74,9 +84,9 @@
       "durable_objects": {
         "bindings": [
           {
-            // 日次アップロード回数カウンター。判定と加算を直列化して並行リクエストの上限すり抜けを防ぐ
-            "name": "DAILY_UPLOAD_COUNTER",
-            "class_name": "DailyUploadCounter"
+            // 日次 (アップロード・解析) と月次 (スキャン無料枠) の回数カウンター。判定と加算を直列化して並行リクエストの上限すり抜けを防ぐ
+            "name": "USAGE_COUNTER",
+            "class_name": "UsageCounter"
           }
         ]
       },
@@ -84,6 +94,11 @@
         {
           "tag": "v1",
           "new_sqlite_classes": ["DailyUploadCounter"]
+        },
+        {
+          // 月次スキャン回数の追加に伴い、日次専用の名前から用途を限定しない名前へ改名 (既存インスタンスのデータは引き継がれる)
+          "tag": "v2",
+          "renamed_classes": [{ "from": "DailyUploadCounter", "to": "UsageCounter" }]
         }
       ],
       "vars": {
@@ -94,7 +109,12 @@
         // App Check の JWKS キャッシュの KV キー名 (同じ KV namespace 内で PUBLIC_JWK_CACHE_KEY と別キーにする)
         "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache",
         // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
-        "GEMINI_MODEL": "gemini-3.7-flash"
+        "GEMINI_MODEL": "gemini-3.7-flash",
+        // スキャン無料枠超過時のプレミアム判定に使う RevenueCat の project (Kashakeibo) と、プレミアム entitlement の ID。
+        // secret API key は wrangler secret REVENUECAT_SECRET_API_KEY (README のデプロイ手順)。
+        // secret が未登録の間は Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)
+        "REVENUECAT_PROJECT_ID": "proj80266896",
+        "REVENUECAT_PREMIUM_ENTITLEMENT_ID": "entl4e2d6be551"
       }
     }
   }

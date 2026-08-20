@@ -13,8 +13,11 @@ import 'package:kashakeibo/features/capture/capture_page.dart';
 import 'package:kashakeibo/features/capture/image_analysis_client.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/app_localizations_en.dart';
+import 'package:kashakeibo/provider/firebase_user.dart';
 import 'package:kashakeibo/provider/image.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/provider/transaction.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// 1x1 の透過 PNG。Image.memory がデコードできる有効な画像として使う。
 final testImageBytes = Uint8List.fromList(
@@ -174,10 +177,12 @@ Future<void> openCapturePage({
   required List<String> analyticsEvents,
   // 既定はレシート撮影経路。スクショ (複数明細) の検証だけが screenshot を渡す。
   TransactionSource transactionSource = TransactionSource.receipt,
+  // 無料枠超過 → ペイウォールの分岐だけが使う課金 Provider の差し替え
+  List<Override> purchaseOverrides = const [],
 }) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: captureFakes.overrides,
+      overrides: [...captureFakes.overrides, ...purchaseOverrides],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -529,6 +534,134 @@ void main() {
       uploadedImageObjectKey,
     );
     expect(captureFlowResults, [CaptureFlowResult.registered]);
+  });
+
+  testWidgets('無料枠超過 (402): ペイウォールを開き、購入でプレミアムになると同じ画像で解析をやり直す', (
+    tester,
+  ) async {
+    useTallViewport(tester);
+    var analyzeCallCount = 0;
+    final captureFakes = CaptureFakes(
+      analyze: () async {
+        analyzeCallCount++;
+        if (analyzeCallCount == 1) {
+          throw const ScanQuotaExceededException(
+            message: '今月の無料スキャン (10回) を使い切りました',
+            scanQuota: ScanQuota(
+              monthlyScanCount: 10,
+              monthlyFreeScanLimit: 10,
+            ),
+          );
+        }
+        return buildImageAnalysisResult();
+      },
+    );
+    final captureFlowResults = <CaptureFlowResult?>[];
+    final analyticsEvents = <String>[];
+    final annualPackage = Package(
+      r'$rc_annual',
+      PackageType.annual,
+      const StoreProduct(
+        'kashakeibo_premium_annual_3800yen',
+        '',
+        'Premium',
+        3800,
+        '¥3,800',
+        'JPY',
+      ),
+      const PresentedOfferingContext('default', null, null),
+    );
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: captureFlowResults,
+      analyticsEvents: analyticsEvents,
+      purchaseOverrides: [
+        firebaseUserChangesProvider.overrideWith((ref) => Stream.value(null)),
+        fetchScanQuotaProvider.overrideWithValue(
+          () async =>
+              const ScanQuota(monthlyScanCount: 10, monthlyFreeScanLimit: 10),
+        ),
+        isPremiumProvider.overrideWithValue(false),
+        premiumOfferingProvider.overrideWith(
+          (ref) async => Offering('default', '', const {}, [
+            annualPackage,
+          ], annual: annualPackage),
+        ),
+        purchasePremiumPackageProvider.overrideWithValue(
+          ({required package}) async => true,
+        ),
+        restorePurchasesProvider.overrideWithValue(() async => false),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    // 失敗表示の上にペイウォールが開く
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsOneWidget);
+    expect(analyticsEvents, contains('capture_scan_quota_exceeded'));
+
+    await tester.tap(find.text(AppLocalizationsEn().paywallStartPremium));
+    await pumpUntilAnalysisFinished(tester: tester);
+    await tester.pumpAndSettle();
+
+    // ペイウォールが閉じ、同じアップロード済みキーで解析だけをやり直して確認フォームに進む
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsNothing);
+    expect(analyzeCallCount, 2);
+    expect(captureFakes.uploadedImageContentTypes, hasLength(1));
+    expect(captureFakes.analyzedImageObjectKeys, [
+      uploadedImageObjectKey,
+      uploadedImageObjectKey,
+    ]);
+    expect(find.text(AppLocalizationsEn().captureConfirmTitle), findsOneWidget);
+  });
+
+  testWidgets('無料枠超過 (402): ペイウォールを閉じると失敗表示に戻り、手動入力・取り直しを選べる', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => throw const ScanQuotaExceededException(
+        message: '今月の無料スキャン (10回) を使い切りました',
+        scanQuota: ScanQuota(monthlyScanCount: 10, monthlyFreeScanLimit: 10),
+      ),
+    );
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: <CaptureFlowResult?>[],
+      analyticsEvents: <String>[],
+      purchaseOverrides: [
+        firebaseUserChangesProvider.overrideWith((ref) => Stream.value(null)),
+        fetchScanQuotaProvider.overrideWithValue(
+          () async =>
+              const ScanQuota(monthlyScanCount: 10, monthlyFreeScanLimit: 10),
+        ),
+        isPremiumProvider.overrideWithValue(false),
+        premiumOfferingProvider.overrideWith((ref) async => null),
+        purchasePremiumPackageProvider.overrideWithValue(
+          ({required package}) async => false,
+        ),
+        restorePurchasesProvider.overrideWithValue(() async => false),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppLocalizationsEn().paywallTitle), findsNothing);
+    expect(
+      find.text(AppLocalizationsEn().captureAnalysisFailedTitle),
+      findsOneWidget,
+    );
+    // Worker のエラー文をそのまま表示する
+    expect(find.text('今月の無料スキャン (10回) を使い切りました'), findsOneWidget);
+    expect(
+      find.text(AppLocalizationsEn().captureManualFallback),
+      findsOneWidget,
+    );
+    expect(find.text(AppLocalizationsEn().captureRetake), findsOneWidget);
   });
 
   testWidgets('解析失敗: 「もう一度読み取る」で解析だけを再実行する (アップロードはやり直さない)', (tester) async {

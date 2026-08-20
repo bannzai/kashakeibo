@@ -5,8 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/capture_page.dart';
+import 'package:kashakeibo/features/paywall/paywall_page.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// DEBUG ビルド限定の開発者メニュー。
 ///
@@ -78,6 +82,23 @@ class DebugSheet extends ConsumerWidget {
               transactionSource: TransactionSource.screenshot,
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.workspace_premium_outlined),
+            title: const Text('ペイウォールをサンプル価格で開く'),
+            subtitle: const Text(
+              'RevenueCat 未設定のビルドでも、月額 ¥480 / 年額 ¥3,800 の料金カードと購入 (mock で成功) の表示を確認する',
+            ),
+            onTap: () {
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              navigator.push(
+                MaterialPageRoute<void>(
+                  fullscreenDialog: true,
+                  builder: (context) => const _SamplePaywallPage(),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -114,6 +135,92 @@ Future<void> _openCaptureFlowWithSampleImage({
     showCaptureRegisteredToast(context: navigatorContext);
   }
 }
+
+/// サンプル Offering でペイウォールを表示する画面。
+///
+/// アプリの ProviderScope とは独立した container で Offering・購入・復元だけを差し替える
+/// (入れ子の ProviderScope で override すると dependencies の宣言が要るため、独立 root にする)。
+/// UncontrolledProviderScope は container を所有しないため、route の破棄と一緒に自前で dispose し、
+/// 開閉を繰り返しても RevenueCat リスナーや keepAlive の状態が蓄積しないようにする。
+class _SamplePaywallPage extends StatefulWidget {
+  const _SamplePaywallPage();
+
+  @override
+  State<_SamplePaywallPage> createState() => _SamplePaywallPageState();
+}
+
+class _SamplePaywallPageState extends State<_SamplePaywallPage> {
+  /// この画面が所有するサンプル差し替え用の container。
+  final ProviderContainer sampleProviderContainer = ProviderContainer(
+    overrides: [
+      premiumOfferingProvider.overrideWith((ref) async => _sampleOffering),
+      purchasePremiumPackageProvider.overrideWithValue(
+        ({required package}) async => true,
+      ),
+      restorePurchasesProvider.overrideWithValue(() async => false),
+    ],
+  );
+
+  @override
+  void dispose() {
+    sampleProviderContainer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return UncontrolledProviderScope(
+      container: sampleProviderContainer,
+      child: PaywallPage(
+        openExternalUri: openExternalUri,
+        logAnalyticsEvent: recordAnalyticsEvent,
+      ),
+    );
+  }
+}
+
+/// ペイウォールの表示確認用のサンプル Offering (実商品と同じ識別子・価格。documents/PROJECT.md の課金設計)。
+Package _buildSamplePackage({
+  required PackageType packageType,
+  required String productIdentifier,
+  required double price,
+  required String priceString,
+}) => Package(
+  packageType == PackageType.annual ? r'$rc_annual' : r'$rc_monthly',
+  packageType,
+  StoreProduct(
+    productIdentifier,
+    'カシャケイボ プレミアム',
+    'プレミアム',
+    price,
+    priceString,
+    'JPY',
+  ),
+  const PresentedOfferingContext('default', null, null),
+);
+
+final _sampleMonthlyPackage = _buildSamplePackage(
+  packageType: PackageType.monthly,
+  productIdentifier: 'kashakeibo_premium_monthly_480yen',
+  price: 480,
+  priceString: '¥480',
+);
+
+final _sampleAnnualPackage = _buildSamplePackage(
+  packageType: PackageType.annual,
+  productIdentifier: 'kashakeibo_premium_annual_3800yen',
+  price: 3800,
+  priceString: '¥3,800',
+);
+
+final _sampleOffering = Offering(
+  'default',
+  'サンプル',
+  const {},
+  [_sampleMonthlyPackage, _sampleAnnualPackage],
+  monthly: _sampleMonthlyPackage,
+  annual: _sampleAnnualPackage,
+);
 
 /// 解析の動作確認用に、レシート風の画像 (店名・明細行・合計・日付) を描画して PNG にする。
 ///

@@ -369,4 +369,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionProvenanceAdjusted => 'Adjusted';
+
+  @override
+  String get capturesSection => 'Captures';
+
+  @override
+  String scanQuotaRemaining(int count) {
+    return '$count scans left';
+  }
+
+  @override
+  String get scanQuotaUnlimited => 'Unlimited scans';
+
+  @override
+  String get scanQuotaExhausted => 'You\'ve used all free scans this month';
+
+  @override
+  String get paywallTitle => 'Go unlimited with Premium';
+
+  @override
+  String get paywallSubtitle =>
+      'No account linking. Just snap, and Premium reads every receipt and statement for you.';
+
+  @override
+  String paywallFreeQuota(int used, int limit) {
+    return 'Free scans this month $used/$limit';
+  }
+
+  @override
+  String get paywallBenefitUnlimitedScans => 'Unlimited scans';
+
+  @override
+  String get paywallBenefitFullHistory => 'Full history, every month';
+
+  @override
+  String get paywallBenefitFutureFeatures => 'Upcoming features';
+
+  @override
+  String get paywallMonthlyPlan => 'Monthly';
+
+  @override
+  String get paywallAnnualPlan => 'Annual';
+
+  @override
+  String get paywallRecommended => 'Best value';
+
+  @override
+  String paywallAnnualSavings(int percent) {
+    return 'Save $percent%';
+  }
+
+  @override
+  String paywallPerMonthEquivalent(String price) {
+    return '$price/mo';
+  }
+
+  @override
+  String get paywallStartPremium => 'Start Premium';
+
+  @override
+  String get paywallCancelAnytime => 'Cancel anytime';
+
+  @override
+  String get paywallRestore => 'Restore purchases';
+
+  @override
+  String get paywallRestored => 'Purchases restored. Premium is active.';
+
+  @override
+  String get paywallRestoreNotFound => 'No purchases to restore';
+
+  @override
+  String get paywallPurchased => 'Premium is active. Scan as much as you like!';
+
+  @override
+  String get paywallPremiumActive => 'Premium is active';
+
+  @override
+  String get paywallPremiumActiveDescription =>
+      'You have unlimited scans and full history.';
+
+  @override
+  String get paywallOfferingUnavailable => 'Plans are unavailable right now';
+
+  @override
+  String get paywallSubscriptionNote =>
+      'Payment is charged to your store account at confirmation. The subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel it in your store account settings.';
+
+  @override
+  String get settingsPlan => 'Plan';
+
+  @override
+  String get planFree => 'Free';
+
+  @override
+  String get planPremium => 'Premium';
 }

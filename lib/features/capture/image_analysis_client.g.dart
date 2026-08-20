@@ -58,3 +58,14 @@ _ImageAnalysisResult _$ImageAnalysisResultFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ImageAnalysisResultToJson(
   _ImageAnalysisResult instance,
 ) => <String, dynamic>{'transactions': instance.transactions};
+
+_ScanQuota _$ScanQuotaFromJson(Map<String, dynamic> json) => _ScanQuota(
+  monthlyScanCount: (json['monthlyScanCount'] as num).toInt(),
+  monthlyFreeScanLimit: (json['monthlyFreeScanLimit'] as num).toInt(),
+);
+
+Map<String, dynamic> _$ScanQuotaToJson(_ScanQuota instance) =>
+    <String, dynamic>{
+      'monthlyScanCount': instance.monthlyScanCount,
+      'monthlyFreeScanLimit': instance.monthlyFreeScanLimit,
+    };

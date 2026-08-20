@@ -568,4 +568,274 @@ as List<AnalyzedTransaction>,
 
 }
 
+
+/// @nodoc
+mixin _$ScanQuota {
+
+/// 今月 (UTC の暦月) の解析回数。プレミアムの解析も数える。
+ int get monthlyScanCount;/// 無料プランの月あたり解析回数の上限。
+ int get monthlyFreeScanLimit;
+/// Create a copy of ScanQuota
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ScanQuotaCopyWith<ScanQuota> get copyWith => _$ScanQuotaCopyWithImpl<ScanQuota>(this as ScanQuota, _$identity);
+
+  /// Serializes this ScanQuota to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanQuota&&(identical(other.monthlyScanCount, monthlyScanCount) || other.monthlyScanCount == monthlyScanCount)&&(identical(other.monthlyFreeScanLimit, monthlyFreeScanLimit) || other.monthlyFreeScanLimit == monthlyFreeScanLimit));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,monthlyScanCount,monthlyFreeScanLimit);
+
+@override
+String toString() {
+  return 'ScanQuota(monthlyScanCount: $monthlyScanCount, monthlyFreeScanLimit: $monthlyFreeScanLimit)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ScanQuotaCopyWith<$Res>  {
+  factory $ScanQuotaCopyWith(ScanQuota value, $Res Function(ScanQuota) _then) = _$ScanQuotaCopyWithImpl;
+@useResult
+$Res call({
+ int monthlyScanCount, int monthlyFreeScanLimit
+});
+
+
+
+
+}
+/// @nodoc
+class _$ScanQuotaCopyWithImpl<$Res>
+    implements $ScanQuotaCopyWith<$Res> {
+  _$ScanQuotaCopyWithImpl(this._self, this._then);
+
+  final ScanQuota _self;
+  final $Res Function(ScanQuota) _then;
+
+/// Create a copy of ScanQuota
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? monthlyScanCount = null,Object? monthlyFreeScanLimit = null,}) {
+  return _then(_self.copyWith(
+monthlyScanCount: null == monthlyScanCount ? _self.monthlyScanCount : monthlyScanCount // ignore: cast_nullable_to_non_nullable
+as int,monthlyFreeScanLimit: null == monthlyFreeScanLimit ? _self.monthlyFreeScanLimit : monthlyFreeScanLimit // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ScanQuota].
+extension ScanQuotaPatterns on ScanQuota {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ScanQuota value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ScanQuota() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ScanQuota value)  $default,){
+final _that = this;
+switch (_that) {
+case _ScanQuota():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ScanQuota value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ScanQuota() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int monthlyScanCount,  int monthlyFreeScanLimit)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ScanQuota() when $default != null:
+return $default(_that.monthlyScanCount,_that.monthlyFreeScanLimit);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int monthlyScanCount,  int monthlyFreeScanLimit)  $default,) {final _that = this;
+switch (_that) {
+case _ScanQuota():
+return $default(_that.monthlyScanCount,_that.monthlyFreeScanLimit);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int monthlyScanCount,  int monthlyFreeScanLimit)?  $default,) {final _that = this;
+switch (_that) {
+case _ScanQuota() when $default != null:
+return $default(_that.monthlyScanCount,_that.monthlyFreeScanLimit);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _ScanQuota implements ScanQuota {
+  const _ScanQuota({required this.monthlyScanCount, required this.monthlyFreeScanLimit});
+  factory _ScanQuota.fromJson(Map<String, dynamic> json) => _$ScanQuotaFromJson(json);
+
+/// 今月 (UTC の暦月) の解析回数。プレミアムの解析も数える。
+@override final  int monthlyScanCount;
+/// 無料プランの月あたり解析回数の上限。
+@override final  int monthlyFreeScanLimit;
+
+/// Create a copy of ScanQuota
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ScanQuotaCopyWith<_ScanQuota> get copyWith => __$ScanQuotaCopyWithImpl<_ScanQuota>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ScanQuotaToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ScanQuota&&(identical(other.monthlyScanCount, monthlyScanCount) || other.monthlyScanCount == monthlyScanCount)&&(identical(other.monthlyFreeScanLimit, monthlyFreeScanLimit) || other.monthlyFreeScanLimit == monthlyFreeScanLimit));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,monthlyScanCount,monthlyFreeScanLimit);
+
+@override
+String toString() {
+  return 'ScanQuota(monthlyScanCount: $monthlyScanCount, monthlyFreeScanLimit: $monthlyFreeScanLimit)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ScanQuotaCopyWith<$Res> implements $ScanQuotaCopyWith<$Res> {
+  factory _$ScanQuotaCopyWith(_ScanQuota value, $Res Function(_ScanQuota) _then) = __$ScanQuotaCopyWithImpl;
+@override @useResult
+$Res call({
+ int monthlyScanCount, int monthlyFreeScanLimit
+});
+
+
+
+
+}
+/// @nodoc
+class __$ScanQuotaCopyWithImpl<$Res>
+    implements _$ScanQuotaCopyWith<$Res> {
+  __$ScanQuotaCopyWithImpl(this._self, this._then);
+
+  final _ScanQuota _self;
+  final $Res Function(_ScanQuota) _then;
+
+/// Create a copy of ScanQuota
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? monthlyScanCount = null,Object? monthlyFreeScanLimit = null,}) {
+  return _then(_ScanQuota(
+monthlyScanCount: null == monthlyScanCount ? _self.monthlyScanCount : monthlyScanCount // ignore: cast_nullable_to_non_nullable
+as int,monthlyFreeScanLimit: null == monthlyFreeScanLimit ? _self.monthlyFreeScanLimit : monthlyFreeScanLimit // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 // dart format on

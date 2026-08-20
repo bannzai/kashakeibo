@@ -75,7 +75,7 @@
   },
   "openSettings": "Open settings",
   "@openSettings": {
-    "description": "Tooltip for the button that opens settings"
+    "description": "Tooltip for the settings button"
   },
   "settings": "Settings",
   "@settings": {
@@ -92,9 +92,6 @@
   "specifiedCommercialTransactionAct": "Commercial Transaction Disclosure",
   "@specifiedCommercialTransactionAct": {
     "description": "Link label for the disclosure required by Japan's Specified Commercial Transactions Act"
-  },
-  "@openSettings": {
-    "description": "Tooltip for the settings button"
   },
   "accountBackupTitle": "Backup",
   "@accountBackupTitle": {
@@ -268,5 +265,64 @@
   "transactionDetailExcludeFromAggregation": "Exclude from totals",
   "transactionDetailExcludeFromAggregationDescription": "When on, this is left out of totals and the category breakdown",
   "transactionProvenanceAutomatic": "Auto-imported",
-  "transactionProvenanceAdjusted": "Adjusted"
+  "transactionProvenanceAdjusted": "Adjusted",
+  "capturesSection": "Captures",
+  "scanQuotaRemaining": "{count} scans left",
+  "@scanQuotaRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuotaUnlimited": "Unlimited scans",
+  "scanQuotaExhausted": "You've used all free scans this month",
+  "paywallTitle": "Go unlimited with Premium",
+  "paywallSubtitle": "No account linking. Just snap, and Premium reads every receipt and statement for you.",
+  "paywallFreeQuota": "Free scans this month {used}/{limit}",
+  "@paywallFreeQuota": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "paywallBenefitUnlimitedScans": "Unlimited scans",
+  "paywallBenefitFullHistory": "Full history, every month",
+  "paywallBenefitFutureFeatures": "Upcoming features",
+  "paywallMonthlyPlan": "Monthly",
+  "paywallAnnualPlan": "Annual",
+  "paywallRecommended": "Best value",
+  "paywallAnnualSavings": "Save {percent}%",
+  "@paywallAnnualSavings": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "paywallPerMonthEquivalent": "{price}/mo",
+  "@paywallPerMonthEquivalent": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallStartPremium": "Start Premium",
+  "paywallCancelAnytime": "Cancel anytime",
+  "paywallRestore": "Restore purchases",
+  "paywallRestored": "Purchases restored. Premium is active.",
+  "paywallRestoreNotFound": "No purchases to restore",
+  "paywallPurchased": "Premium is active. Scan as much as you like!",
+  "paywallPremiumActive": "Premium is active",
+  "paywallPremiumActiveDescription": "You have unlimited scans and full history.",
+  "paywallOfferingUnavailable": "Plans are unavailable right now",
+  "paywallSubscriptionNote": "Payment is charged to your store account at confirmation. The subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel it in your store account settings.",
+  "settingsPlan": "Plan",
+  "planFree": "Free",
+  "planPremium": "Premium"
 }

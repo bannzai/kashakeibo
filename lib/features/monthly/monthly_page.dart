@@ -9,14 +9,20 @@ import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/add_record_sheet.dart';
 import 'package:kashakeibo/features/capture/capture_image_picker.dart';
 import 'package:kashakeibo/features/capture/capture_page.dart';
+import 'package:kashakeibo/features/capture/image_analysis_client.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
 import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
+import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
+import 'package:kashakeibo/features/paywall/paywall_page.dart';
+import 'package:kashakeibo/features/paywall/scan_quota_label.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/features/share_import/shared_image_import.dart';
 import 'package:kashakeibo/features/share_import/shared_image_inbox.dart';
 import 'package:kashakeibo/features/transaction_detail/transaction_detail_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/transaction_labels.dart';
+import 'package:kashakeibo/provider/image.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
@@ -53,6 +59,8 @@ class MonthlyPage extends HookConsumerWidget {
       pickCaptureImageFromPhotoLibraryProvider,
     );
     final takeNextSharedImage = ref.watch(takeNextSharedImageProvider);
+    final isPremium = ref.watch(isPremiumProvider);
+    final scanQuota = ref.watch(monthlyScanQuotaProvider).valueOrNull;
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
 
@@ -76,6 +84,21 @@ class MonthlyPage extends HookConsumerWidget {
           }
           switch (addRecordOption) {
             case AddRecordOption.camera:
+              // 無料プランで今月の残量が 0 ならハードペイウォール。プレミアムになった時だけ撮影へ進む
+              // (手動入力はスキャンを消費しないためこの判定を通らない)
+              if (!isPremium &&
+                  scanQuota != null &&
+                  remainingScanCount(scanQuota: scanQuota) == 0) {
+                final premiumUnlocked = await showPaywall(
+                  context: context,
+                  trigger: 'add_record_camera',
+                  openExternalUri: openExternalUri,
+                  logAnalyticsEvent: logAnalyticsEvent,
+                );
+                if (!context.mounted || premiumUnlocked != true) {
+                  return;
+                }
+              }
               await runCaptureFlow(
                 context: context,
                 initialImage: null,
@@ -84,6 +107,20 @@ class MonthlyPage extends HookConsumerWidget {
                 logAnalyticsEvent: logAnalyticsEvent,
               );
             case AddRecordOption.photoLibrary:
+              // フォトライブラリ経由の解析もスキャンを消費するため、カメラと同じハードペイウォールを通す
+              if (!isPremium &&
+                  scanQuota != null &&
+                  remainingScanCount(scanQuota: scanQuota) == 0) {
+                final premiumUnlocked = await showPaywall(
+                  context: context,
+                  trigger: 'add_record_photo_library',
+                  openExternalUri: openExternalUri,
+                  logAnalyticsEvent: logAnalyticsEvent,
+                );
+                if (!context.mounted || premiumUnlocked != true) {
+                  return;
+                }
+              }
               await runCaptureFlow(
                 context: context,
                 initialImage: null,
@@ -112,11 +149,33 @@ class MonthlyPage extends HookConsumerWidget {
           children: [
             _MonthHeader(
               displayMonth: displayMonth.value,
-              onPreviousMonth: () {
-                displayMonth.value = DateTime(
+              onPreviousMonth: () async {
+                final previousMonth = DateTime(
                   displayMonth.value.year,
                   displayMonth.value.month - 1,
                 );
+                // 無料プランは直近 freePlanHistoryMonthCount ヶ月まで。それより古い月は
+                // プレミアム特典「全期間の履歴」の範囲のため、ペイウォールを挟み、
+                // プレミアムになった時だけ月送りする
+                if (!isPremium &&
+                    !isMonthWithinFreePlanHistory(
+                      month: previousMonth,
+                      now: DateTime.now(),
+                    )) {
+                  unawaited(
+                    logAnalyticsEvent(name: 'history_limit_paywall_open'),
+                  );
+                  final premiumUnlocked = await showPaywall(
+                    context: context,
+                    trigger: 'history_limit',
+                    openExternalUri: openExternalUri,
+                    logAnalyticsEvent: logAnalyticsEvent,
+                  );
+                  if (!context.mounted || premiumUnlocked != true) {
+                    return;
+                  }
+                }
+                displayMonth.value = previousMonth;
               },
               onNextMonth: () {
                 displayMonth.value = DateTime(
@@ -157,6 +216,21 @@ class MonthlyPage extends HookConsumerWidget {
                           },
                         ),
                       _CategoryBreakdownSection(transactions: transactions),
+                      _CapturesSectionRow(
+                        isPremium: isPremium,
+                        scanQuota: scanQuota,
+                        onScanQuotaTap: () {
+                          unawaited(
+                            logAnalyticsEvent(name: 'scan_quota_chip_tap'),
+                          );
+                          showPaywall(
+                            context: context,
+                            trigger: 'scan_quota_chip',
+                            openExternalUri: openExternalUri,
+                            logAnalyticsEvent: logAnalyticsEvent,
+                          );
+                        },
+                      ),
                       if (transactions.isEmpty)
                         Padding(
                           padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -199,6 +273,79 @@ class MonthlyPage extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 明細リストのセクション行「とった記録」と、右端のスキャン残量チップ
+/// (design_handoff_kashakeibo/README.md のホーム「セクション行」)。
+///
+/// チップは無料プランなら「スキャン残り n 回」、プレミアムなら「スキャン無制限」。
+/// タップでペイウォールを開く。残量が未取得 (Worker 未接続等) の無料プランでは表示しない。
+class _CapturesSectionRow extends StatelessWidget {
+  /// プレミアムかどうか。
+  final bool isPremium;
+
+  /// 今月のスキャン回数と無料枠。未取得なら null。
+  final ScanQuota? scanQuota;
+
+  /// 残量チップのタップ時の処理。
+  final VoidCallback onScanQuotaTap;
+
+  const _CapturesSectionRow({
+    required this.isPremium,
+    required this.scanQuota,
+    required this.onScanQuotaTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        AppSpacing.xs,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.capturesSection,
+              style: AppTextStyles.sectionTitle,
+            ),
+          ),
+          if (isPremium || scanQuota != null)
+            Material(
+              color: colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              child: InkWell(
+                onTap: onScanQuotaTap,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  child: Text(
+                    scanQuotaLabel(
+                      l10n: l10n,
+                      isPremium: isPremium,
+                      scanQuota: scanQuota,
+                    ),
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

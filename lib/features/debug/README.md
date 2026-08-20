@@ -19,6 +19,11 @@ release ビルドには入口ごと含まれない (`kDebugMode` ガード)。
   - サンプル明細スクショで取込フローを試す: カード明細のスクショ風の画像 (取引 3 件) をその場で描画し、
     出所 `screenshot` で `CapturePage` を開く。複数明細の候補リスト (採用・破棄・修正 → 一括登録) を
     フォトライブラリに画像を用意せずに通すための入口
+  - ペイウォールをサンプル価格で開く: RevenueCat の public API key が未注入のビルドでも、
+    実商品と同じ識別子・価格 (月額 ¥480 / 年額 ¥3,800) のサンプル Offering で `features/paywall` の
+    `PaywallPage` を開く。購入は mock で成功し、復元は「復元できる購入がありません」になる
+    (残量バー・プレミアム判定は実 Provider のまま)。実ストア・RevenueCat の購入フロー検証の代替ではない
+    (それは `/ios-storekit-testing` と RevenueCat Test Store で行う)
 
 ## フロー
 

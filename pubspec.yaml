@@ -60,6 +60,8 @@ dependencies:
   image_picker: ^1.2.3
   # 画像アップロードの論理アップロード ID (X-Upload-Id) の UUID 生成に使用
   uuid: ^4.6.0
+  # RevenueCat による課金 (プレミアムのサブスクリプション購入・リストア・entitlement 判定)。documents/adr/0001-tech-stack.md の「課金」
+  purchases_flutter: ^10.9.0
 
 dev_dependencies:
   flutter_test:
