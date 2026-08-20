@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/image_analysis_client.dart';
+import 'package:kashakeibo/features/image_upload/image_upload_client.dart';
 
 void main() {
   const testBaseUrl = 'https://image-worker.test';
@@ -20,6 +21,7 @@ void main() {
         final imageAnalysisResult = await analyzeImage(
           imageObjectKey: 'users/uid-a/uuid.png',
           firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient((request) async {
             capturedRequest = request;
             return http.Response(
@@ -48,6 +50,10 @@ void main() {
           'Bearer test-id-token',
         );
         expect(
+          capturedRequest.headers[firebaseAppCheckHeaderName],
+          'test-app-check-token',
+        );
+        expect(
           capturedRequest.headers['content-type'],
           startsWith('application/json'),
         );
@@ -69,6 +75,7 @@ void main() {
       final imageAnalysisResult = await analyzeImage(
         imageObjectKey: 'users/uid-a/uuid.png',
         firebaseIdToken: 'test-id-token',
+        firebaseAppCheckToken: 'test-app-check-token',
         httpClient: MockClient(
           (request) async => http.Response(
             jsonEncode({
@@ -100,6 +107,7 @@ void main() {
       final imageAnalysisResult = await analyzeImage(
         imageObjectKey: 'users/uid-a/uuid.png',
         firebaseIdToken: 'test-id-token',
+        firebaseAppCheckToken: 'test-app-check-token',
         httpClient: MockClient(
           (request) async => http.Response(
             jsonEncode({'transactions': <Map<String, dynamic>>[]}),
@@ -117,6 +125,7 @@ void main() {
       final imageAnalysisResult = await analyzeImage(
         imageObjectKey: 'users/uid-a/uuid.png',
         firebaseIdToken: 'test-id-token',
+        firebaseAppCheckToken: 'test-app-check-token',
         httpClient: MockClient(
           (request) async => http.Response(
             jsonEncode({
@@ -147,6 +156,7 @@ void main() {
         analyzeImage(
           imageObjectKey: 'users/uid-a/uuid.png',
           firebaseIdToken: 'test-id-token',
+          firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient(
             (request) async => http.Response(
               '{"error":"今月の無料スキャン回数を使い切りました"}',

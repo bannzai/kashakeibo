@@ -1,7 +1,11 @@
 # kashakeibo-image-worker
 
 レシート・スクショ画像の保存先 (Cloudflare R2) へのアクセスと、Gemini による明細抽出を一本化する Cloudflare Worker。
-Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github.com/Code-Hex/firebase-auth-cloudflare-workers) で検証し (公開 JWK は Workers KV にキャッシュ)、検証を通ったリクエストだけが R2 の読み書きと解析を行える。
+Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github.com/Code-Hex/firebase-auth-cloudflare-workers) で検証し (公開 JWK は Workers KV にキャッシュ)、さらに Firebase App Check token を `src/app_check.ts` で検証して (公開鍵 JWKS は同じ KV に別キーでキャッシュ)、両方の検証を通ったリクエストだけが R2 の読み書きと解析を行える。
+
+- ID token は「誰のリクエストか」(uid) を、App Check token は「正規のアプリからのリクエストか」を判定する。匿名認証の ID token は公開クライアント設定から誰でも取得できるため、ID token だけでは正規アプリ由来かを判定できない
+- firebase-auth-cloudflare-workers (2.0.6) は App Check token の検証 API を持たないため、Firebase Admin SDK の AppCheckTokenVerifier と同じ手順 (alg / iss / aud / sub / exp / iat / RS256 署名) を `src/app_check.ts` に Web Crypto で実装している
+- App Check は「量」の制限にはならないため、日次のアップロード・解析回数上限はそのまま併用する
 
 設計の決定は `documents/adr/0001-tech-stack.md` の「画像ストレージ」「画像解析」を参照。
 
@@ -9,7 +13,7 @@ AI 画像解析 (Gemini) は、スキャン無料枠 (uid ごとの回数・enti
 
 ## API
 
-すべてのエンドポイントで `Authorization: Bearer <Firebase ID token>` が必須。未認証・検証失敗は 401。
+すべてのエンドポイントで `Authorization: Bearer <Firebase ID token>` と `X-Firebase-AppCheck: <Firebase App Check token>` の両方が必須。どちらかの欠落・検証失敗は 401 (両方通って初めて後続の処理に進む)。
 
 ### POST /images
 
@@ -51,7 +55,39 @@ npm test        # vitest (@cloudflare/vitest-pool-workers)。R2/KV は miniflare
 npm run typecheck
 ```
 
-ローカルで Flutter アプリから叩く時は、`.dev.vars` (git 管理外) に `GEMINI_API_KEY=...` を置いて `npx wrangler dev --env dev --port 8787` で起動し、アプリを `--dart-define=IMAGE_API_BASE_URL=http://127.0.0.1:8787` で実行する (iOS シミュレータからホストの 127.0.0.1 に到達できる)。
+## デバッグビルドでの動作確認 (App Check debug token)
+
+Flutter の debug ビルドは App Check の debug provider (`lib/utils/firebase_app_check/firebase_app_check.dart`) を使う。debug provider は端末ごとに生成した debug token を Firebase に登録しておくと、その端末からの App Check token が有効になる (未登録の debug token では App Check token が発行されず、Worker は 401 を返す)。
+
+1. debug ビルドを起動し、コンソールに出力される debug token を控える
+   - iOS: `xcrun simctl spawn <UDID> log show --last 2m --predicate 'process == "Runner"' | grep "App Check debug token"` で出る `App Check debug token: '<UUID>'` (Xcode / `flutter run` のログでも同じ行が出る)
+   - Android: logcat の `DebugAppCheckProvider: Enter this debug secret into the allow list in the Firebase Console for your project: <UUID>`
+   - debug ビルドの bundle ID は `com.bannzai.kashakeibo.dev` なので、`ios/Firebase/dev/GoogleService-Info.plist` は kashakeibo-dev の「kashakeibo dev」iOS アプリ (`BUNDLE_ID` が `com.bannzai.kashakeibo.dev`) のものを置く。`com.bannzai.kashakeibo` 用の古い plist だと API key の bundle ID 制限で `API_KEY_IOS_APP_BLOCKED` になり、Firebase Auth も App Check の debug token 交換も失敗する (2026-08-19 の疎通確認で実際に踏んだ)
+2. debug token を **kashakeibo-dev にだけ** 登録する。App Check REST API (`projects.apps.debugTokens.create`) で登録できる (Firebase Console の App Check → アプリ → デバッグトークンを管理、でも可)。`<appId>` は dev の Firebase App ID (`ios/Firebase/dev/GoogleService-Info.plist` の `GOOGLE_APP_ID` / `android/app/src/debug/google-services.json` の `mobilesdk_app_id`)
+
+   ```sh
+   DEBUG_TOKEN='<手順1で控えた UUID>'
+   [ -n "$DEBUG_TOKEN" ] || { echo "DEBUG_TOKEN is empty" >&2; exit 1; }
+   curl -X POST \
+     -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+     -H "Content-Type: application/json" \
+     "https://firebaseappcheck.googleapis.com/v1/projects/kashakeibo-dev/apps/<appId>/debugTokens" \
+     -d "{\"displayName\": \"<端末名など>\", \"token\": \"$DEBUG_TOKEN\"}"
+   ```
+
+   - kashakeibo-prod には debug token を登録しない。本番に登録すると、DeviceCheck / Play Integrity の attest を通らなくても端末ログに出力される静的な debug secret だけで本番向け App Check token を発行できるようになり、secret がログや共有資料から漏れた時に「正規アプリ由来」の制限を任意のスクリプトから迂回できる。debug ビルドは kashakeibo-dev に接続する構成 (`lib/main.dart`) なので、dev への登録だけで動作確認は足りる
+
+3. アプリを再起動すると debug provider が有効な App Check token を取得し、Worker へのリクエスト (`X-Firebase-AppCheck` ヘッダー) が通る
+
+- Emulator ビルド (`--dart-define=USE_FIREBASE_EMULATOR=true`) は App Check を有効化しないため Worker を呼び出せない (App Check にはエミュレータが無く、Worker 側にも検証のバイパスを設けていない)。Worker の動作確認は debug ビルド (kashakeibo-dev) で行う
+- Worker 単体の確認は `npm test` (App Check token の検証は `test/app_check.test.ts` でテスト内生成の RSA 鍵と JWT で検証。handler の認可は `test/handler.test.ts` でスタブ検証器を注入)
+
+## ローカル開発 (wrangler dev)
+
+ローカルで Flutter アプリから叩く時は、`.dev.vars` (git 管理外) に `GEMINI_API_KEY=...` を置いて `npx wrangler dev --env dev --port 8787` で起動し、アプリを `--dart-define=IMAGE_API_BASE_URL=http://127.0.0.1:8787` で実行する (iOS シミュレータからホストの 127.0.0.1 に到達できる)。App Check token の検証は wrangler dev でも実際の JWKS で行われるため、上記の debug token の登録が必要。
+
+Flutter アプリは debug ビルドでは dev `https://kashakeibo-image-worker-dev.star-kojiki.workers.dev`、release / profile ビルドでは prod `https://kashakeibo-image-worker-prod.star-kojiki.workers.dev` を既定で使う。`IMAGE_API_BASE_URL` は上記のローカル開発などで接続先を上書きするために使う。
+
 
 ## デプロイ
 
@@ -71,5 +107,5 @@ npx wrangler deploy --env dev    # → kashakeibo-image-worker-dev
 npx wrangler deploy --env prod   # → kashakeibo-image-worker-prod
 ```
 
-- デプロイ後に表示される `*.workers.dev` URL を Flutter の `--dart-define=IMAGE_API_BASE_URL=...` に渡す
+- dev / prod とも 2026-08-19 に初回デプロイ済み。デプロイ後に表示される `*.workers.dev` URL が変わった場合は、Flutter の `lib/features/image_upload/image_upload_client.dart` にある既定値を更新する
 - 画像は機微情報のため、R2 バケットの公開アクセス (r2.dev ドメイン・カスタムドメイン直結) は有効化しない

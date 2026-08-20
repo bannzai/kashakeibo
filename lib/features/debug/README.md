@@ -14,7 +14,8 @@ release ビルドには入口ごと含まれない (`kDebugMode` ガード)。
   - サンプルレシートで撮影フローを試す: レシート風の画像 (店名・明細行・合計・日付) をその場で描画し、
     `features/capture` の `CapturePage` (アップロード → Gemini 解析 → 確認 → 登録) を開く。
     端末カメラの無いシミュレータでも撮影フローを通すための入口 (画像 API の接続先は
-    `--dart-define=IMAGE_API_BASE_URL=...` で指定する)
+    debug ビルドの既定で dev Worker。ローカルの Worker 等へ向ける時だけ
+    `--dart-define=IMAGE_API_BASE_URL=...` で上書きする)
   - サンプル明細スクショで取込フローを試す: カード明細のスクショ風の画像 (取引 3 件) をその場で描画し、
     出所 `screenshot` で `CapturePage` を開く。複数明細の候補リスト (採用・破棄・修正 → 一括登録) を
     フォトライブラリに画像を用意せずに通すための入口

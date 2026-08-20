@@ -1,6 +1,6 @@
 // 画像解析 (workers/image の POST /analyses) への Flutter クライアント。
 // Worker が R2 のアップロード済み画像を Gemini に渡して明細を抽出する (API 仕様は workers/image/README.md)。
-// Firebase ID token は引数で受け取り、この feature は HTTP 通信と応答のデコードだけを担当する
+// Firebase ID token と App Check token は引数で受け取り、この feature は HTTP 通信と応答のデコードだけを担当する
 // (token の取得と HTTP クライアントの用意は lib/provider/image.dart)。
 import 'dart:convert';
 
@@ -60,14 +60,15 @@ abstract class ImageAnalysisResult with _$ImageAnalysisResult {
 Future<ImageAnalysisResult> analyzeImage({
   required String imageObjectKey,
   required String firebaseIdToken,
+  required String firebaseAppCheckToken,
   required http.Client httpClient,
-  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
-  String baseUrl = imageApiBaseUrl,
+  String? baseUrl,
 }) async {
   final analysisResponse = await httpClient.post(
-    Uri.parse('$baseUrl/analyses'),
+    Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses'),
     headers: {
       'Authorization': 'Bearer $firebaseIdToken',
+      firebaseAppCheckHeaderName: firebaseAppCheckToken,
       'Content-Type': 'application/json',
     },
     body: jsonEncode({'imageObjectKey': imageObjectKey}),
@@ -76,7 +77,7 @@ Future<ImageAnalysisResult> analyzeImage({
     // エラーメッセージは加工せずそのまま伝える (コーディング規約)
     throw http.ClientException(
       '画像の解析に失敗しました (status=${analysisResponse.statusCode}): ${analysisResponse.body}',
-      Uri.parse('$baseUrl/analyses'),
+      Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses'),
     );
   }
   return ImageAnalysisResult.fromJson(

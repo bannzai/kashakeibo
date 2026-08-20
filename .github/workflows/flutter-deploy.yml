@@ -19,10 +19,6 @@ env:
   # (IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 の実体と一致させる)。
   # Runner 側の profile にも App Groups (group.com.bannzai.kashakeibo) の capability が必要
   IOS_SHARE_EXTENSION_PROFILE_NAME: 'Kashakeibo Prod ShareExtension AppStore'
-  # 画像アップロード・解析 Worker (workers/image) の prod 環境の URL (wrangler deploy --env prod の出力)。
-  # release ビルドは kashakeibo-prod に接続するため prod Worker を使う
-  IMAGE_API_BASE_URL: 'https://kashakeibo-image-worker-prod.star-kojiki.workers.dev'
-
 jobs:
   build-ios:
     runs-on: macos-latest
@@ -146,7 +142,6 @@ jobs:
       - name: Prebuild iOS
         run: |
           flutter build ios --release --no-codesign \
-            --dart-define=IMAGE_API_BASE_URL=${{ env.IMAGE_API_BASE_URL }} \
             --build-name=${{ steps.version.outputs.app_version }} \
             --build-number=${{ steps.version.outputs.app_build_number }}
 
@@ -154,7 +149,6 @@ jobs:
       - name: Build IPA
         run: |
           flutter build ipa --release \
-            --dart-define=IMAGE_API_BASE_URL=${{ env.IMAGE_API_BASE_URL }} \
             --build-name=${{ steps.version.outputs.app_version }} \
             --build-number=${{ steps.version.outputs.app_build_number }} \
             --export-options-plist=ios/ExportOptions.plist
