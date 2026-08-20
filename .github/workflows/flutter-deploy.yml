@@ -127,14 +127,15 @@ jobs:
           PLIST
 
       # Prebuild (flutter build ipa の Dart defines 関連バグ回避のため一度 no-codesign でビルド)
-      # REVENUECAT_APPLE_PUBLIC_API_KEY は RevenueCat の App Store 用 public API key (appl_...)。
+      # REVENUECAT_APPLE_PUBLIC_API_KEY_PROD は RevenueCat prod プロジェクトの App Store 用 public API key (appl_...)。
       # public リポジトリのためソースに置かず secret から注入する (lib/utils/purchase/purchase.dart)。
+      # dev flavor の配布レーンを作る時は同じ形で REVENUECAT_APPLE_PUBLIC_API_KEY_DEV を渡す。
       # 未登録 (空) でもビルドは通り、課金機能だけが初期化されない
       - name: Prebuild iOS
         run: |
           flutter build ios --release --no-codesign \
             --dart-define=IMAGE_API_BASE_URL=${{ env.IMAGE_API_BASE_URL }} \
-            --dart-define=REVENUECAT_APPLE_PUBLIC_API_KEY=${{ secrets.REVENUECAT_APPLE_PUBLIC_API_KEY }} \
+            --dart-define=REVENUECAT_APPLE_PUBLIC_API_KEY=${{ secrets.REVENUECAT_APPLE_PUBLIC_API_KEY_PROD }} \
             --build-name=${{ steps.version.outputs.app_version }} \
             --build-number=${{ steps.version.outputs.app_build_number }}
 
@@ -143,7 +144,7 @@ jobs:
         run: |
           flutter build ipa --release \
             --dart-define=IMAGE_API_BASE_URL=${{ env.IMAGE_API_BASE_URL }} \
-            --dart-define=REVENUECAT_APPLE_PUBLIC_API_KEY=${{ secrets.REVENUECAT_APPLE_PUBLIC_API_KEY }} \
+            --dart-define=REVENUECAT_APPLE_PUBLIC_API_KEY=${{ secrets.REVENUECAT_APPLE_PUBLIC_API_KEY_PROD }} \
             --build-name=${{ steps.version.outputs.app_version }} \
             --build-number=${{ steps.version.outputs.app_build_number }} \
             --export-options-plist=ios/ExportOptions.plist
