@@ -54,11 +54,11 @@
         "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
         // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
         "GEMINI_MODEL": "gemini-3.7-flash",
-        // スキャン無料枠超過時のプレミアム判定に使う RevenueCat の project ID (proj...) と、プレミアム entitlement の ID (entl...)。
+        // スキャン無料枠超過時のプレミアム判定に使う RevenueCat の project (Kashakeibo-dev) と、プレミアム entitlement の ID。
         // secret API key は wrangler secret REVENUECAT_SECRET_API_KEY (README のデプロイ手順)。
-        // 3 つが揃うまでは Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)
-        "REVENUECAT_PROJECT_ID": "",
-        "REVENUECAT_PREMIUM_ENTITLEMENT_ID": ""
+        // secret が未登録の間は Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)
+        "REVENUECAT_PROJECT_ID": "proje2d79a89",
+        "REVENUECAT_PREMIUM_ENTITLEMENT_ID": "entl34c3809c32"
       }
     },
     "prod": {
@@ -105,11 +105,11 @@
         "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
         // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
         "GEMINI_MODEL": "gemini-3.7-flash",
-        // スキャン無料枠超過時のプレミアム判定に使う RevenueCat の project ID (proj...) と、プレミアム entitlement の ID (entl...)。
+        // スキャン無料枠超過時のプレミアム判定に使う RevenueCat の project (Kashakeibo) と、プレミアム entitlement の ID。
         // secret API key は wrangler secret REVENUECAT_SECRET_API_KEY (README のデプロイ手順)。
-        // 3 つが揃うまでは Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)
-        "REVENUECAT_PROJECT_ID": "",
-        "REVENUECAT_PREMIUM_ENTITLEMENT_ID": ""
+        // secret が未登録の間は Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)
+        "REVENUECAT_PROJECT_ID": "proj80266896",
+        "REVENUECAT_PREMIUM_ENTITLEMENT_ID": "entl4e2d6be551"
       }
     }
   }
