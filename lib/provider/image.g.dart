@@ -178,7 +178,7 @@ class _StoredImageProviderElement
   String get imageObjectKey => (origin as StoredImageProvider).imageObjectKey;
 }
 
-String _$monthlyScanQuotaHash() => r'52450429b218617c4c16143f61721dc004b9fcd2';
+String _$monthlyScanQuotaHash() => r'5cd0dd452be8b087429bfadb409cfcfe5cb4cc1f';
 
 /// 今月のスキャン回数と無料枠 (残量チップ・ペイウォールの表示判定に使う)。
 ///

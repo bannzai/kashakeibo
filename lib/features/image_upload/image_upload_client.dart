@@ -1,17 +1,52 @@
 // 画像アップロード基盤 (workers/image の Cloudflare Worker) への Flutter クライアント。
 // Worker の API 仕様は workers/image/README.md を参照。
-// Firebase ID token は引数で受け取る (firebase_auth への依存は issue #3 の Firebase 接続基盤が担うため、
-// この feature は認証済みトークンを渡される前提で HTTP 通信だけを担当する)。
+// Firebase ID token と App Check token は引数で受け取る (firebase_auth / firebase_app_check への依存は
+// issue #3 の Firebase 接続基盤 (lib/utils/firebase_app_check/) が担うため、
+// この feature は取得済みトークンを渡される前提で HTTP 通信だけを担当する)。
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 /// 画像アップロード Worker のベース URL。
-/// Worker のデプロイ (workers/image/README.md) でドメインが確定してから
-/// --dart-define=IMAGE_API_BASE_URL=https://... で注入するため、既定値は空文字にしている。
-const imageApiBaseUrl = String.fromEnvironment('IMAGE_API_BASE_URL');
+String get imageApiBaseUrl => resolveImageApiBaseUrl(
+  isDebugMode: kDebugMode,
+  configuredImageApiBaseUrl: const String.fromEnvironment('IMAGE_API_BASE_URL'),
+);
+
+/// ビルド設定と明示された上書き値から画像アップロード Worker のベース URL を選ぶ。
+///
+/// Firebase の接続先と同じく、debug は dev、release / profile は prod に揃える。
+/// Worker URL は PR #41 で確定済みで、認証は Firebase ID token と App Check token が担うため
+/// コード内の既定値として扱う。ローカルの Worker 等を使う時だけ [configuredImageApiBaseUrl] で上書きする。
+String resolveImageApiBaseUrl({
+  required bool isDebugMode,
+  required String configuredImageApiBaseUrl,
+}) {
+  if (configuredImageApiBaseUrl.isNotEmpty) {
+    return configuredImageApiBaseUrl;
+  }
+  return isDebugMode
+      ? 'https://kashakeibo-image-worker-dev.star-kojiki.workers.dev'
+      : 'https://kashakeibo-image-worker-prod.star-kojiki.workers.dev';
+}
+
+/// App Check token を載せるリクエストヘッダー名。Worker 側 (`workers/image/src/handler.ts` の
+/// `firebaseAppCheckHeaderName`) と一致させる。
+const firebaseAppCheckHeaderName = 'X-Firebase-AppCheck';
+
+/// Worker の全エンドポイントで必須の認証ヘッダー (Firebase ID token + App Check token) を組み立てる。
+/// Worker は両方の検証を通ったリクエストだけを受け付ける (片方だけでは 401)。
+Map<String, String> _authenticationHeaders({
+  required String firebaseIdToken,
+  required String firebaseAppCheckToken,
+}) {
+  return {
+    'Authorization': 'Bearer $firebaseIdToken',
+    firebaseAppCheckHeaderName: firebaseAppCheckToken,
+  };
+}
 
 /// 画像を multipart/form-data で Worker にアップロードし、
 /// R2 のオブジェクトキー (`users/{uid}/{uploadImageID}.{拡張子}`) を返す。
@@ -24,13 +59,21 @@ Future<String> uploadImage({
   required String imageContentType,
   required String uploadImageID,
   required String firebaseIdToken,
+  required String firebaseAppCheckToken,
   required http.Client httpClient,
-  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
-  String baseUrl = imageApiBaseUrl,
+  String? baseUrl,
 }) async {
   final uploadRequest =
-      http.MultipartRequest('POST', Uri.parse('$baseUrl/images'))
-        ..headers['Authorization'] = 'Bearer $firebaseIdToken'
+      http.MultipartRequest(
+          'POST',
+          Uri.parse('${baseUrl ?? imageApiBaseUrl}/images'),
+        )
+        ..headers.addAll(
+          _authenticationHeaders(
+            firebaseIdToken: firebaseIdToken,
+            firebaseAppCheckToken: firebaseAppCheckToken,
+          ),
+        )
         ..headers['X-Upload-Id'] = uploadImageID
         ..files.add(
           http.MultipartFile.fromBytes(
@@ -62,19 +105,22 @@ Future<String> uploadImage({
 /// Firebase Auth ユーザーを削除する前 (ID token が有効なうち) に呼ぶ。冪等 (対象が無くても成功する)。
 Future<void> deleteAllImages({
   required String firebaseIdToken,
+  required String firebaseAppCheckToken,
   required http.Client httpClient,
-  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
-  String baseUrl = imageApiBaseUrl,
+  String? baseUrl,
 }) async {
   final deleteResponse = await httpClient.delete(
-    Uri.parse('$baseUrl/images'),
-    headers: {'Authorization': 'Bearer $firebaseIdToken'},
+    Uri.parse('${baseUrl ?? imageApiBaseUrl}/images'),
+    headers: _authenticationHeaders(
+      firebaseIdToken: firebaseIdToken,
+      firebaseAppCheckToken: firebaseAppCheckToken,
+    ),
   );
   if (deleteResponse.statusCode != 200) {
     // エラーメッセージは加工せずそのまま伝える (コーディング規約)
     throw http.ClientException(
       '画像の削除に失敗しました (status=${deleteResponse.statusCode}): ${deleteResponse.body}',
-      Uri.parse('$baseUrl/images'),
+      Uri.parse('${baseUrl ?? imageApiBaseUrl}/images'),
     );
   }
 }
@@ -84,19 +130,22 @@ Future<void> deleteAllImages({
 Future<Uint8List> fetchImage({
   required String imageObjectKey,
   required String firebaseIdToken,
+  required String firebaseAppCheckToken,
   required http.Client httpClient,
-  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
-  String baseUrl = imageApiBaseUrl,
+  String? baseUrl,
 }) async {
   final fetchResponse = await httpClient.get(
-    Uri.parse('$baseUrl/images/$imageObjectKey'),
-    headers: {'Authorization': 'Bearer $firebaseIdToken'},
+    Uri.parse('${baseUrl ?? imageApiBaseUrl}/images/$imageObjectKey'),
+    headers: _authenticationHeaders(
+      firebaseIdToken: firebaseIdToken,
+      firebaseAppCheckToken: firebaseAppCheckToken,
+    ),
   );
   if (fetchResponse.statusCode != 200) {
     // エラーメッセージは加工せずそのまま伝える (コーディング規約)
     throw http.ClientException(
       '画像の取得に失敗しました (status=${fetchResponse.statusCode}): ${fetchResponse.body}',
-      Uri.parse('$baseUrl/images/$imageObjectKey'),
+      Uri.parse('${baseUrl ?? imageApiBaseUrl}/images/$imageObjectKey'),
     );
   }
   return fetchResponse.bodyBytes;
@@ -108,19 +157,22 @@ Future<Uint8List> fetchImage({
 Future<void> deleteImage({
   required String imageObjectKey,
   required String firebaseIdToken,
+  required String firebaseAppCheckToken,
   required http.Client httpClient,
-  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
-  String baseUrl = imageApiBaseUrl,
+  String? baseUrl,
 }) async {
   final deleteResponse = await httpClient.delete(
-    Uri.parse('$baseUrl/images/$imageObjectKey'),
-    headers: {'Authorization': 'Bearer $firebaseIdToken'},
+    Uri.parse('${baseUrl ?? imageApiBaseUrl}/images/$imageObjectKey'),
+    headers: _authenticationHeaders(
+      firebaseIdToken: firebaseIdToken,
+      firebaseAppCheckToken: firebaseAppCheckToken,
+    ),
   );
   if (deleteResponse.statusCode != 200) {
     // エラーメッセージは加工せずそのまま伝える (コーディング規約)
     throw http.ClientException(
       '画像の削除に失敗しました (status=${deleteResponse.statusCode}): ${deleteResponse.body}',
-      Uri.parse('$baseUrl/images/$imageObjectKey'),
+      Uri.parse('${baseUrl ?? imageApiBaseUrl}/images/$imageObjectKey'),
     );
   }
 }

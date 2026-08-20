@@ -1,6 +1,6 @@
 // 画像解析 (workers/image の POST /analyses) と今月のスキャン回数 (GET /analyses/quota) への Flutter クライアント。
 // Worker が R2 のアップロード済み画像を Gemini に渡して明細を抽出する (API 仕様は workers/image/README.md)。
-// Firebase ID token は引数で受け取り、この feature は HTTP 通信と応答のデコードだけを担当する
+// Firebase ID token と App Check token は引数で受け取り、この feature は HTTP 通信と応答のデコードだけを担当する
 // (token の取得と HTTP クライアントの用意は lib/provider/image.dart)。
 import 'dart:convert';
 
@@ -98,14 +98,15 @@ class ScanQuotaExceededException implements Exception {
 Future<ImageAnalysisResult> analyzeImage({
   required String imageObjectKey,
   required String firebaseIdToken,
+  required String firebaseAppCheckToken,
   required http.Client httpClient,
-  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
-  String baseUrl = imageApiBaseUrl,
+  String? baseUrl,
 }) async {
   final analysisResponse = await httpClient.post(
-    Uri.parse('$baseUrl/analyses'),
+    Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses'),
     headers: {
       'Authorization': 'Bearer $firebaseIdToken',
+      firebaseAppCheckHeaderName: firebaseAppCheckToken,
       'Content-Type': 'application/json',
     },
     body: jsonEncode({'imageObjectKey': imageObjectKey}),
@@ -123,7 +124,7 @@ Future<ImageAnalysisResult> analyzeImage({
     // エラーメッセージは加工せずそのまま伝える (コーディング規約)
     throw http.ClientException(
       '画像の解析に失敗しました (status=${analysisResponse.statusCode}): ${utf8.decode(analysisResponse.bodyBytes)}',
-      Uri.parse('$baseUrl/analyses'),
+      Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses'),
     );
   }
   return ImageAnalysisResult.fromJson(
@@ -134,19 +135,22 @@ Future<ImageAnalysisResult> analyzeImage({
 /// 今月のスキャン回数と無料枠を Worker から取得する (GET /analyses/quota)。冪等 (読み取りのみ)。
 Future<ScanQuota> fetchScanQuota({
   required String firebaseIdToken,
+  required String firebaseAppCheckToken,
   required http.Client httpClient,
-  // 呼び出し側が dart-define の設定値をそのまま使う通常経路のため
-  String baseUrl = imageApiBaseUrl,
+  String? baseUrl,
 }) async {
   final quotaResponse = await httpClient.get(
-    Uri.parse('$baseUrl/analyses/quota'),
-    headers: {'Authorization': 'Bearer $firebaseIdToken'},
+    Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses/quota'),
+    headers: {
+      'Authorization': 'Bearer $firebaseIdToken',
+      firebaseAppCheckHeaderName: firebaseAppCheckToken,
+    },
   );
   if (quotaResponse.statusCode != 200) {
     // エラーメッセージは加工せずそのまま伝える (コーディング規約)
     throw http.ClientException(
       'スキャン回数の取得に失敗しました (status=${quotaResponse.statusCode}): ${utf8.decode(quotaResponse.bodyBytes)}',
-      Uri.parse('$baseUrl/analyses/quota'),
+      Uri.parse('${baseUrl ?? imageApiBaseUrl}/analyses/quota'),
     );
   }
   return ScanQuota.fromJson(

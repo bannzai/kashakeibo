@@ -1,11 +1,12 @@
 // 画像アップロード (POST /images)・取得 (GET /images/{objectKey})・個別削除 (DELETE /images/{objectKey})・
 // アカウント削除時の全消去 (DELETE /images)・Gemini による明細抽出 (POST /analyses)・
 // 今月のスキャン回数と無料枠の取得 (GET /analyses/quota) のリクエスト処理本体。
-// Firebase ID token の検証手段を verifyFirebaseIdToken として注入する構造にし、
-// テストでは実際の Google JWK 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
+// Firebase ID token と Firebase App Check token の検証手段を tokenVerifiers として注入する構造にし、
+// テストでは実際の Google JWK / JWKS 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
 // (実際の検証器の組み立ては index.ts を参照)。
 import type { ImageAnalysisResult } from "./analysis";
 import { analyzeImageWithGemini, GeminiRequestError } from "./analysis";
+import type { VerifyFirebaseAppCheckToken } from "./app_check";
 import type { EntitlementEnv } from "./entitlement";
 import { EntitlementVerificationError, hasPremiumEntitlement } from "./entitlement";
 import type { UsageCounter } from "./usage_counter";
@@ -20,6 +21,17 @@ export interface VerifiedFirebaseUser {
 // 検証失敗 (署名不正・期限切れ等) は例外を throw する契約
 export type VerifyFirebaseIdToken = (firebaseIdToken: string) => Promise<VerifiedFirebaseUser>;
 
+/** 全エンドポイントで要求する2種類の token 検証器。 */
+export interface TokenVerifiers {
+  /** Firebase ID token (誰のリクエストか) の検証。 */
+  verifyFirebaseIdToken: VerifyFirebaseIdToken;
+  /** Firebase App Check token (正規のアプリからのリクエストか) の検証。 */
+  verifyFirebaseAppCheckToken: VerifyFirebaseAppCheckToken;
+}
+
+/** App Check token を載せるリクエストヘッダー名 (Firebase SDK が Firebase バックエンドへ送る時と同じ名前)。 */
+export const firebaseAppCheckHeaderName = "X-Firebase-AppCheck";
+
 /** Worker の binding (wrangler.jsonc で定義。各項目の説明もそちらを参照)。 */
 export interface ImageWorkerEnv extends EntitlementEnv {
   /** 画像の保存先 R2 バケット。 */
@@ -32,6 +44,8 @@ export interface ImageWorkerEnv extends EntitlementEnv {
   FIREBASE_PROJECT_ID: string;
   /** JWK キャッシュの KV キー名。 */
   PUBLIC_JWK_CACHE_KEY: string;
+  /** App Check の JWKS キャッシュの KV キー名 (PUBLIC_JWK_CACHE_KEY と別のキー)。 */
+  APP_CHECK_JWKS_CACHE_KEY: string;
   /** Gemini API キー (wrangler secret。クライアントへ配布しない)。 */
   GEMINI_API_KEY: string;
   /** 明細抽出に使う Gemini のモデル ID。 */
@@ -93,12 +107,28 @@ const imageObjectPathPrefix = "/images/";
 // パス区切りや ".." を構造的に含められない形式だけを受け付ける
 const uploadIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** 全エンドポイント共通の入口。Firebase ID token の検証を通してからルーティングする。 */
+/**
+ * 全エンドポイント共通の入口。App Check token と Firebase ID token の両方の検証を通してからルーティングする。
+ * App Check は「正規のアプリからか」、ID token は「誰のリクエストか」を判定するもので、
+ * 片方だけでは通さない (匿名認証の ID token は公開クライアント設定から誰でも取得できるため)。
+ */
 export async function handleImageRequest(
   request: Request,
   env: ImageWorkerEnv,
-  verifyFirebaseIdToken: VerifyFirebaseIdToken,
+  tokenVerifiers: TokenVerifiers,
 ): Promise<Response> {
+  const firebaseAppCheckToken = request.headers.get(firebaseAppCheckHeaderName);
+  if (firebaseAppCheckToken === null || firebaseAppCheckToken === "") {
+    return jsonResponse(401, { error: `${firebaseAppCheckHeaderName}: <Firebase App Check token> ヘッダーが必要です` });
+  }
+  try {
+    await tokenVerifiers.verifyFirebaseAppCheckToken(firebaseAppCheckToken);
+  } catch (error) {
+    // 検証失敗の詳細 (期限切れ・署名不正等) はクライアントに漏らさずログにだけ残す
+    console.warn("Firebase App Check token の検証に失敗", error);
+    return jsonResponse(401, { error: "Firebase App Check token が無効です" });
+  }
+
   const authorizationHeader = request.headers.get("Authorization");
   if (authorizationHeader === null || !/^Bearer\s+\S+$/i.test(authorizationHeader)) {
     return jsonResponse(401, { error: "Authorization: Bearer <Firebase ID token> ヘッダーが必要です" });
@@ -107,7 +137,7 @@ export async function handleImageRequest(
 
   let verifiedFirebaseUser: VerifiedFirebaseUser;
   try {
-    verifiedFirebaseUser = await verifyFirebaseIdToken(firebaseIdToken);
+    verifiedFirebaseUser = await tokenVerifiers.verifyFirebaseIdToken(firebaseIdToken);
   } catch (error) {
     // 検証失敗の詳細 (期限切れ・署名不正等) はクライアントに漏らさずログにだけ残す
     console.warn("Firebase ID token の検証に失敗", error);

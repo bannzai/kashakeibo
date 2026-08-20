@@ -15,10 +15,6 @@ env:
   BUILD_NUMBER_OFFSET: 0
   # ASC API で作成済みの App Store 配布 profile 名 (IOS_PROVISIONING_PROFILE_BASE64 の実体と一致させる)
   IOS_RUNNER_PROFILE_NAME: 'Kashakeibo Prod AppStore'
-  # 画像アップロード・解析 Worker (workers/image) の prod 環境の URL (wrangler deploy --env prod の出力)。
-  # release ビルドは kashakeibo-prod に接続するため prod Worker を使う
-  IMAGE_API_BASE_URL: 'https://kashakeibo-image-worker-prod.star-kojiki.workers.dev'
-
 jobs:
   build-ios:
     runs-on: macos-latest
@@ -134,7 +130,6 @@ jobs:
       - name: Prebuild iOS
         run: |
           flutter build ios --release --no-codesign \
-            --dart-define=IMAGE_API_BASE_URL=${{ env.IMAGE_API_BASE_URL }} \
             --dart-define=REVENUECAT_APPLE_PUBLIC_API_KEY=${{ secrets.REVENUECAT_APPLE_PUBLIC_API_KEY_PROD }} \
             --build-name=${{ steps.version.outputs.app_version }} \
             --build-number=${{ steps.version.outputs.app_build_number }}
@@ -143,7 +138,6 @@ jobs:
       - name: Build IPA
         run: |
           flutter build ipa --release \
-            --dart-define=IMAGE_API_BASE_URL=${{ env.IMAGE_API_BASE_URL }} \
             --dart-define=REVENUECAT_APPLE_PUBLIC_API_KEY=${{ secrets.REVENUECAT_APPLE_PUBLIC_API_KEY_PROD }} \
             --build-name=${{ steps.version.outputs.app_version }} \
             --build-number=${{ steps.version.outputs.app_build_number }} \

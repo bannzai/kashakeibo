@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:kashakeibo/features/image_upload/image_upload_client.dart'
     as image_upload;
 import 'package:kashakeibo/provider/transaction.dart';
+import 'package:kashakeibo/utils/firebase_app_check/firebase_app_check.dart';
 
 /// 設定画面から実行するアカウント操作。
 typedef AccountAction = Future<AccountActionResult> Function();
@@ -185,15 +186,18 @@ Future<String?> reauthenticateForAccountDeletion({required User user}) async {
 }
 
 /// Firebase ID token が有効なうちに Worker 経由で本人の R2 画像を全削除する。
+/// Worker は ID token に加えて App Check token (正規アプリからの証明) も要求する。
 Future<void> deleteAllImagesForAccount({required User user}) async {
   final firebaseIdToken = await user.getIdToken(true);
   if (firebaseIdToken == null) {
     throw StateError('画像の削除に必要な認証情報を取得できないため、アカウントを削除できない');
   }
+  final firebaseAppCheckToken = await fetchFirebaseAppCheckToken();
   final httpClient = http.Client();
   try {
     await image_upload.deleteAllImages(
       firebaseIdToken: firebaseIdToken,
+      firebaseAppCheckToken: firebaseAppCheckToken,
       httpClient: httpClient,
     );
   } finally {

@@ -8,6 +8,7 @@ import 'package:kashakeibo/features/capture/image_analysis_client.dart'
 import 'package:kashakeibo/features/image_upload/image_upload_client.dart'
     as image_upload;
 import 'package:kashakeibo/provider/firebase_user.dart';
+import 'package:kashakeibo/utils/firebase_app_check/firebase_app_check.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'image.g.dart';
@@ -105,19 +106,23 @@ Future<String> _currentUserIdToken() async {
   return firebaseIdToken;
 }
 
-/// 現在のユーザーの ID token と使い捨ての HTTP クライアントで Worker API を 1 回呼ぶ。
+/// 現在のユーザーの ID token・App Check token と使い捨ての HTTP クライアントで Worker API を 1 回呼ぶ。
+/// Worker は全エンドポイントで両 token の検証を要求する (workers/image/README.md)。
 Future<T> _callImageApi<T>({
   required Future<T> Function({
     required String firebaseIdToken,
+    required String firebaseAppCheckToken,
     required http.Client httpClient,
   })
   imageApiCall,
 }) async {
   final firebaseIdToken = await _currentUserIdToken();
+  final firebaseAppCheckToken = await fetchFirebaseAppCheckToken();
   final httpClient = http.Client();
   try {
     return await imageApiCall(
       firebaseIdToken: firebaseIdToken,
+      firebaseAppCheckToken: firebaseAppCheckToken,
       httpClient: httpClient,
     );
   } finally {
@@ -132,12 +137,17 @@ Future<String> uploadCapturedImage({
   required String imageContentType,
   required String uploadImageID,
 }) => _callImageApi(
-  imageApiCall: ({required firebaseIdToken, required httpClient}) =>
-      image_upload.uploadImage(
+  imageApiCall:
+      ({
+        required firebaseIdToken,
+        required firebaseAppCheckToken,
+        required httpClient,
+      }) => image_upload.uploadImage(
         imageBytes: imageBytes,
         imageContentType: imageContentType,
         uploadImageID: uploadImageID,
         firebaseIdToken: firebaseIdToken,
+        firebaseAppCheckToken: firebaseAppCheckToken,
         httpClient: httpClient,
       ),
 );
@@ -147,10 +157,15 @@ Future<String> uploadCapturedImage({
 Future<image_analysis.ImageAnalysisResult> analyzeUploadedImage({
   required String imageObjectKey,
 }) => _callImageApi(
-  imageApiCall: ({required firebaseIdToken, required httpClient}) =>
-      image_analysis.analyzeImage(
+  imageApiCall:
+      ({
+        required firebaseIdToken,
+        required firebaseAppCheckToken,
+        required httpClient,
+      }) => image_analysis.analyzeImage(
         imageObjectKey: imageObjectKey,
         firebaseIdToken: firebaseIdToken,
+        firebaseAppCheckToken: firebaseAppCheckToken,
         httpClient: httpClient,
       ),
 );
@@ -158,19 +173,29 @@ Future<image_analysis.ImageAnalysisResult> analyzeUploadedImage({
 /// アップロード済み画像のバイト列を取得する。冪等。
 Future<Uint8List> fetchStoredImage({required String imageObjectKey}) =>
     _callImageApi(
-      imageApiCall: ({required firebaseIdToken, required httpClient}) =>
-          image_upload.fetchImage(
+      imageApiCall:
+          ({
+            required firebaseIdToken,
+            required firebaseAppCheckToken,
+            required httpClient,
+          }) => image_upload.fetchImage(
             imageObjectKey: imageObjectKey,
             firebaseIdToken: firebaseIdToken,
+            firebaseAppCheckToken: firebaseAppCheckToken,
             httpClient: httpClient,
           ),
     );
 
 /// 今月のスキャン回数と無料枠を取得する。冪等 (読み取りのみ)。
 Future<image_analysis.ScanQuota> fetchScanQuota() => _callImageApi(
-  imageApiCall: ({required firebaseIdToken, required httpClient}) =>
-      image_analysis.fetchScanQuota(
+  imageApiCall:
+      ({
+        required firebaseIdToken,
+        required firebaseAppCheckToken,
+        required httpClient,
+      }) => image_analysis.fetchScanQuota(
         firebaseIdToken: firebaseIdToken,
+        firebaseAppCheckToken: firebaseAppCheckToken,
         httpClient: httpClient,
       ),
 );
@@ -178,10 +203,15 @@ Future<image_analysis.ScanQuota> fetchScanQuota() => _callImageApi(
 /// アップロード済み画像 1 件を削除する。冪等 (対象が無くても成功する。Worker 側の契約)。
 Future<void> deleteStoredImage({required String imageObjectKey}) =>
     _callImageApi(
-      imageApiCall: ({required firebaseIdToken, required httpClient}) =>
-          image_upload.deleteImage(
+      imageApiCall:
+          ({
+            required firebaseIdToken,
+            required firebaseAppCheckToken,
+            required httpClient,
+          }) => image_upload.deleteImage(
             imageObjectKey: imageObjectKey,
             firebaseIdToken: firebaseIdToken,
+            firebaseAppCheckToken: firebaseAppCheckToken,
             httpClient: httpClient,
           ),
     );
