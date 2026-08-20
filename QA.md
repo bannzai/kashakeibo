@@ -40,6 +40,9 @@ last_verified_at: 2026-08-19
 - **simtunnel のリモート Simulator は英語ロケール・UTC 日付**: 画面の文言はすべて l10n の en 値になる。QA.md の項目文が日本語文言を例示していても英語での同等表示で判定してよい (記録時にその旨を書く)。また Simulator の当日はホストマシン (JST) より 1 日前になることがある (2026-08-19 JST の実行時に Simulator は 2026-08-18)。「日付の初期値は今日」のような判定は Simulator の当日を基準にし、Material DatePicker で "Today" の枠線が付く日で確認できる
 - **アプリの再起動**: リモートではアプリの削除・再インストールができないため、初回起動の確認はインストール直後の状態で行う。再起動の確認は `bash tmp/qa/wda.sh terminate com.bannzai.kashakeibo` → `launch` で行うが、終了直後に 1 枚撮ってホーム画面が出ていることを確認しないと、再起動後の画面が終了前と同じに見えるだけで再起動の証拠にならない
 - **外部ブラウザ (Safari) で開いた URL の確認**: Safari のツールバーのアドレス欄はホスト名だけの短縮表示 (`bannzai.github.io`) で、どのパスを開いたかスクショからは判別できない。アドレス欄をタップして編集状態にすると `elements` に `"name": "URL"` の TextField が現れ、その `value` にフルURLが入るのでこれで判定する。また Simulator 初回起動時の Safari は「Start Page のカスタマイズ」「View Bookmarks, Share Menu, and Open Tabs」といったオンボーディングのポップオーバーを重ねてきて、閉じるまでツールバーの要素が `elements` に出ない (ポップオーバーの `Close` / `close` ボタンをタップして消す)。Safari からアプリへ戻るのは `bash tmp/qa/wda.sh launch com.bannzai.kashakeibo` で、直前に開いていた画面のまま復帰する
+- **ローカル Simulator の debug ビルドは App Check の debug token 登録が無いと Worker が 401 になる**: 残量チップ (`GET /analyses/quota`) が表示されず、撮影も通らない。`xcrun simctl spawn <UDID> log show --last 2m --predicate 'process == "Runner"' | grep "App Check debug token"` で token を控え、workers/image/README.md「デバッグビルドでの動作確認」の手順で kashakeibo-dev にだけ登録してからアプリを再起動する。REST API で登録する時は `x-goog-user-project: kashakeibo-dev` ヘッダーが必要 (無いと quota project 未設定の 403)、displayName は 50 文字以内。`xcrun simctl erase` すると debug token が再生成されるため登録し直す (2026-08-20 の paywall QA で発生)
+- **Simulator の消去後は mobile-mcp の agent が消える**: `xcrun simctl erase` 後に `mobile_take_screenshot` が `agent is not installed` で失敗する。`mobilecli agent install --device <UDID>` (mobile-mcp が使う mobilecli。`~/.npm/_npx/*/node_modules/mobilecli/bin/` 配下) で再インストールする。その間に `flutter run` が走っていると attach が切れる (`Lost connection to device`) が、アプリ自体はインストール済みなので `xcrun simctl launch` で起動すればよい
+- **スナックバーの撮影は mobile-mcp だと間に合わない**: 購入失敗・復元結果などのスナックバーは数秒で消えるため、`mobile_click` → `mobile_save_screenshot` の 2 ツール呼び出しでは消えた後の画面が撮れる。タップと撮影を 1 つのシェルコマンドにまとめる (`mobilecli io tap "x,y" --device <UDID>; sleep 1.2; xcrun simctl io <UDID> screenshot <path>`)
 - **キーボードで隠れる要素**: 手動明細入力シートのように autofocus で数字キーボードが出る画面では、画面下部のボタン (登録ボタン等) がキーボードの裏に入り `elements` にも出ない。数字キーボードには改行キーが無いため、`textInputAction: done` を持つ別のテキスト欄 (店名欄) をタップしてから `keys` に改行だけを送ってキーボードを閉じる。キーボードの開閉で全要素の rect がずれるので、閉じた後に `elements` を取り直してから座標を決める
 
 ## 横断確認項目
@@ -123,6 +126,7 @@ manual_entry の QA で 4 件の明細を登録した状態からアプリを終
 - [monthly (月次一覧)](lib/features/monthly/QA.md)
 - [manual_entry (手動明細入力)](lib/features/manual_entry/QA.md)
 - [settings (設定)](lib/features/settings/QA.md)
+- [paywall (プレミアムのペイウォール・課金)](lib/features/paywall/QA.md)
 
 ## QA 対象外
 
