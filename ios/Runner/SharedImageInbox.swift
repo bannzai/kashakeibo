@@ -51,18 +51,23 @@ enum SharedImageInbox {
     // ファイル名は Extension が「時刻 + 連番」で付ける (ShareViewController) ため名前順 = 共有順。
     .sorted { $0.lastPathComponent < $1.lastPathComponent }
     for imageFileURL in imageFileURLs {
+      let imageData: Data
       do {
-        let imageData = try Data(contentsOf: imageFileURL)
-        try FileManager.default.removeItem(at: imageFileURL)
-        return [
-          "imageBytes": FlutterStandardTypedData(bytes: imageData),
-          "imageContentType": UTType(filenameExtension: imageFileURL.pathExtension)?.preferredMIMEType ?? "image/jpeg",
-        ]
+        imageData = try Data(contentsOf: imageFileURL)
       } catch {
-        // 読み込み・削除に失敗したファイルは受信箱に残したままスキップし、次のファイルを試す。
+        // 読み込みに失敗したファイルは受信箱に残したままスキップし、次のファイルを試す。
         // 残したファイルは次回の takeNextSharedImage (foreground 復帰時等) で再試行される。
-        NSLog("共有画像の取り出しに失敗したためスキップします: %@", error.localizedDescription)
+        NSLog("共有画像の読み込みに失敗したためスキップします: %@", error.localizedDescription)
+        continue
       }
+      // 削除の失敗はスキップせずエラーにする (このファイルを残したまま後続を返すと、
+      // 次回の取り出しで残った古いファイルが後から返り、共有した順序が逆転するため)。
+      // 最古のファイルは次回の呼び出しで再試行される。
+      try FileManager.default.removeItem(at: imageFileURL)
+      return [
+        "imageBytes": FlutterStandardTypedData(bytes: imageData),
+        "imageContentType": UTType(filenameExtension: imageFileURL.pathExtension)?.preferredMIMEType ?? "image/jpeg",
+      ]
     }
     return nil
   }
