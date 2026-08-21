@@ -197,10 +197,24 @@ export function toImageAnalysisResult(geminiOutput: unknown): ImageAnalysisResul
       amount,
       transactionDate: normalizeTransactionDate(transactionDate),
       type: type as AnalyzedTransactionType,
-      category: category as AnalyzedTransactionCategory,
+      category: normalizeCategoryForType(type as AnalyzedTransactionType, category as AnalyzedTransactionCategory),
     });
   }
   return { transactions };
+}
+
+// type ごとに許されるカテゴリの組み合わせをクライアントの選択体系
+// (lib/features/capture/capture_page.dart の _availableCategories: income は salary / other のみ、
+// expense は salary 以外) と揃え、外れた組み合わせは other に落とす。
+// スキーマ強制は type と category を個別にしか検証できないため、組み合わせはここで正規化する
+function normalizeCategoryForType(
+  type: AnalyzedTransactionType,
+  category: AnalyzedTransactionCategory,
+): AnalyzedTransactionCategory {
+  if (type === "income") {
+    return category === "salary" || category === "other" ? category : "other";
+  }
+  return category === "salary" ? "other" : category;
 }
 
 // YYYY-MM-DD 形式かつ実在する日付だけを残す ("2026-02-30" のような日付は Date が繰り上げるため文字列比較で弾く)
