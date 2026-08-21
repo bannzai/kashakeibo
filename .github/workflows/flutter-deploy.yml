@@ -1,6 +1,6 @@
 name: flutter-deploy
 
-# 手動起動の配布ワークフロー (iOS)。
+# 配布ワークフロー (iOS)。main へのマージごとに自動起動し、手動起動 (workflow_dispatch) もできる。
 # 手動署名で IPA をビルドし TestFlight (App Store Connect) へアップロードする。
 # 構成は shoppinglist の flutter-deploy.yml を踏襲しつつ、以下を変更している:
 # - public repo のため Team ID 等の識別子は直書きせず Secrets から注入する
@@ -9,6 +9,24 @@ name: flutter-deploy
 # - Android (Google Play) は release keystore / Play Console の整備後に追加する
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    # iOS アプリの成果物に影響する変更に限定する (ドキュメント・workers 等だけの変更で
+    # macOS ビルドと TestFlight ビルドを積まない)
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'l10n.yaml'
+      - '.github/workflows/flutter-deploy.yml'
+
+# 連続マージ時は古いビルドをキャンセルして最新だけ配布する
+concurrency:
+  group: flutter-deploy
+  cancel-in-progress: true
 
 env:
   # ビルド番号 = github.run_number + offset。配布実績に合わせて必要なら増やす。
