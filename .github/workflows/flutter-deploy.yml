@@ -196,6 +196,8 @@ jobs:
       # (bot token + chat.postMessage。slack-notification-setup の標準経路)
       - name: Slack に配布結果を通知
         if: always()
+        # 通知は配布の成否に影響させない (TestFlight アップロード成功後に通知失敗でジョブを落とさない)
+        continue-on-error: true
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_NOTIFY_CHANNEL: kashakeibo-notification
@@ -216,7 +218,8 @@ jobs:
           # chat.postMessage はエラーでも HTTP 200 を返すため、レスポンスの ok で成否を判定する
           jq -n --arg channel "$SLACK_NOTIFY_CHANNEL" --arg text "$TEXT" \
                 '{channel: $channel, text: $text}' \
-            | curl -sf -X POST -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            | curl -sf --connect-timeout 5 --max-time 30 \
+                -X POST -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
                 -H 'Content-Type: application/json; charset=utf-8' \
                 --data @- https://slack.com/api/chat.postMessage \
             | jq -e '.ok' > /dev/null \
