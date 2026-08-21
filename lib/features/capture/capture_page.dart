@@ -1023,9 +1023,21 @@ class _CaptureCandidateListView extends HookWidget {
                                 candidate: editedTransactions.value[index],
                               ),
                             );
+                        // 確定と離脱 (スワイプ・戻る操作で閉じた場合) を分けて記録し、
+                        // 編集フローの完了率を集計できるようにする。
                         if (editedCandidate == null) {
+                          unawaited(
+                            logAnalyticsEvent(
+                              name: 'capture_candidate_edit_cancel',
+                            ),
+                          );
                           return;
                         }
+                        unawaited(
+                          logAnalyticsEvent(
+                            name: 'capture_candidate_edit_apply',
+                          ),
+                        );
                         editedTransactions.value = [
                           for (
                             var candidateIndex = 0;
@@ -1070,7 +1082,11 @@ class _CaptureCandidateListView extends HookWidget {
         ),
         const SizedBox(height: 8),
         TextButton(
-          onPressed: submitting.value ? null : onRetake,
+          // 一部の候補が登録済みの状態で取り直すと、選び直した同じ画像の解析結果に
+          // 登録済みの明細が再び含まれて重複登録になるため、登録が始まった後は無効にする。
+          onPressed: submitting.value || registeredIndexes.value.isNotEmpty
+              ? null
+              : onRetake,
           style: TextButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
             foregroundColor: AppColors.neutral700,
