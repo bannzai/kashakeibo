@@ -780,6 +780,40 @@ describe("画像解析", () => {
     });
   });
 
+  it("type と組み合わせられないカテゴリは other に正規化する (income の food・expense の salary)", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000005");
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(
+        200,
+        buildGeminiResponseBody({
+          transactions: [
+            { title: "返金", amount: 1200, transactionDate: "2026-08-16", type: "income", category: "food" },
+            { title: "給与テンプレの誤読", amount: 3000, transactionDate: "2026-08-16", type: "expense", category: "salary" },
+            { title: "給与", amount: 280000, transactionDate: "2026-08-16", type: "income", category: "salary" },
+          ],
+        }),
+      );
+
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({ imageObjectKey }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      transactions: [
+        { title: "返金", amount: 1200, transactionDate: "2026-08-16", type: "income", category: "other" },
+        { title: "給与テンプレの誤読", amount: 3000, transactionDate: "2026-08-16", type: "expense", category: "other" },
+        { title: "給与", amount: 280000, transactionDate: "2026-08-16", type: "income", category: "salary" },
+      ],
+    });
+  });
+
   it("Gemini がエラーを返した場合は 502 とエラー本文を返す", async () => {
     const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000003");
     fetchMock

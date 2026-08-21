@@ -1,0 +1,7 @@
+// 共有 Extension (ShareExtension ターゲット) の Release / Profile 設定。
+// Generated.xcconfig からアプリと同じバージョン (FLUTTER_BUILD_NAME / FLUTTER_BUILD_NUMBER) を、
+// AppBundleIdentifier-Release.xcconfig からホストアプリの bundle ID を取り込む。
+// Pods の設定は含めない (Extension は Flutter プラグインをリンクしない)。
+// CI の配布ワークフロー (.github/workflows/flutter-deploy.yml) は手動署名の設定をこのファイル末尾に追記する。
+#include "Generated.xcconfig"
+#include "AppBundleIdentifier-Release.xcconfig"

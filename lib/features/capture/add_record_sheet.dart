@@ -11,6 +11,9 @@ enum AddRecordOption {
   /// カメラでレシートを撮影して AI 解析する。
   camera,
 
+  /// フォトライブラリの写真・スクショを選んで AI 解析する。
+  photoLibrary,
+
   /// 画像なしで手動入力する。
   manual,
 }
@@ -27,11 +30,10 @@ Future<AddRecordOption?> showAddRecordSheet({required BuildContext context}) =>
       builder: (context) => const AddRecordSheet(),
     );
 
-/// 入力経路 (カメラで撮影 / 手動で入力) を選ぶボトムシート
+/// 入力経路 (カメラで撮影 / 写真・スクショから選ぶ / 手動で入力) を選ぶボトムシート
 /// (design_handoff_kashakeibo/README.md の取込フロー 1「記録する」)。
 ///
 /// 下部に今月のスキャン残量 (プレミアムなら無制限) を表示する。
-/// 写真・スクショから選ぶ経路は issue #8 のスコープで、本シートにはまだ無い。
 class AddRecordSheet extends ConsumerWidget {
   const AddRecordSheet({super.key});
 
@@ -58,6 +60,16 @@ class AddRecordSheet extends ConsumerWidget {
             title: l10n.captureReceiptWithCamera,
             description: l10n.captureReceiptWithCameraDescription,
             onTap: () => Navigator.of(context).pop(AddRecordOption.camera),
+          ),
+          const SizedBox(height: 8),
+          _AddRecordOptionRow(
+            icon: Icons.photo_library_outlined,
+            iconBackgroundColor: AppColors.sage100,
+            iconColor: AppColors.sage700,
+            title: l10n.capturePickFromPhotoLibrary,
+            description: l10n.capturePickFromPhotoLibraryDescription,
+            onTap: () =>
+                Navigator.of(context).pop(AddRecordOption.photoLibrary),
           ),
           const SizedBox(height: 8),
           _AddRecordOptionRow(

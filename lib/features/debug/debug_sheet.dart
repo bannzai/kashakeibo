@@ -64,30 +64,23 @@ class DebugSheet extends ConsumerWidget {
             leading: const Icon(Icons.receipt_long),
             title: const Text('サンプルレシートで撮影フローを試す'),
             subtitle: const Text('端末カメラの無いシミュレータでも、描画したレシート画像で解析 → 確認 → 登録を通す'),
-            onTap: () async {
-              // シートを閉じてから撮影フロー画面を開くため、閉じる前に Navigator を確保する。
-              final navigator = Navigator.of(context);
-              final sampleReceiptImageBytes = await _renderSampleReceiptImage();
-              if (!context.mounted) {
-                return;
-              }
-              navigator.pop();
-              final captureFlowResult = await navigator.push<CaptureFlowResult>(
-                MaterialPageRoute<CaptureFlowResult>(
-                  fullscreenDialog: true,
-                  builder: (context) => CapturePage(
-                    imageBytes: sampleReceiptImageBytes,
-                    imageContentType: 'image/png',
-                    logAnalyticsEvent: recordAnalyticsEvent,
-                  ),
-                ),
-              );
-              final navigatorContext = navigator.context;
-              if (captureFlowResult == CaptureFlowResult.registered &&
-                  navigatorContext.mounted) {
-                showCaptureRegisteredToast(context: navigatorContext);
-              }
-            },
+            onTap: () => _openCaptureFlowWithSampleImage(
+              context: context,
+              renderSampleImage: _renderSampleReceiptImage,
+              transactionSource: TransactionSource.receipt,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.credit_card),
+            title: const Text('サンプル明細スクショで取込フローを試す'),
+            subtitle: const Text(
+              'カード明細風の画像 (取引 3 件) を描画し、複数明細の候補リスト (採用・破棄・修正 → 一括登録) を通す',
+            ),
+            onTap: () => _openCaptureFlowWithSampleImage(
+              context: context,
+              renderSampleImage: _renderSampleStatementScreenshotImage,
+              transactionSource: TransactionSource.screenshot,
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.workspace_premium_outlined),
@@ -109,6 +102,37 @@ class DebugSheet extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// 描画したサンプル画像で取込フロー画面 (`CapturePage`) を開き、登録完了ならトーストを出す。
+Future<void> _openCaptureFlowWithSampleImage({
+  required BuildContext context,
+  required Future<Uint8List> Function() renderSampleImage,
+  required TransactionSource transactionSource,
+}) async {
+  // シートを閉じてから取込フロー画面を開くため、閉じる前に Navigator を確保する。
+  final navigator = Navigator.of(context);
+  final sampleImageBytes = await renderSampleImage();
+  if (!context.mounted) {
+    return;
+  }
+  navigator.pop();
+  final captureFlowResult = await navigator.push<CaptureFlowResult>(
+    MaterialPageRoute<CaptureFlowResult>(
+      fullscreenDialog: true,
+      builder: (context) => CapturePage(
+        imageBytes: sampleImageBytes,
+        imageContentType: 'image/png',
+        transactionSource: transactionSource,
+        logAnalyticsEvent: recordAnalyticsEvent,
+      ),
+    ),
+  );
+  final navigatorContext = navigator.context;
+  if (captureFlowResult == CaptureFlowResult.registered &&
+      navigatorContext.mounted) {
+    showCaptureRegisteredToast(context: navigatorContext);
   }
 }
 
@@ -202,7 +226,47 @@ final _sampleOffering = Offering(
 ///
 /// 端末カメラの無いシミュレータでも撮影フロー (アップロード → Gemini 解析) を通すための
 /// 入力画像で、アセットを持たずにその場で描く。冪等 (同じ内容の画像を返す)。
-Future<Uint8List> _renderSampleReceiptImage() async {
+Future<Uint8List> _renderSampleReceiptImage() => _renderTextLinesImage(
+  lines: const [
+    (text: 'セブン-イレブン 三軒茶屋駅前店', fontSize: 34.0),
+    (text: '東京都世田谷区三軒茶屋2-11-22', fontSize: 26.0),
+    (text: '2026年08月16日(日) 12:34  レジ#3', fontSize: 26.0),
+    (text: '------------------------------', fontSize: 26.0),
+    (text: 'おにぎり 鮭            ¥150', fontSize: 26.0),
+    (text: 'サンドイッチ           ¥398', fontSize: 26.0),
+    (text: 'お茶 500ml            ¥140', fontSize: 26.0),
+    (text: 'キャンディ            ¥120', fontSize: 26.0),
+    (text: '------------------------------', fontSize: 26.0),
+    (text: '小計                  ¥808', fontSize: 26.0),
+    (text: '消費税(8%)             ¥64', fontSize: 26.0),
+    (text: '合計                  ¥872', fontSize: 34.0),
+    (text: 'お預り               ¥1,000', fontSize: 26.0),
+    (text: 'お釣り                ¥128', fontSize: 26.0),
+    (text: 'ありがとうございました', fontSize: 26.0),
+  ],
+);
+
+/// 複数明細の取込 (issue #8) の動作確認用に、カード明細のスクショ風の画像 (取引 3 件) を描画して PNG にする。
+/// 冪等 (同じ内容の画像を返す)。
+Future<Uint8List> _renderSampleStatementScreenshotImage() =>
+    _renderTextLinesImage(
+      lines: const [
+        (text: 'カシャカード ご利用明細', fontSize: 34.0),
+        (text: '2026年8月分', fontSize: 26.0),
+        (text: '------------------------------', fontSize: 26.0),
+        (text: '2026/08/14  Amazon.co.jp         ¥3,980', fontSize: 26.0),
+        (text: '2026/08/15  モバイルSuica チャージ  ¥3,000', fontSize: 26.0),
+        (text: '2026/08/16  鳥貴族 三軒茶屋店      ¥4,230', fontSize: 26.0),
+        (text: '------------------------------', fontSize: 26.0),
+        (text: 'ご利用合計              ¥11,210', fontSize: 34.0),
+      ],
+    );
+
+/// 文字行を縦に並べた画像 (レシート・明細スクショ風) を描画して PNG にする。
+/// アセットを持たずにその場で描く。冪等 (同じ内容の画像を返す)。
+Future<Uint8List> _renderTextLinesImage({
+  required List<({String text, double fontSize})> lines,
+}) async {
   const imageWidth = 600.0;
   const imageHeight = 900.0;
   final pictureRecorder = ui.PictureRecorder();
@@ -212,39 +276,26 @@ Future<Uint8List> _renderSampleReceiptImage() async {
       Paint()..color = const Color(0xFFFAF8F2),
     );
   var textTop = 40.0;
-  void drawLine({required String text, double fontSize = 26}) {
+  for (final line in lines) {
     final textPainter = TextPainter(
       text: TextSpan(
-        text: text,
-        style: TextStyle(fontSize: fontSize, color: const Color(0xFF1E1E1E)),
+        text: line.text,
+        style: TextStyle(
+          fontSize: line.fontSize,
+          color: const Color(0xFF1E1E1E),
+        ),
       ),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: imageWidth - 80);
     textPainter.paint(canvas, Offset(40, textTop));
-    textTop += fontSize + 14;
+    textTop += line.fontSize + 14;
   }
 
-  drawLine(text: 'セブン-イレブン 三軒茶屋駅前店', fontSize: 34);
-  drawLine(text: '東京都世田谷区三軒茶屋2-11-22');
-  drawLine(text: '2026年08月16日(日) 12:34  レジ#3');
-  drawLine(text: '------------------------------');
-  drawLine(text: 'おにぎり 鮭            ¥150');
-  drawLine(text: 'サンドイッチ           ¥398');
-  drawLine(text: 'お茶 500ml            ¥140');
-  drawLine(text: 'キャンディ            ¥120');
-  drawLine(text: '------------------------------');
-  drawLine(text: '小計                  ¥808');
-  drawLine(text: '消費税(8%)             ¥64');
-  drawLine(text: '合計                  ¥872', fontSize: 34);
-  drawLine(text: 'お預り               ¥1,000');
-  drawLine(text: 'お釣り                ¥128');
-  drawLine(text: 'ありがとうございました');
-
-  final receiptImage = await pictureRecorder.endRecording().toImage(
+  final renderedImage = await pictureRecorder.endRecording().toImage(
     imageWidth.toInt(),
     imageHeight.toInt(),
   );
-  final pngByteData = await receiptImage.toByteData(
+  final pngByteData = await renderedImage.toByteData(
     format: ui.ImageByteFormat.png,
   );
   return pngByteData!.buffer.asUint8List();

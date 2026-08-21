@@ -215,6 +215,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get captureReceiptWithCameraDescription => 'レシートを撮ると AI が明細を読み取ります';
 
   @override
+  String get capturePickFromPhotoLibrary => '写真・スクショから選ぶ';
+
+  @override
+  String get capturePickFromPhotoLibraryDescription =>
+      'カード明細や購入履歴のスクショを AI が明細に分けます';
+
+  @override
   String get manualEntryDescription => '画像がない現金支出などを入力します';
 
   @override
@@ -252,6 +259,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get captureRegister => '登録する';
+
+  @override
+  String captureCandidatesNote(int count) {
+    return '$count件の明細を読み取りました。登録する明細を選んでください';
+  }
+
+  @override
+  String get captureCandidateEdit => '修正する';
+
+  @override
+  String get captureCandidateApplyEdit => '変更を反映';
+
+  @override
+  String captureRegisterCount(int count) {
+    return '$count件を登録する';
+  }
 
   @override
   String get captureRegistered => 'カシャッと記録!';

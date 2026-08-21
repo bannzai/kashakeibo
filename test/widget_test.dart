@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/image_analysis_client.dart';
-import 'package:kashakeibo/features/capture/receipt_camera.dart';
+import 'package:kashakeibo/features/capture/capture_image_picker.dart';
 import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';

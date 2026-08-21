@@ -16,6 +16,9 @@ release ビルドには入口ごと含まれない (`kDebugMode` ガード)。
     端末カメラの無いシミュレータでも撮影フローを通すための入口 (画像 API の接続先は
     debug ビルドの既定で dev Worker。ローカルの Worker 等へ向ける時だけ
     `--dart-define=IMAGE_API_BASE_URL=...` で上書きする)
+  - サンプル明細スクショで取込フローを試す: カード明細のスクショ風の画像 (取引 3 件) をその場で描画し、
+    出所 `screenshot` で `CapturePage` を開く。複数明細の候補リスト (採用・破棄・修正 → 一括登録) を
+    フォトライブラリに画像を用意せずに通すための入口
   - ペイウォールをサンプル価格で開く: RevenueCat の public API key が未注入のビルドでも、
     実商品と同じ識別子・価格 (月額 ¥480 / 年額 ¥3,800) のサンプル Offering で `features/paywall` の
     `PaywallPage` を開く。購入は mock で成功し、復元は「復元できる購入がありません」になる

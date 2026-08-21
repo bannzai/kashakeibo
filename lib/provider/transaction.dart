@@ -227,6 +227,27 @@ Future<void> _updateLatestTransaction({
   });
 }
 
+/// [imageObjectKey] を元画像として参照する明細が [excludedTransactionID] 以外にも存在するか。
+///
+/// 1 枚のスクショから複数の明細を登録した場合、同じ元画像キーを複数の明細が共有する
+/// (lib/features/capture/README.md)。共有されている画像を R2 から消すと他の明細から
+/// 元画像を辿れなくなるため、削除系の操作はこの判定で最後の参照の時だけ画像を消す。
+Future<bool> _isImageReferencedByOtherTransaction({
+  required FirebaseFirestore firebaseFirestore,
+  required String userID,
+  required String imageObjectKey,
+  required String excludedTransactionID,
+}) async =>
+    (await transactionsReference(
+              userID: userID,
+              firebaseFirestore: firebaseFirestore,
+            )
+            .where('sourceImageObjectKey', isEqualTo: imageObjectKey)
+            .limit(2)
+            .get())
+        .docs
+        .any((snapshot) => snapshot.id != excludedTransactionID);
+
 /// 明細から元画像だけを外す機能 Provider。
 @riverpod
 RemoveTransactionSourceImage removeTransactionSourceImage(Ref ref) =>
@@ -252,6 +273,7 @@ class RemoveTransactionSourceImage {
   ///
   /// 画像の削除 (対象が無くても成功) → 紐付けの解除の順で行い、途中で失敗しても
   /// 再実行で同じ結果に収束するため冪等。逆順にすると明細から辿れない孤児画像が残る。
+  /// 他の明細が同じ元画像を参照している場合は R2 の画像は消さず、紐付けの解除だけを行う。
   /// 紐付けの解除は Firestore トランザクションで読み直した最新の明細に対して行い、
   /// 並行した他の変更 (計算対象除外の切替等) を巻き戻さない。
   Future<void> call({required Transaction transaction}) async {
@@ -259,7 +281,14 @@ class RemoveTransactionSourceImage {
     if (sourceImageObjectKey == null) {
       return;
     }
-    await deleteStoredImage(imageObjectKey: sourceImageObjectKey);
+    if (!await _isImageReferencedByOtherTransaction(
+      firebaseFirestore: firebaseFirestore,
+      userID: transaction.userID,
+      imageObjectKey: sourceImageObjectKey,
+      excludedTransactionID: transaction.id,
+    )) {
+      await deleteStoredImage(imageObjectKey: sourceImageObjectKey);
+    }
     await _updateLatestTransaction(
       firebaseFirestore: firebaseFirestore,
       transaction: transaction,
@@ -293,9 +322,16 @@ class DeleteTransaction {
   ///
   /// 画像の削除 → ドキュメントの削除の順で行う。どちらも対象が無くても成功するため、
   /// 途中で失敗しても再実行で同じ結果に収束する (冪等)。
+  /// 他の明細が同じ元画像を参照している場合は R2 の画像は消さず、ドキュメントだけを削除する。
   Future<void> call({required Transaction transaction}) async {
     final sourceImageObjectKey = transaction.sourceImageObjectKey;
-    if (sourceImageObjectKey != null) {
+    if (sourceImageObjectKey != null &&
+        !await _isImageReferencedByOtherTransaction(
+          firebaseFirestore: firebaseFirestore,
+          userID: transaction.userID,
+          imageObjectKey: sourceImageObjectKey,
+          excludedTransactionID: transaction.id,
+        )) {
       await deleteStoredImage(imageObjectKey: sourceImageObjectKey);
     }
     await transactionsReference(
@@ -394,7 +430,14 @@ class MergeDuplicateTransactions {
         });
     // マージ確定後に削除側の画像を消す。ここで失敗しても明細の統合は完了しており、
     // 残った画像はアカウント削除時の全消去で回収される。
-    if (orphanedImageObjectKey != null) {
+    // 他の明細 (同じスクショから登録した明細) が同じ画像を参照している場合は消さない。
+    if (orphanedImageObjectKey != null &&
+        !await _isImageReferencedByOtherTransaction(
+          firebaseFirestore: FirebaseFirestore.instance,
+          userID: duplicateTransaction.userID,
+          imageObjectKey: orphanedImageObjectKey,
+          excludedTransactionID: duplicateTransaction.id,
+        )) {
       await deleteStoredImage(imageObjectKey: orphanedImageObjectKey);
     }
   }

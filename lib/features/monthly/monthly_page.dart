@@ -7,15 +7,17 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/add_record_sheet.dart';
+import 'package:kashakeibo/features/capture/capture_image_picker.dart';
 import 'package:kashakeibo/features/capture/capture_page.dart';
 import 'package:kashakeibo/features/capture/image_analysis_client.dart';
-import 'package:kashakeibo/features/capture/receipt_camera.dart';
 import 'package:kashakeibo/features/debug/debug_sheet.dart';
 import 'package:kashakeibo/features/manual_entry/manual_entry_sheet.dart';
 import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
 import 'package:kashakeibo/features/paywall/paywall_page.dart';
 import 'package:kashakeibo/features/paywall/scan_quota_label.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
+import 'package:kashakeibo/features/share_import/shared_image_import.dart';
+import 'package:kashakeibo/features/share_import/shared_image_inbox.dart';
 import 'package:kashakeibo/features/transaction_detail/transaction_detail_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/transaction_labels.dart';
@@ -53,10 +55,23 @@ class MonthlyPage extends HookConsumerWidget {
       monthlyDuplicateCandidatesProvider(yearMonth: selectedYearMonth),
     );
     final captureReceiptImage = ref.watch(captureReceiptImageProvider);
+    final pickCaptureImageFromPhotoLibrary = ref.watch(
+      pickCaptureImageFromPhotoLibraryProvider,
+    );
+    final takeNextSharedImage = ref.watch(takeNextSharedImageProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final scanQuota = ref.watch(monthlyScanQuotaProvider).valueOrNull;
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
+
+    // 共有 Extension から受け取った画像を、ホーム表示中に撮影フローへ流し込む
+    // (features/share_import)。
+    useSharedImageImport(
+      context: context,
+      takeNextSharedImage: takeNextSharedImage,
+      pickImageFromPhotoLibrary: pickCaptureImageFromPhotoLibrary,
+      logAnalyticsEvent: logAnalyticsEvent,
+    );
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -84,9 +99,33 @@ class MonthlyPage extends HookConsumerWidget {
                   return;
                 }
               }
-              await runReceiptCaptureFlow(
+              await runCaptureFlow(
                 context: context,
-                captureReceiptImage: captureReceiptImage,
+                initialImage: null,
+                pickImage: captureReceiptImage,
+                entryPoint: CaptureEntryPoint.camera,
+                logAnalyticsEvent: logAnalyticsEvent,
+              );
+            case AddRecordOption.photoLibrary:
+              // フォトライブラリ経由の解析もスキャンを消費するため、カメラと同じハードペイウォールを通す
+              if (!isPremium &&
+                  scanQuota != null &&
+                  remainingScanCount(scanQuota: scanQuota) == 0) {
+                final premiumUnlocked = await showPaywall(
+                  context: context,
+                  trigger: 'add_record_photo_library',
+                  openExternalUri: openExternalUri,
+                  logAnalyticsEvent: logAnalyticsEvent,
+                );
+                if (!context.mounted || premiumUnlocked != true) {
+                  return;
+                }
+              }
+              await runCaptureFlow(
+                context: context,
+                initialImage: null,
+                pickImage: pickCaptureImageFromPhotoLibrary,
+                entryPoint: CaptureEntryPoint.photoLibrary,
                 logAnalyticsEvent: logAnalyticsEvent,
               );
             case AddRecordOption.manual:
