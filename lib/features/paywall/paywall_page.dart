@@ -508,10 +508,7 @@ class _SavingsResearchCard extends StatelessWidget {
         children: [
           Text(
             l10n.paywallSavingsClaim,
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(

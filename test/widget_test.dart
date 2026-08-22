@@ -515,9 +515,7 @@ void main() {
 
     await pumpAndOpenSheet();
     await tester.tap(
-      find.byTooltip(
-        const DefaultMaterialLocalizations().closeButtonTooltip,
-      ),
+      find.byTooltip(const DefaultMaterialLocalizations().closeButtonTooltip),
     );
     await tester.pumpAndSettle();
     expect(analyticsEvents, ['manual_entry_cancel']);
@@ -584,7 +582,8 @@ void main() {
 
   testWidgets('月次一覧: 重複候補バナーから2件を比較する確認シートを開き、マージを記録する', (tester) async {
     final mergeDuplicateTransactions = _RecordingMergeDuplicateTransactions();
-    final analyticsEvents = <({String name, Map<String, Object>? parameters})>[];
+    final analyticsEvents =
+        <({String name, Map<String, Object>? parameters})>[];
     final transactions = [
       buildTransaction(
         id: 'receipt-transaction',
@@ -682,7 +681,8 @@ void main() {
 
   testWidgets('月次一覧: 下側の候補を選んでマージすると残す側・削除する側が入れ替わる', (tester) async {
     final mergeDuplicateTransactions = _RecordingMergeDuplicateTransactions();
-    final analyticsEvents = <({String name, Map<String, Object>? parameters})>[];
+    final analyticsEvents =
+        <({String name, Map<String, Object>? parameters})>[];
     final transactions = [
       buildTransaction(
         id: 'receipt-transaction',

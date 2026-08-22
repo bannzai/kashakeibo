@@ -25,7 +25,8 @@ Future<bool?> showManualEntrySheet({
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (context) => ManualEntrySheet(logAnalyticsEvent: logAnalyticsEvent),
+    builder: (context) =>
+        ManualEntrySheet(logAnalyticsEvent: logAnalyticsEvent),
   );
   if (registered != true) {
     unawaited(logAnalyticsEvent(name: 'manual_entry_cancel'));
