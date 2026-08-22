@@ -10,5 +10,6 @@
   "duplicateCandidateReviewHint": "탭하여 검토",
   "duplicateCandidateTitle": "중복 가능 항목 검토",
   "duplicateCandidateDescription": "이 거래들은 금액, 날짜, 상점명이 비슷합니다. 동일한 지출인지 확인해 주십시오.",
-  "duplicateCandidateReason": "금액이 같고 날짜가 가까우며 상점명이 유사합니다."
+  "duplicateCandidateReason": "금액이 같고 날짜가 가까우며 상점명이 유사합니다.",
+  "duplicateCandidateKeep": "이 거래 유지"
 }
