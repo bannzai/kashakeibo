@@ -129,5 +129,6 @@
   "paywallPurchased": "프리미엄이 활성화되었습니다. 마음껏 스캔하세요!",
   "paywallPremiumActive": "프리미엄이 활성화되어 있습니다",
   "paywallPremiumActiveDescription": "스캔을 무제한으로 이용하고 전체 기록을 확인할 수 있습니다.",
-  "paywallOfferingUnavailable": "현재 요금제를 이용할 수 없습니다"
+  "paywallOfferingUnavailable": "현재 요금제를 이용할 수 없습니다",
+  "paywallFairUseNote": "스캔 기능에는 월별 공정 사용 한도가 있으며, 일반적인 사용으로는 한도에 도달하지 않습니다."
 }
