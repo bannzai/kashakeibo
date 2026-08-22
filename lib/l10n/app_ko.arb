@@ -2,5 +2,6 @@
   "@@locale": "ko",
   "appName": "Kashakeibo",
   "monthlyIncome": "수입",
-  "monthlyExpense": "지출"
+  "monthlyExpense": "지출",
+  "monthlyBalance": "잔액"
 }

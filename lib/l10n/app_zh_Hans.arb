@@ -2,5 +2,6 @@
   "@@locale": "zh_Hans",
   "appName": "Kashakeibo",
   "monthlyIncome": "收入",
-  "monthlyExpense": "支出"
+  "monthlyExpense": "支出",
+  "monthlyBalance": "结余"
 }
