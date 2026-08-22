@@ -61,5 +61,6 @@
   "transactionSourceReceipt": "小票",
   "transactionSourceScreenshot": "截图",
   "transactionSourceManual": "手动",
-  "transactionSourceUnknown": "未知来源"
+  "transactionSourceUnknown": "未知来源",
+  "addRecordOpen": "添加记录"
 }
