@@ -45,5 +45,6 @@
   "categorySubscription": "订阅",
   "categorySalary": "工资",
   "categoryOther": "其他",
-  "manualEntryOpen": "手动输入"
+  "manualEntryOpen": "手动输入",
+  "manualEntryTitle": "手动输入"
 }
