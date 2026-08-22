@@ -58,5 +58,6 @@
   "manualEntryDate": "日期",
   "manualEntryRegister": "新增帳目",
   "manualEntryRegistered": "已新增交易紀錄",
-  "transactionSourceReceipt": "收據"
+  "transactionSourceReceipt": "收據",
+  "transactionSourceScreenshot": "截圖"
 }

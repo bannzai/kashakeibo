@@ -58,5 +58,6 @@
   "manualEntryDate": "日期",
   "manualEntryRegister": "添加账目",
   "manualEntryRegistered": "已添加交易记录",
-  "transactionSourceReceipt": "小票"
+  "transactionSourceReceipt": "小票",
+  "transactionSourceScreenshot": "截图"
 }
