@@ -31,5 +31,6 @@
   "accountLinked": "账号已关联",
   "existingAccountSignedIn": "已切换到您已有的账户",
   "accountSwitchWarningTitle": "检查此设备上的数据",
-  "accountSwitchWarningMessage": "如果您选择的账户已在其他设备上使用，此设备上的匿名数据将无法再访问。继续前请查看需要保留的交易记录。"
+  "accountSwitchWarningMessage": "如果您选择的账户已在其他设备上使用，此设备上的匿名数据将无法再访问。继续前请查看需要保留的交易记录。",
+  "continueAccountLink": "继续"
 }

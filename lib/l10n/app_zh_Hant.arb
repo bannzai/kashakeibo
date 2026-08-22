@@ -31,5 +31,6 @@
   "accountLinked": "帳戶已連結",
   "existingAccountSignedIn": "已切換至您現有的帳戶",
   "accountSwitchWarningTitle": "檢查此裝置上的資料",
-  "accountSwitchWarningMessage": "如果您選擇的帳戶已在其他裝置上使用，此裝置上的匿名資料將無法再存取。繼續前請查看需要保留的交易紀錄。"
+  "accountSwitchWarningMessage": "如果您選擇的帳戶已在其他裝置上使用，此裝置上的匿名資料將無法再存取。繼續前請查看需要保留的交易紀錄。",
+  "continueAccountLink": "繼續"
 }
