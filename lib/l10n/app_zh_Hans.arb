@@ -111,5 +111,6 @@
   "paywallTitle": "使用高级版，尽情扫描",
   "paywallSubtitle": "无需关联账户。拍照即可，高级版会为您读取每张收据和每份账单。",
   "paywallSavingsClaim": "通过记账减少支出的人中，约一半每月节省了¥5,000–10,000*",
-  "paywallSavingsSource": "* 调查：JPX's Money-bu!（2022年10月，日本1,111名上班族）"
+  "paywallSavingsSource": "* 调查：JPX's Money-bu!（2022年10月，日本1,111名上班族）",
+  "paywallFreeQuota": "本月免费扫描 {used}/{limit}"
 }
