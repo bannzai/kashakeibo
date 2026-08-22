@@ -108,5 +108,6 @@
   "scanQuotaRemaining": "剩餘 {count} 次掃描",
   "scanQuotaUnlimited": "無限掃描",
   "scanQuotaExhausted": "本月免費掃描次數已用完",
-  "paywallTitle": "使用進階版，盡情掃描"
+  "paywallTitle": "使用進階版，盡情掃描",
+  "paywallSubtitle": "無需連結帳戶。拍照即可，進階版會為您讀取每張收據和每份帳單。"
 }

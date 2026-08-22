@@ -108,5 +108,6 @@
   "scanQuotaRemaining": "스캔 {count}회 남음",
   "scanQuotaUnlimited": "무제한 스캔",
   "scanQuotaExhausted": "이번 달 무료 스캔을 모두 사용했습니다.",
-  "paywallTitle": "프리미엄으로 자유롭게 스캔"
+  "paywallTitle": "프리미엄으로 자유롭게 스캔",
+  "paywallSubtitle": "계정 연동이 필요 없습니다. 촬영만 하면 프리미엄이 모든 영수증과 명세서를 읽어드립니다."
 }
