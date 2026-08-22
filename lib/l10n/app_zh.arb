@@ -114,5 +114,6 @@
   "paywallSavingsSource": "* 调查：JPX's Money-bu!（2022年10月，日本1,111名上班族）",
   "paywallFreeQuota": "本月免费扫描 {used}/{limit}",
   "paywallBenefitUnlimitedScans": "自由扫描",
-  "paywallBenefitFullHistory": "每月查看完整记录"
+  "paywallBenefitFullHistory": "每月查看完整记录",
+  "paywallBenefitFutureFeatures": "即将推出的功能"
 }
