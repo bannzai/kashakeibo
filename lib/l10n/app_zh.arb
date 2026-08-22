@@ -15,5 +15,6 @@
   "mergeDuplicateCandidate": "合并为一笔",
   "keepBothDuplicateCandidates": "分别保留为支出",
   "previousMonth": "上个月",
-  "nextMonth": "下个月"
+  "nextMonth": "下个月",
+  "openSettings": "打开设置"
 }

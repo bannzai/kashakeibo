@@ -15,5 +15,6 @@
   "mergeDuplicateCandidate": "한 건으로 병합",
   "keepBothDuplicateCandidates": "별도 지출로 유지",
   "previousMonth": "이전 달",
-  "nextMonth": "다음 달"
+  "nextMonth": "다음 달",
+  "openSettings": "설정 열기"
 }
