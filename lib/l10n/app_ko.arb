@@ -90,5 +90,6 @@
   "transactionDetailNoImageManual": "이미지 없음 · 수동 입력",
   "transactionDetailNoImage": "원본 이미지 없음",
   "transactionDetailZoom": "확대",
-  "transactionDetailDeleteImage": "이미지만 삭제"
+  "transactionDetailDeleteImage": "이미지만 삭제",
+  "transactionDetailDeleteImageConfirmationTitle": "원본 이미지를 삭제하시겠습니까?"
 }

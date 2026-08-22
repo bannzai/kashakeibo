@@ -90,5 +90,6 @@
   "transactionDetailNoImageManual": "无图片 · 手动输入",
   "transactionDetailNoImage": "暂无原图",
   "transactionDetailZoom": "缩放",
-  "transactionDetailDeleteImage": "仅删除图片"
+  "transactionDetailDeleteImage": "仅删除图片",
+  "transactionDetailDeleteImageConfirmationTitle": "要删除原始图片吗？"
 }
