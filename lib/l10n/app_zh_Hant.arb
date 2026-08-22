@@ -128,5 +128,6 @@
   "paywallRestoreNotFound": "沒有可還原的購買項目",
   "paywallPurchased": "進階版已啟用。盡情掃描吧！",
   "paywallPremiumActive": "進階版已啟用",
-  "paywallPremiumActiveDescription": "您可以不限次數掃描並查看完整記錄。"
+  "paywallPremiumActiveDescription": "您可以不限次數掃描並查看完整記錄。",
+  "paywallOfferingUnavailable": "目前暫時無法取得方案"
 }

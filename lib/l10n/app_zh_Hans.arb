@@ -128,5 +128,6 @@
   "paywallRestoreNotFound": "没有可恢复的购买记录",
   "paywallPurchased": "高级版已启用。尽情扫描吧！",
   "paywallPremiumActive": "高级版已启用",
-  "paywallPremiumActiveDescription": "您可以不限次数扫描并查看完整记录。"
+  "paywallPremiumActiveDescription": "您可以不限次数扫描并查看完整记录。",
+  "paywallOfferingUnavailable": "目前暂时无法获取套餐"
 }
