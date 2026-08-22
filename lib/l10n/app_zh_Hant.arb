@@ -25,5 +25,6 @@
   "accountBackupNotSet": "尚未設定",
   "accountBackupConfigured": "已設定",
   "accountBackupDescription": "連結帳戶，換裝置時也能保留資料。",
-  "accountBackupConfiguredDescription": "在其他裝置上選擇相同的帳號，即可存取已儲存的資料。"
+  "accountBackupConfiguredDescription": "在其他裝置上選擇相同的帳號，即可存取已儲存的資料。",
+  "linkOrSignInWithApple": "連結 Apple"
 }
