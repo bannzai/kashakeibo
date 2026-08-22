@@ -70,5 +70,6 @@
   "capturePickFromPhotoLibraryDescription": "AI 会将账单或订单截图拆分为多笔记录",
   "manualEntryDescription": "输入无图片的现金支出",
   "captureAnalyzingTitle": "AI 正在读取您的图片",
-  "captureAnalyzingStepLoading": "正在加载图片"
+  "captureAnalyzingStepLoading": "正在加载图片",
+  "captureAnalyzingStepReading": "正在读取金额和日期"
 }

@@ -70,5 +70,6 @@
   "capturePickFromPhotoLibraryDescription": "AI 會將帳單或訂單截圖拆分為多筆記錄",
   "manualEntryDescription": "輸入沒有圖片的現金支出",
   "captureAnalyzingTitle": "AI 正在讀取您的圖片",
-  "captureAnalyzingStepLoading": "正在載入圖片"
+  "captureAnalyzingStepLoading": "正在載入圖片",
+  "captureAnalyzingStepReading": "正在讀取金額和日期"
 }

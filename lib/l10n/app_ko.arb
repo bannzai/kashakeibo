@@ -70,5 +70,6 @@
   "capturePickFromPhotoLibraryDescription": "AI가 명세서 또는 주문 스크린샷을 항목별 내역으로 분할합니다",
   "manualEntryDescription": "이미지 없이 현금 지출 입력",
   "captureAnalyzingTitle": "AI가 이미지를 읽고 있습니다",
-  "captureAnalyzingStepLoading": "이미지를 불러오는 중입니다"
+  "captureAnalyzingStepLoading": "이미지를 불러오는 중입니다",
+  "captureAnalyzingStepReading": "금액과 날짜를 읽고 있습니다"
 }
