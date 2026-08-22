@@ -87,5 +87,6 @@
   "transactionDetailTitle": "明细",
   "transactionDetailSourceImage": "原始图片",
   "transactionDetailSourceImageNote": "随时查看原始图片",
-  "transactionDetailNoImageManual": "无图片 · 手动输入"
+  "transactionDetailNoImageManual": "无图片 · 手动输入",
+  "transactionDetailNoImage": "暂无原图"
 }
