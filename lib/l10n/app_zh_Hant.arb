@@ -65,5 +65,6 @@
   "addRecordOpen": "新增記錄",
   "addRecordTitle": "新增記錄",
   "captureReceiptWithCamera": "拍照",
-  "captureReceiptWithCameraDescription": "拍攝收據，AI 自動讀取明細"
+  "captureReceiptWithCameraDescription": "拍攝收據，AI 自動讀取明細",
+  "capturePickFromPhotoLibrary": "從照片中選擇"
 }
