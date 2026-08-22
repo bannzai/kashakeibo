@@ -7,5 +7,6 @@
   "categoryBreakdown": "分类",
   "monthlyTransactionsEmpty": "本月暂无交易记录",
   "excludedFromAggregation": "已排除",
-  "duplicateCandidateReviewHint": "点击查看"
+  "duplicateCandidateReviewHint": "点击查看",
+  "duplicateCandidateTitle": "检查可能重复的记录"
 }

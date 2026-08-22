@@ -7,5 +7,6 @@
   "categoryBreakdown": "分類",
   "monthlyTransactionsEmpty": "本月尚無交易紀錄",
   "excludedFromAggregation": "已排除",
-  "duplicateCandidateReviewHint": "點選查看"
+  "duplicateCandidateReviewHint": "點選查看",
+  "duplicateCandidateTitle": "檢查可能重複的記錄"
 }
