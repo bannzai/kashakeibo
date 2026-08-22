@@ -9,5 +9,6 @@
   "excludedFromAggregation": "已排除",
   "duplicateCandidateReviewHint": "點選查看",
   "duplicateCandidateTitle": "檢查可能重複的記錄",
-  "duplicateCandidateDescription": "這些交易的金額、日期和商店名稱相近。請確認是否為同一筆支出。"
+  "duplicateCandidateDescription": "這些交易的金額、日期和商店名稱相近。請確認是否為同一筆支出。",
+  "duplicateCandidateReason": "金額相同、日期相近，商店名稱相似"
 }
