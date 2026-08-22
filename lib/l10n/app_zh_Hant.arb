@@ -113,5 +113,6 @@
   "paywallSavingsClaim": "透過記帳減少支出的人中，約一半每月省下¥5,000–10,000*",
   "paywallSavingsSource": "* 調查：JPX's Money-bu!（2022 年 10 月，日本 1,111 名上班族）",
   "paywallFreeQuota": "本月免費掃描 {used}/{limit}",
-  "paywallBenefitUnlimitedScans": "自由掃描"
+  "paywallBenefitUnlimitedScans": "自由掃描",
+  "paywallBenefitFullHistory": "每月查看完整記錄"
 }

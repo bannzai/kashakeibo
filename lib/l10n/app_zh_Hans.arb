@@ -113,5 +113,6 @@
   "paywallSavingsClaim": "通过记账减少支出的人中，约一半每月节省了¥5,000–10,000*",
   "paywallSavingsSource": "* 调查：JPX's Money-bu!（2022年10月，日本1,111名上班族）",
   "paywallFreeQuota": "本月免费扫描 {used}/{limit}",
-  "paywallBenefitUnlimitedScans": "自由扫描"
+  "paywallBenefitUnlimitedScans": "自由扫描",
+  "paywallBenefitFullHistory": "每月查看完整记录"
 }
