@@ -67,5 +67,6 @@
   "captureReceiptWithCamera": "사진 촬영",
   "captureReceiptWithCameraDescription": "영수증을 촬영하면 AI가 내역을 읽습니다",
   "capturePickFromPhotoLibrary": "사진에서 선택",
-  "capturePickFromPhotoLibraryDescription": "AI가 명세서 또는 주문 스크린샷을 항목별 내역으로 분할합니다"
+  "capturePickFromPhotoLibraryDescription": "AI가 명세서 또는 주문 스크린샷을 항목별 내역으로 분할합니다",
+  "manualEntryDescription": "이미지 없이 현금 지출 입력"
 }

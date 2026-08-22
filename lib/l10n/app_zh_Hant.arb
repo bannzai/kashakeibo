@@ -67,5 +67,6 @@
   "captureReceiptWithCamera": "拍照",
   "captureReceiptWithCameraDescription": "拍攝收據，AI 自動讀取明細",
   "capturePickFromPhotoLibrary": "從照片中選擇",
-  "capturePickFromPhotoLibraryDescription": "AI 會將帳單或訂單截圖拆分為多筆記錄"
+  "capturePickFromPhotoLibraryDescription": "AI 會將帳單或訂單截圖拆分為多筆記錄",
+  "manualEntryDescription": "輸入沒有圖片的現金支出"
 }
