@@ -1,5 +1,6 @@
 {
   "@@locale": "ko",
   "appName": "Kashakeibo",
-  "monthlyIncome": "수입"
+  "monthlyIncome": "수입",
+  "monthlyExpense": "지출"
 }
