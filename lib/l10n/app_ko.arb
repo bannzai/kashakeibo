@@ -8,5 +8,6 @@
   "monthlyTransactionsEmpty": "이번 달 거래 내역이 없습니다",
   "excludedFromAggregation": "제외됨",
   "duplicateCandidateReviewHint": "탭하여 검토",
-  "duplicateCandidateTitle": "중복 가능 항목 검토"
+  "duplicateCandidateTitle": "중복 가능 항목 검토",
+  "duplicateCandidateDescription": "이 거래들은 금액, 날짜, 상점명이 비슷합니다. 동일한 지출인지 확인해 주십시오."
 }

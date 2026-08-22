@@ -8,5 +8,6 @@
   "monthlyTransactionsEmpty": "本月暂无交易记录",
   "excludedFromAggregation": "已排除",
   "duplicateCandidateReviewHint": "点击查看",
-  "duplicateCandidateTitle": "检查可能重复的记录"
+  "duplicateCandidateTitle": "检查可能重复的记录",
+  "duplicateCandidateDescription": "这些交易的金额、日期和商店名称相似。请确认它们是否为同一笔支出。"
 }
