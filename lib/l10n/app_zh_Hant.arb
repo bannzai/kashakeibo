@@ -27,5 +27,6 @@
   "accountBackupDescription": "連結帳戶，換裝置時也能保留資料。",
   "accountBackupConfiguredDescription": "在其他裝置上選擇相同的帳號，即可存取已儲存的資料。",
   "linkOrSignInWithApple": "連結 Apple",
-  "linkOrSignInWithGoogle": "使用 Google 連結"
+  "linkOrSignInWithGoogle": "使用 Google 連結",
+  "accountLinked": "帳戶已連結"
 }
