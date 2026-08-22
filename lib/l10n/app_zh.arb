@@ -89,5 +89,6 @@
   "transactionDetailSourceImageNote": "随时查看原始图片",
   "transactionDetailNoImageManual": "无图片 · 手动输入",
   "transactionDetailNoImage": "暂无原图",
-  "transactionDetailZoom": "缩放"
+  "transactionDetailZoom": "缩放",
+  "transactionDetailDeleteImage": "仅删除图片"
 }
