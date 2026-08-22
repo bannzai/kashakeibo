@@ -115,5 +115,6 @@
   "paywallFreeQuota": "이번 달 무료 스캔 {used}/{limit}",
   "paywallBenefitUnlimitedScans": "자유로운 스캔",
   "paywallBenefitFullHistory": "매월 전체 내역",
-  "paywallBenefitFutureFeatures": "추가 예정 기능"
+  "paywallBenefitFutureFeatures": "추가 예정 기능",
+  "paywallMonthlyPlan": "월간"
 }
