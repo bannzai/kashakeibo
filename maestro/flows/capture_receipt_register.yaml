@@ -1,0 +1,29 @@
+# レシート撮影 → AI 解析 → 確認 → 登録フロー。
+# シミュレータにはカメラが無いため、DEBUG 開発者メニュー (月ラベル長押し) の
+# 「サンプルレシートで撮影フローを試す」で描画済みレシート画像を入力にする
+# (実際の画像アップロード Worker + Gemini 解析を通る。App Check debug token の
+# 登録が必要: workers/image/README.md「デバッグビルドでの動作確認」)。
+# セレクタは Semantics の結合 (title+subtitle が 1 ノード) とロケール差 (en / ja) を
+# 吸収するため、(?s) 付きの部分一致正規表現にする。
+appId: com.bannzai.kashakeibo.dev
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(20\\d\\d年\\d+月|[A-Za-z]+ 20\\d\\d).*"
+    timeout: 30000
+- longPressOn:
+    text: "(?s).*(20\\d\\d年\\d+月|[A-Za-z]+ 20\\d\\d).*"
+- tapOn:
+    text: "(?s).*サンプルレシートで撮影フローを試す.*"
+# Gemini 解析の完了 (読み取り確認画面) を待つ
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Review details|読み取り確認).*"
+    timeout: 120000
+- tapOn:
+    text: "Register|登録する"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Logged ✓|カシャッと記録!).*"
+    timeout: 20000

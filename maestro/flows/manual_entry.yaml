@@ -1,0 +1,29 @@
+# 手動明細入力フロー: 記録する → 手動で入力 → 金額入力 → 登録 → 一覧に反映される。
+# セレクタは Semantics の結合 (title+subtitle が 1 ノード) とロケール差 (en / ja) を
+# 吸収するため、(?s) 付きの部分一致正規表現にする。
+appId: com.bannzai.kashakeibo.dev
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Add a record|記録する).*"
+    timeout: 30000
+- tapOn:
+    text: "(?s).*(Add a record|記録する).*"
+- tapOn:
+    text: "(?s).*(Enter manually|手動で入力).*"
+# 金額フィールドは autofocus のため、そのまま数字を入力する
+- inputText: "1234"
+# iOS の数字キーボードは hideKeyboard で閉じられないため、シートをスクロールして
+# キーボードの上に登録ボタンを出してからタップする
+- scrollUntilVisible:
+    element:
+      text: "(?s).*(Add transaction|登録する).*"
+    direction: DOWN
+- tapOn:
+    text: "(?s).*(Add transaction|登録する).*"
+# 店名未入力時の既定タイトル (現金支出 / Cash expense) で一覧に登録される
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*1,234.*"
+    timeout: 15000

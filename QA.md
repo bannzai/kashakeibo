@@ -28,7 +28,7 @@ last_verified_at: 2026-08-19
 
 - シミュレータ管理: /ios-simulator skill を起点にする (リモート simtunnel を優先。ローカルで行う場合は /sim-manager)
 - UI 操作・スクリーンショット: /verify-ui-mobile-mcp (mobile-mcp)
-- E2E: Maestro は未導入 (https://github.com/bannzai/kashakeibo/issues/19 で整備予定)。導入までは全項目 agent のシミュレータ操作で確認する
+- E2E: Maestro を導入済み (issue #19)。主要フローは maestro/flows/ (手動入力 / レシート撮影→登録 / 計算対象からの除外 / 課金導線) にあり、/flutter-maestro skill で実行する。ローカル Simulator は iOS 18.x ランタイム推奨 (26.x は WDA 不安定)。撮影フローは App Check debug token の登録 (workers/image/README.md) が前提。maestro フローが無い項目は agent のシミュレータ操作で確認する
 
 ### 再現が難しい操作の手順
 

@@ -1,0 +1,45 @@
+# 計算対象からの除外フロー: 手動明細を登録 → 明細詳細を開く → 除外トグル ON →
+# 「計算対象外」の表示を確認する。
+# セレクタは Semantics の結合 (title+subtitle が 1 ノード) とロケール差 (en / ja) を
+# 吸収するため、(?s) 付きの部分一致正規表現にする。
+# 金額は実行ごとにランダム生成する (過去の実行で登録済み・除外済みの同額行を
+# タップするとトグルが OFF になり検証にならないため)。
+appId: com.bannzai.kashakeibo.dev
+---
+- launchApp
+- evalScript: ${output.amount = String(1000 + Math.floor(Math.random() * 9000))}
+- evalScript: ${output.amountDisplay = output.amount[0] + ',' + output.amount.substring(1)}
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Add a record|記録する).*"
+    timeout: 30000
+- tapOn:
+    text: "(?s).*(Add a record|記録する).*"
+- tapOn:
+    text: "(?s).*(Enter manually|手動で入力).*"
+# 金額フィールドは autofocus のため、そのまま数字を入力する
+- inputText: ${output.amount}
+# iOS の数字キーボードは hideKeyboard で閉じられないため、シートをスクロールして
+# キーボードの上に登録ボタンを出してからタップする
+- scrollUntilVisible:
+    element:
+      text: "(?s).*(Add transaction|登録する).*"
+    direction: DOWN
+- tapOn:
+    text: "(?s).*(Add transaction|登録する).*"
+- extendedWaitUntil:
+    visible:
+      text: ${'(?s).*' + output.amountDisplay + '.*'}
+    timeout: 15000
+- tapOn:
+    text: ${'(?s).*' + output.amountDisplay + '.*'}
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Exclude from totals|計算対象から除外).*"
+    timeout: 15000
+- tapOn:
+    text: "(?s).*(Exclude from totals|計算対象から除外).*"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Excluded|計算対象外).*"
+    timeout: 15000
