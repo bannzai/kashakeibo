@@ -80,5 +80,6 @@
   "captureRetake": "重新拍摄",
   "captureConfirmTitle": "查看明细",
   "captureSourceImageNote": "您可以随时从明细中查看原始图片",
-  "captureRegister": "记录"
+  "captureRegister": "记录",
+  "captureCandidateEdit": "编辑"
 }

@@ -80,5 +80,6 @@
   "captureRetake": "重新拍攝",
   "captureConfirmTitle": "檢視明細",
   "captureSourceImageNote": "您可以隨時從明細中查看原始圖片",
-  "captureRegister": "記錄"
+  "captureRegister": "記錄",
+  "captureCandidateEdit": "編輯"
 }
