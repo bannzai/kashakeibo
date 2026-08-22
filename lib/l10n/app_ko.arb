@@ -59,5 +59,6 @@
   "manualEntryRegister": "거래 추가",
   "manualEntryRegistered": "거래가 추가되었습니다",
   "transactionSourceReceipt": "영수증",
-  "transactionSourceScreenshot": "스크린샷"
+  "transactionSourceScreenshot": "스크린샷",
+  "transactionSourceManual": "수동"
 }
