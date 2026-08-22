@@ -92,5 +92,6 @@
   "transactionDetailZoom": "縮放",
   "transactionDetailDeleteImage": "僅刪除圖片",
   "transactionDetailDeleteImageConfirmationTitle": "要刪除原始圖片嗎？",
-  "transactionDetailDeleteImageConfirmationMessage": "交易記錄會保留，僅刪除圖片。此操作無法復原。"
+  "transactionDetailDeleteImageConfirmationMessage": "交易記錄會保留，僅刪除圖片。此操作無法復原。",
+  "transactionDetailImageDeleted": "原始圖片已刪除"
 }
