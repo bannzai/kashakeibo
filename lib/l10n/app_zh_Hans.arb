@@ -83,5 +83,6 @@
   "captureRegister": "记录",
   "captureCandidateEdit": "编辑",
   "captureCandidateApplyEdit": "应用更改",
-  "captureRegistered": "已记录 ✓"
+  "captureRegistered": "已记录 ✓",
+  "transactionDetailTitle": "明细"
 }
