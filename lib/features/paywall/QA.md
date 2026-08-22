@@ -77,9 +77,9 @@ last_verified_at: 2026-08-22
 
 **確認日: 2026-08-22**
 
-ローカル Simulator (kashakeibo-issue-50-51-iOS26.5)、debug ビルド (kashakeibo-dev。RevenueCat Test Store キー未注入のため料金カードは「料金プランを取得できませんでした」表示)。無料プランで設定画面の「プラン / 無料」行をタップするとペイウォールが開いた。文言変更 (issue #50/#51) の表示確認も兼ねる: 見出し「スキャン、し放題に。」/ 特典「スキャンし放題」/ フェアユースの注記「スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。」が日本語・英語 (Scan freely with Premium / Scan freely / Scanning is subject to a monthly fair-use limit that typical use won't reach.) の両方で表示され、レイアウト崩れなし。料金カードの表示・購入系の項目は今回未検証。
+ローカル Simulator (kashakeibo-issue-50-51-iOS26.5)、debug ビルド (kashakeibo-dev。RevenueCat Test Store キー未注入のため料金カードは「料金プランを取得できませんでした」表示)。無料プランで設定画面の「プラン / 無料」行をタップするとペイウォールが開いた。文言変更 (issue #50/#51) の表示確認も兼ねる: 見出し「スキャンし放題に」(295f856 の見出し修正後に再ビルドして撮影) / 特典「スキャンし放題」/ フェアユースの注記「スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。」を日本語で確認。英語は Scan freely with Premium / Scan freely / Scanning is subject to a monthly fair-use limit that typical use won't reach. を確認 (英語の文言は見出し修正の影響を受けないため修正前ビルドのスクリーンショット)。レイアウト崩れなし。料金カードの表示・購入系の項目は今回未検証。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/9a89d1f2-a2bf-440d-88d6-775d2a2e7e50.png" width="320" alt="日本語のペイウォール。見出しと特典にスキャンし放題、下部にフェアユース注記を表示">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/441c7593-bcf7-4062-9084-009563518623.png" width="320" alt="日本語のペイウォール。見出し「スキャンし放題に」と特典、下部にフェアユース注記を表示">
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/a1aac18d-0707-49ea-968a-6c100e1f6682.png" width="320" alt="English paywall showing Scan freely and the monthly fair-use note">
 
 **確認日: 2026-08-20**

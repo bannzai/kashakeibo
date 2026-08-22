@@ -161,9 +161,16 @@ for (const configKey of configKeysToRun) {
       expectedTransactions: groundTruth[imageFileName],
       analysisResult: measurement.analysisResult,
     });
-    const fieldMatchCount = score.matches.filter(
-      (match) => match.amountMatched && match.titleMatched && match.dateMatched && match.typeMatched && match.categoryMatched,
-    ).length;
+    // 正解に無い明細を水増しした構成を合格扱いしないよう、件数一致 (extractedCount === expectedCount) を全項目一致の必須条件にする
+    const extractedCountMatched = score.extractedCount === score.expectedCount;
+    const fieldMatchCount = extractedCountMatched
+      ? score.matches.filter(
+          (match) => match.amountMatched && match.titleMatched && match.dateMatched && match.typeMatched && match.categoryMatched,
+        ).length
+      : 0;
+    if (!extractedCountMatched) {
+      console.log(`  件数不一致: 抽出 ${score.extractedCount} 件 / 正解 ${score.expectedCount} 件 (全項目一致 0 扱い)`);
+    }
     console.log(
       `${imageFileName}: in=${measurement.promptTokenCount} think=${measurement.thoughtsTokenCount} out=${measurement.candidatesTokenCount}` +
         ` cost=¥${measurement.costJpy.toFixed(4)} (${measurement.latencyMs}ms)` +
