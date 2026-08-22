@@ -78,5 +78,6 @@
   "captureRetry": "再试一次",
   "captureManualFallback": "手动输入",
   "captureRetake": "重新拍摄",
-  "captureConfirmTitle": "查看明细"
+  "captureConfirmTitle": "查看明细",
+  "captureSourceImageNote": "您可以随时从明细中查看原始图片"
 }
