@@ -127,5 +127,6 @@
   "paywallRestored": "已恢复购买。高级版已启用。",
   "paywallRestoreNotFound": "没有可恢复的购买记录",
   "paywallPurchased": "高级版已启用。尽情扫描吧！",
-  "paywallPremiumActive": "高级版已启用"
+  "paywallPremiumActive": "高级版已启用",
+  "paywallPremiumActiveDescription": "您可以不限次數掃描並查看完整記錄。"
 }
