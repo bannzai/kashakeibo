@@ -54,5 +54,6 @@
   "manualEntryStoreRequired": "請輸入商店或備註",
   "manualEntryType": "交易類型",
   "manualEntryCategory": "類別",
-  "manualEntryCategoryRequired": "選擇分類"
+  "manualEntryCategoryRequired": "選擇分類",
+  "manualEntryDate": "日期"
 }

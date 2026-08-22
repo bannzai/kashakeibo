@@ -54,5 +54,6 @@
   "manualEntryStoreRequired": "请输入商店或备注",
   "manualEntryType": "交易类型",
   "manualEntryCategory": "分类",
-  "manualEntryCategoryRequired": "选择分类"
+  "manualEntryCategoryRequired": "选择分类",
+  "manualEntryDate": "日期"
 }
