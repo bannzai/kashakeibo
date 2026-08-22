@@ -23,6 +23,7 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		BE95EB1C08105E563354325A /* SharedImageInboxLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305B46BC8D6B6A0C2BBA7673 /* SharedImageInboxLocation.swift */; };
 		B5122FCA51767111B9C9A665 /* StoreKitConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1EE898A701C298EACF12F /* StoreKitConfigurationTests.swift */; };
+		A6F1D20C4B7E38915CD04E12 /* GoogleSignInURLSchemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6F1D20C4B7E38915CD04E11 /* GoogleSignInURLSchemeTests.swift */; };
 		F60D94A6C482D50BB04B86C2 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 418A299F42F9D3F3C511A8FB /* Pods_RunnerTests.framework */; };
 		FC27AADE7630D1FDB600750A /* SharedImageInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3009EB0D618D45CC792F903 /* SharedImageInbox.swift */; };
 /* End PBXBuildFile section */
@@ -105,6 +106,7 @@
 		C61F9E5C6E7BA63100D7D5D5 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F7A3C4BBCDDFAD9E2FC72AF1 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		C1C1EE898A701C298EACF12F /* StoreKitConfigurationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StoreKitConfigurationTests.swift; sourceTree = "<group>"; };
+		A6F1D20C4B7E38915CD04E11 /* GoogleSignInURLSchemeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GoogleSignInURLSchemeTests.swift; sourceTree = "<group>"; };
 		F74C54B24818E6CA5DDC183F /* StoreKitTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKitTest.framework; path = System/Library/Frameworks/StoreKitTest.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -155,6 +157,7 @@
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
 				C1C1EE898A701C298EACF12F /* StoreKitConfigurationTests.swift */,
+				A6F1D20C4B7E38915CD04E11 /* GoogleSignInURLSchemeTests.swift */,
 			);
 			path = RunnerTests;
 			sourceTree = "<group>";
@@ -294,12 +297,12 @@
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
-				D5F1C0A1E2B3D4C5F6A7B801 /* Copy GoogleService-Info.plist */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				C60FD07CB2E182B76129B378 /* Embed Foundation Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				DBDA4A94D4A8EEB03BA63085 /* [CP] Embed Pods Frameworks */,
 				F83D6C1E486CA8E49B68EE36 /* [CP] Copy Pods Resources */,
+				D5F1C0A1E2B3D4C5F6A7B801 /* Copy GoogleService-Info.plist */,
 			);
 			buildRules = (
 			);
@@ -474,7 +477,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# debug ビルドは kashakeibo-dev、release / profile ビルドは kashakeibo-prod の\n# GoogleService-Info.plist をアプリバンドルへコピーする (issue #3)。\ncase \"${CONFIGURATION}\" in\n  *Debug*) FIREBASE_ENV=dev ;;\n  *) FIREBASE_ENV=prod ;;\nesac\nFIREBASE_PLIST=\"${PROJECT_DIR}/Firebase/${FIREBASE_ENV}/GoogleService-Info.plist\"\nAPP_FIREBASE_PLIST=\"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/GoogleService-Info.plist\"\nAPP_INFO_PLIST=\"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Info.plist\"\ncp \"${FIREBASE_PLIST}\" \"${APP_FIREBASE_PLIST}\"\n\n# Google Sign-In を Firebase の環境別 OAuth クライアントへ向ける。プロバイダ有効化前の\n# plist には両キーが無いため、その状態でも匿名認証ビルドは継続できるよう条件付きで追加する。\nif GOOGLE_CLIENT_ID=$(/usr/libexec/PlistBuddy -c \"Print :CLIENT_ID\" \"${FIREBASE_PLIST}\" 2>/dev/null); then\n  /usr/libexec/PlistBuddy -c \"Set :GIDClientID ${GOOGLE_CLIENT_ID}\" \"${APP_INFO_PLIST}\" 2>/dev/null || \\\n    /usr/libexec/PlistBuddy -c \"Add :GIDClientID string ${GOOGLE_CLIENT_ID}\" \"${APP_INFO_PLIST}\"\nfi\nif GOOGLE_REVERSED_CLIENT_ID=$(/usr/libexec/PlistBuddy -c \"Print :REVERSED_CLIENT_ID\" \"${FIREBASE_PLIST}\" 2>/dev/null); then\n  if ! /usr/libexec/PlistBuddy -c \"Print :CFBundleURLTypes\" \"${APP_INFO_PLIST}\" 2>/dev/null | grep -Fq \"${GOOGLE_REVERSED_CLIENT_ID}\"; then\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0 dict\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleTypeRole string Editor\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleURLSchemes array\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string ${GOOGLE_REVERSED_CLIENT_ID}\" \"${APP_INFO_PLIST}\"\n  fi\nfi\n";
+			shellScript = "# debug ビルドは kashakeibo-dev、release / profile ビルドは kashakeibo-prod の\n# GoogleService-Info.plist をアプリバンドルへコピーする (issue #3)。\n#\n# このフェーズは Runner ターゲットの最後尾に置くこと (issue #66)。Xcode は Info.plist の\n# 生成 (ProcessInfoPlistFile) をフェーズの並びとは独立にスケジュールするため、前方に置くと\n# 下の Info.plist への追記が生成結果で上書きされ、無言で Google サインインだけが壊れる。\ncase \"${CONFIGURATION}\" in\n  *Debug*) FIREBASE_ENV=dev ;;\n  *) FIREBASE_ENV=prod ;;\nesac\nFIREBASE_PLIST=\"${PROJECT_DIR}/Firebase/${FIREBASE_ENV}/GoogleService-Info.plist\"\nAPP_FIREBASE_PLIST=\"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/GoogleService-Info.plist\"\nAPP_INFO_PLIST=\"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Info.plist\"\ncp \"${FIREBASE_PLIST}\" \"${APP_FIREBASE_PLIST}\"\n\n# Google Sign-In を Firebase の環境別 OAuth クライアントへ向ける。プロバイダ有効化前の\n# plist には両キーが無いため、その状態でも匿名認証ビルドは継続できるよう条件付きで追加し、\n# 代わりに warning を出して Google サインインが動かない状態に気づけるようにする。\nif GOOGLE_CLIENT_ID=$(/usr/libexec/PlistBuddy -c \"Print :CLIENT_ID\" \"${FIREBASE_PLIST}\" 2>/dev/null); then\n  /usr/libexec/PlistBuddy -c \"Set :GIDClientID ${GOOGLE_CLIENT_ID}\" \"${APP_INFO_PLIST}\" 2>/dev/null || \\\n    /usr/libexec/PlistBuddy -c \"Add :GIDClientID string ${GOOGLE_CLIENT_ID}\" \"${APP_INFO_PLIST}\"\nelse\n  echo \"warning: ${FIREBASE_PLIST} に CLIENT_ID がないため GIDClientID を設定しない (Firebase の iOS OAuth クライアント未構成か plist が古い)\"\nfi\nif GOOGLE_REVERSED_CLIENT_ID=$(/usr/libexec/PlistBuddy -c \"Print :REVERSED_CLIENT_ID\" \"${FIREBASE_PLIST}\" 2>/dev/null); then\n  if ! /usr/libexec/PlistBuddy -c \"Print :CFBundleURLTypes\" \"${APP_INFO_PLIST}\" 2>/dev/null | grep -Fq \"${GOOGLE_REVERSED_CLIENT_ID}\"; then\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0 dict\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleTypeRole string Editor\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleURLSchemes array\" \"${APP_INFO_PLIST}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string ${GOOGLE_REVERSED_CLIENT_ID}\" \"${APP_INFO_PLIST}\"\n  fi\nelse\n  echo \"warning: ${FIREBASE_PLIST} に REVERSED_CLIENT_ID がないため Google サインインの URL スキームを登録しない (この状態では Google リンクが実行時に失敗する)\"\nfi\n";
 		};
 		DBDA4A94D4A8EEB03BA63085 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -519,6 +522,7 @@
 			files = (
 				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
 				B5122FCA51767111B9C9A665 /* StoreKitConfigurationTests.swift in Sources */,
+				A6F1D20C4B7E38915CD04E12 /* GoogleSignInURLSchemeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
