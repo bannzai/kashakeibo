@@ -46,5 +46,6 @@
   "categorySalary": "薪資",
   "categoryOther": "其他",
   "manualEntryOpen": "手動輸入",
-  "manualEntryTitle": "手動輸入"
+  "manualEntryTitle": "手動輸入",
+  "manualEntryAmount": "金額"
 }

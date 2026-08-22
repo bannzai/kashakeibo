@@ -46,5 +46,6 @@
   "categorySalary": "工资",
   "categoryOther": "其他",
   "manualEntryOpen": "手动输入",
-  "manualEntryTitle": "手动输入"
+  "manualEntryTitle": "手动输入",
+  "manualEntryAmount": "金额"
 }

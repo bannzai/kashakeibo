@@ -46,5 +46,6 @@
   "categorySalary": "급여",
   "categoryOther": "기타",
   "manualEntryOpen": "수동 입력",
-  "manualEntryTitle": "수동 입력"
+  "manualEntryTitle": "수동 입력",
+  "manualEntryAmount": "금액"
 }
