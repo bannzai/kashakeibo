@@ -43,5 +43,6 @@
   "categoryDailyGoods": "日用品",
   "categoryTransportation": "交通",
   "categorySubscription": "訂閱",
-  "categorySalary": "薪資"
+  "categorySalary": "薪資",
+  "categoryOther": "其他"
 }

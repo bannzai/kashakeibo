@@ -43,5 +43,6 @@
   "categoryDailyGoods": "생활용품",
   "categoryTransportation": "교통",
   "categorySubscription": "구독",
-  "categorySalary": "급여"
+  "categorySalary": "급여",
+  "categoryOther": "기타"
 }
