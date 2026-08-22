@@ -104,5 +104,6 @@
   "transactionDetailExcludeFromAggregationDescription": "開啟後，將不計入總額和分類明細",
   "transactionProvenanceAutomatic": "自動匯入",
   "transactionProvenanceAdjusted": "已調整",
-  "capturesSection": "截圖記錄"
+  "capturesSection": "截圖記錄",
+  "scanQuotaRemaining": "剩餘 {count} 次掃描"
 }
