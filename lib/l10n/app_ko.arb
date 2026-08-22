@@ -40,5 +40,6 @@
   "delete": "삭제",
   "categoryFood": "식비",
   "categoryEatingOut": "외식",
-  "categoryDailyGoods": "생활용품"
+  "categoryDailyGoods": "생활용품",
+  "categoryTransportation": "교통"
 }
