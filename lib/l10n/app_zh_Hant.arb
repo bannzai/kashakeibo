@@ -132,5 +132,6 @@
   "paywallOfferingUnavailable": "目前暫時無法取得方案",
   "paywallFairUseNote": "掃描功能每月設有合理使用上限，一般使用情況下不會達到。",
   "paywallSubscriptionNote": "確認後，費用將從您的商店帳號中扣除。除非您在目前訂閱週期結束前至少 24 小時取消訂閱，否則訂閱將自動續訂。您可以在商店帳號設定中管理或取消訂閱。",
-  "settingsPlan": "方案"
+  "settingsPlan": "方案",
+  "planFree": "免費"
 }
