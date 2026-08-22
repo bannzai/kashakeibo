@@ -19,6 +19,7 @@ last_verified_at: 2026-08-19
 | S1 | https://bannzai.github.io/kashakeibo/ で index・Terms・PrivacyPolicy・SpecifiedCommercialTransactionAct-ja・AccountDeletion が 200 を返す | 法務ページの配信確認 |
 | S2 | 設定画面に利用規約・プライバシーポリシー・特商法表記へのリンクがある | 設定画面の表示 / 法務ドキュメントを開く |
 | S3 | en-US ストアメタデータの privacy_url 用に英語版法務ページを用意する | 英語環境のプライバシーポリシー / ストアメタデータの privacy_url |
+| S4 | 匿名ユーザーが Google アカウントでバックアップ (アカウントリンク) を開始できる (issue #66) | Google サインイン UI の表示 |
 
 ## 1. 設定画面
 
@@ -188,6 +189,39 @@ $ curl -s https://bannzai.github.io/kashakeibo/PrivacyPolicy-en | grep -o '<h1[^
 ```
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/e160fa0e-df31-4803-96ab-f4dec8638cc1.png" width="320">
+
+</details>
+
+</details>
+
+---
+
+## 3. アカウント
+
+アカウント連携の QA 項目は PR #68 (ブランチ qa-run-20260822) で「## 2. アカウント (バックアップ・プラン・削除)」として整備中。ここでは issue #66 で修正した Google リンクの項目だけを先に記録する (マージ時は PR #68 側のアカウント節へ統合する)。
+
+- [x] **Google サインイン UI の表示**: 設定画面の「Googleでリンク」をタップすると Google のサインイン UI が表示される (実アカウントの入力・リンク完了までは行わない)
+  - 自動化: manual (シート表示までを agent のシミュレータ操作で確認する。リンク完了は実アカウントが必要なため対象外)
+  - 機械検査: `ios/RunnerTests/GoogleSignInURLSchemeTests.swift` がビルド済み Runner.app の Info.plist に REVERSED_CLIENT_ID の URL スキーム・GIDClientID・共有 Extension のスキームが揃っているかを検証する
+
+#### 動作確認
+<details>
+<summary>動作確認エビデンス</summary>
+
+### **Google サインイン UI の表示**: 設定画面の「Googleでリンク」をタップすると Google のサインイン UI が表示される
+
+<details><summary>動作確認スクショ</summary>
+
+**確認日: 2026-08-23**
+
+ローカル Simulator (kashakeibo-issue-66-iOS26.5 / iPhone 16 Pro、日本語ロケール) の debug ビルド (bundle ID `com.bannzai.kashakeibo.dev`)。
+
+2026-08-22 の実行では `PlatformException(google_sign_in, Your app is missing support for the following URL schemes: ...)` のスナックバーが出て失敗していた (PR #68 の ❌ 記録)。issue #66 の修正後に再実行し、解消を確認した。
+
+左: 「Googleでリンク」をタップすると iOS の確認「"kashakeibo" がサインインのために "accounts.google.com" を使用しようとしています。」が出る (google_sign_in が URL スキームの検査を通過して認証セッションを開始できている)。右: 「続ける」で Google のログイン画面 (accounts.google.com /「project-750726705707」に移動 = kashakeibo-dev のプロジェクト番号) が表示された。エラーのスナックバーは出ない。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/e8783104-c3c9-4c36-b7ae-85f5b9cd683a.png" width="320" />
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/51e5a6ac-2e2f-49b5-a1e1-aa962832ec20.png" width="320" />
 
 </details>
 
