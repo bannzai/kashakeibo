@@ -1,8 +1,8 @@
 ---
 feature: monthly
 verification: mobile-mcp
-last_verified_commit: dca0b5fd2326250fe1ec3033832f2bb370d631f0
-last_verified_at: 2026-08-19
+last_verified_commit: f492e1566dfd2fae08cfc3a15b79e1cc469e1e1e
+last_verified_at: 2026-08-22
 ---
 
 # monthly QA
@@ -20,9 +20,12 @@ last_verified_at: 2026-08-19
 | S2 | 集計はサマリードキュメントを持たず、当月明細のクライアント集計で表示する | 収支サマリー / カテゴリ内訳 (表示額が明細合計と一致することを確認。「サマリードキュメントを持たない」こと自体は lib/provider/transaction.dart が transactions コレクションの購読しか持たないコード確認のみで、動作 QA では未検証) |
 | S3a | snapshot listener でリアルタイム反映される | 明細追加の即時反映 (同一アプリ内からの追加で確認) / 別クライアントからの書き込みの自動反映 (未検証) |
 | S3b | オフラインキャッシュでも動作する (ネットワーク遮断中の起動・月切替・既存明細表示) | オフラインキャッシュでの表示 (未検証。simtunnel のリモート Simulator ではネットワーク遮断ができない) |
-| S4 | 金額+日付+店名のヒューリスティックで重複候補を検出し、確認 UI で提示する | 重複候補バナー表示 / 重複確認シート表示 (同日・同一店名の組で確認) / 日付ずれ・店名の表記揺れの重複候補 (未実施) |
+| S4 | 金額+日付+店名のヒューリスティックで重複候補を検出し、確認 UI で提示する | 重複候補バナー表示 / 重複確認シート表示 / 日付ずれ・店名の表記揺れの重複候補 |
 | S5 | ユーザーはマージ (1件に統合) か「別物として残す」を選べる | 重複マージ / 別々の支出として残す |
 | S6 | マージは複数端末の同時操作でも二重計上・消失が起きない | — (未検証。複数端末の同時操作は手動 QA で再現困難で、lib/provider/transaction.dart の MergeDuplicateTransactions / KeepBothTransactions の競合を検証するユニットテストも 2026-08-19 時点で存在しない。テスト漏れとして可視化) |
+| S7 | ホームに「とった記録」セクション行と残量チップ (無料: スキャン残り n 回 / プレミアム: スキャンし放題) を表示し、タップでペイウォールを開く (PR #56 の課金再設計) | とった記録セクション行と残量チップ |
+| S8 | 無料プランは当月を含む直近 3 ヶ月より古い月を表示できず、ペイウォールへ誘導する (lib/features/paywall/free_plan_history_limit.dart) | 無料プランの履歴制限ペイウォール |
+| S9 | 明細行をタップすると明細詳細画面が開く (issue #9) | 明細詳細への遷移 (詳細画面の中身は lib/features/transaction_detail/QA.md) |
 
 ## 1. 表示・集計
 
@@ -32,19 +35,20 @@ last_verified_at: 2026-08-19
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **カテゴリ内訳**: 支出のカテゴリ別合計が金額の大きい順の横棒で表示される。明細が無い月ではセクションごと非表示になる
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [ ] **収入のみの月のカテゴリ内訳非表示**: 収入明細だけがあり支出が無い月では、カテゴリ内訳セクションが表示されない (明細ゼロの月と同じ扱い)
+- [x] **収入のみの月のカテゴリ内訳非表示**: 収入明細だけがあり支出が無い月では、カテゴリ内訳セクションが表示されない (明細ゼロの月と同じ扱い)
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-  - ⏭️ スキップ: 2026-08-19 の実行では収入も支出も無い月 (7 月) でのみ非表示を確認した。次回 run-qa で前月に収入だけを手動入力してから確認する
 - [x] **空状態**: 明細が 1 件も無い月では空メッセージが表示される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [x] **計算対象外の明細**: excludedFromAggregation の明細 (デバッグメニューの「鳥貴族 (重複疑い)」) は opacity を落とし「計算対象外」注記付きで一覧に表示されるが、サマリー・カテゴリ内訳の集計には含まれない
+- [x] **計算対象外の明細**: excludedFromAggregation の明細 (明細詳細の「計算対象から除外」を ON にしたもの、またはデバッグメニューの「鳥貴族 (重複疑い)」) は opacity を落とし「計算対象外」注記付きで一覧に表示されるが、サマリー・カテゴリ内訳の集計には含まれない
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **明細追加の即時反映**: 手動入力またはデバッグメニューで明細を追加すると、画面操作なしで一覧・サマリー・カテゴリ内訳に即時反映される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [ ] **別クライアントからの書き込みの自動反映**: 月次一覧を開いたまま別クライアント (別端末・Firebase コンソール・Admin SDK) から当月の明細を書き込むと、画面操作なしに一覧・集計へ反映される (snapshot listener)
   - 自動化: todo (同一アプリ内からの追加では listener 経由か明示的な再取得かを区別できない。kashakeibo-dev へ別クライアントから書き込む手順が未整備。listener の使用は lib/provider/transaction.dart の monthlyTransactions のコード確認のみ)
 - [ ] **オフラインキャッシュでの表示**: 明細を表示した後にネットワークを遮断してアプリを再起動・月切替しても、Firestore のオフラインキャッシュから既存明細とサマリーが表示される
-  - 自動化: todo (simtunnel のリモート Simulator ではネットワーク遮断ができない。ローカル Simulator なら Network Link Conditioner または `xcrun simctl` でのネットワーク遮断で確認できる見込み)
+  - 自動化: todo (2026-08-22 にローカル Simulator で実行したが未実施。`xcrun simctl` に Simulator 単体のネットワーク遮断コマンドは無く、Simulator はホスト macOS のネットワークをそのまま使うため、遮断するにはホストの Wi-Fi を切るか Network Link Conditioner を有効にする必要がある。いずれもホスト全体・並走する他の作業に影響するため QA セッション中には実行しない。アプリ内 DEBUG 開発者メニューに Firestore の `disableNetwork()` を呼ぶ項目を足せば、ホストに影響せず確認できる見込み)
+- [x] **とった記録セクション行と残量チップ**: 明細リストの上に「とった記録」セクション行が表示され、右端のチップが無料プランでは「スキャン残り n 回」、プレミアムでは「スキャンし放題」になる (無料プランで残量未取得なら非表示)。チップをタップするとペイウォールが開く
+  - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 
 #### 動作確認
 <details>
@@ -54,14 +58,14 @@ last_verified_at: 2026-08-19
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、日付見出し・カテゴリ・出所が英語表示 ("Tue, Aug 18" / "Food · Manual") になる。店名はデータの値なので日本語のまま表示される。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-デバッグメニューの「サンプル明細を追加」でサンプル 5 件を投入した状態。日付見出しが Tue, Aug 18 → Mon, Aug 17 → Sun, Aug 16 → Sat, Aug 15 → Fri, Aug 14 → Mon, Aug 10 の降順に並び、各見出しの下にその日の明細がまとまっている。各行は店名 (給与 / スーパーマーケット 等) + 「カテゴリ · 出所」(Salary · Manual / Food · Manual 等) の 2 段で、支出は `-¥3,480` のように黒の `-¥`、収入 (給与 +¥280,000 / Salary August +¥300,000) はセージ色の `+¥` で表示された。
+手動入力で 2026 年 8 月に 6 件を登録した状態。日付見出しが 8月22日(土) → 8月20日(木) → 8月18日(火) の降順に並び、各見出しの下にその日の明細がまとまっている。各行は店名 (8月給与 / 現金支出 / ローソン QA / スーパーマーケット 等) + 「カテゴリ · 出所」(給与 · 手動 / 日用品 · 手動 / 食費 · 手動) の 2 段で、支出は `-¥3,480` のように黒の `-¥`、収入 (8月給与 +¥300,000) はセージ色の `+¥` で表示された。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ad8df1d9-ee7b-4d97-85e4-463a4b806977.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/d7b6ea94-509a-4bd6-9642-603e6624ac58.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/fd3ae051-0875-4e12-b53e-e8a1356c86b4.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/cd2ad263-cfdd-4ada-a663-89e44e365317.png" width="320">
 
 </details>
 
@@ -69,13 +73,13 @@ runner の Simulator が英語ロケールのため、日付見出し・カテ�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、"Spending" / "Income" / "Balance" の英語表示で確認した。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-サンプル投入後のサマリーカードは Spending ¥11,300 (左の主表示・最大サイズ)・Income ¥580,000・Balance ¥568,700 (セージ色)。当月明細の値と一致することを計算で確認した: 支出 = 780 + 1,200 + 4,500 + 3,480 + 880 + 460 = ¥11,300 (計算対象外の鳥貴族 ¥4,230 を含まない)、収入 = 300,000 + 280,000 = ¥580,000、残り = 580,000 - 11,300 = ¥568,700。サマリードキュメントを持たないクライアント集計の値が一致している。
+手動入力 6 件を登録した後のサマリーカードは 支出 ¥9,940 (左の主表示・最大サイズ)・収入 ¥300,000・残り ¥290,060 (セージ色)。当月明細の値と一致することを計算で確認した: 支出 = 1,200 (ローソン QA) + 780 (現金支出) + 3,480 (スーパーマーケット) + 3,480 (スーパーマーケット 渋谷店) + 500 + 500 (カフェ 2 件) = ¥9,940、収入 = ¥300,000 (8月給与)、残り = 300,000 - 9,940 = ¥290,060。サマリードキュメントを持たないクライアント集計の値が一致している。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ad8df1d9-ee7b-4d97-85e4-463a4b806977.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/fd3ae051-0875-4e12-b53e-e8a1356c86b4.png" width="320">
 
 </details>
 
@@ -83,14 +87,14 @@ runner の Simulator が英語ロケールのため、"Spending" / "Income" / "B
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、カテゴリ名も英語表示 ("Food" / "Daily goods" / "Transport") になる。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-左: サンプル投入後の 2026 年 8 月。Categories セクションに Food ¥9,960 → Daily goods ¥880 → Transport ¥460 の 3 カテゴリが金額の降順で並び、横棒の長さも金額に比例して短くなっている (Food が満幅、Transport が最短)。Food ¥9,960 = 780 + 1,200 + 4,500 + 3,480 で、計算対象外の鳥貴族 (Eating out ¥4,230) はカテゴリ内訳にも現れない。右: 支出が無い 2026 年 7 月では Categories セクションごと表示されず、サマリーカードの直下が空メッセージになる。
+左: 手動入力 6 件を登録した 2026 年 8 月。カテゴリ内訳に 食費 ¥7,740 → 日用品 ¥1,200 → 外食 ¥1,000 の 3 カテゴリが金額の降順で並び、横棒の長さも金額に比例して短くなっている (食費が満幅、外食が最短)。食費 ¥7,740 = 780 + 3,480 + 3,480 で明細の合計と一致する。右: 明細が無い 2026 年 6 月ではカテゴリ内訳セクションごと表示されず、サマリーカードの直下が「今月の明細はまだありません」になる。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ad8df1d9-ee7b-4d97-85e4-463a4b806977.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/b42d45c6-2c1e-4727-9d2a-bfd7749e064c.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/fd3ae051-0875-4e12-b53e-e8a1356c86b4.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/ea524a5c-cfa1-47db-85a9-a4d7e4e73d53.png" width="320">
 
 </details>
 
@@ -98,7 +102,13 @@ runner の Simulator が英語ロケールのため、カテゴリ名も英語�
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+
+手動入力で 2026 年 7 月 15 日付けの収入 (7月給与 ¥250,000) だけを 1 件登録し、7 月へ移動した。明細は 1 件あり一覧にも出ている (空状態ではない) が、支出が 0 件のためカテゴリ内訳セクションは見出しごと表示されず、サマリーカードの直下がそのまま「とった記録」セクション行になっている。支出 ¥0 / 収入 ¥250,000 / 残り ¥250,000。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/0a819f38-bbfc-43b7-ba64-d40a818c1b96.png" width="320">
 
 </details>
 
@@ -106,28 +116,30 @@ runner の Simulator が英語ロケールのため、カテゴリ名も英語�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示 ("No transactions this month") で確認した。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-明細のある 2026 年 8 月から前月ボタンで 2026 年 7 月へ移動した。明細が 1 件も無いため一覧の代わりに空メッセージ "No transactions this month" が表示され、サマリーは Spending ¥0 / Income ¥0 / Balance ¥0 になった。
+明細のある 2026 年 7 月から前月ボタンで 2026 年 6 月へ移動した。明細が 1 件も無いため一覧の代わりに空メッセージ「今月の明細はまだありません」が表示され、サマリーは 支出 ¥0 / 収入 ¥0 / 残り ¥0 になった。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/b42d45c6-2c1e-4727-9d2a-bfd7749e064c.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/ea524a5c-cfa1-47db-85a9-a4d7e4e73d53.png" width="320">
 
 </details>
 
-### **計算対象外の明細**: excludedFromAggregation の明細 (デバッグメニューの「鳥貴族 (重複疑い)」) は opacity を落とし「計算対象外」注記付きで一覧に表示されるが、サマリー・カテゴリ内訳の集計には含まれない
+### **計算対象外の明細**: excludedFromAggregation の明細 (明細詳細の「計算対象から除外」を ON にしたもの、またはデバッグメニューの「鳥貴族 (重複疑い)」) は opacity を落とし「計算対象外」注記付きで一覧に表示されるが、サマリー・カテゴリ内訳の集計には含まれない
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、「計算対象外」の注記は英語の "Excluded" として表示される。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-Fri, Aug 14 の「鳥貴族 三軒茶屋店 (重複疑い) / Eating out · Manual · Excluded / -¥4,230」の行は、他の行と比べて店名・金額・カード背景がいずれも薄く (opacity を落として) 描画され、出所の後ろに "Excluded" が付いている。この ¥4,230 が集計に入っていないことを金額で確認した: サマリーの Spending は ¥11,300 で、これは他の支出 6 件の合計 (780 + 1,200 + 4,500 + 3,480 + 880 + 460) と一致し、4,230 を足した ¥15,530 にはなっていない。カテゴリ内訳にも鳥貴族のカテゴリである "Eating out" の横棒は現れない。
+デバッグメニューのサンプルではなく、明細詳細の「計算対象から除外」スイッチで ローソン QA (日用品 ¥1,200) を計算対象外にして確認した。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/d7b6ea94-509a-4bd6-9642-603e6624ac58.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ad8df1d9-ee7b-4d97-85e4-463a4b806977.jpg" width="320">
+左: 除外 ON の月次一覧。ローソン QA の行だけ店名・金額・カード背景がいずれも薄く (opacity を落として) 描画され、2 段目が「日用品 · 手動 · 計算対象外」になる。この ¥1,200 が集計に入っていないことを金額で確認した: 支出が ¥9,940 → ¥8,740 とちょうど ¥1,200 減り、カテゴリ内訳からも「日用品」の横棒が消えて 食費 / 外食 の 2 本になった。右: 除外 OFF に戻すと行の薄い描画と注記が消え、支出 ¥9,940・カテゴリ内訳の日用品 ¥1,200 が復帰した。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/89fee755-23a8-4f98-9149-419a8dfd5661.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/1cb62767-e0ff-4d87-ad54-f235ddfe5afc.png" width="320">
 
 </details>
 
@@ -135,15 +147,14 @@ Fri, Aug 14 の「鳥貴族 三軒茶屋店 (重複疑い) / Eating out · Manua
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-デバッグメニュー (月ラベルの長押しで開く。DEBUG ビルドのみ・文言は日本語固定) の「サンプル明細を追加」を実行した。左: 実行直前 (明細 4 件 / Spending ¥6,480 / Income ¥300,000 / Categories は Food のみ)。中: 開いたデバッグメニュー。右: メニューが自動で閉じた直後の月次一覧。月の切替・再読み込みなどの画面操作をしていないのに、一覧にサンプル 5 件が加わり、サマリーが Spending ¥11,300 / Income ¥580,000 / Balance ¥568,700 へ、カテゴリ内訳が Food 単独から Food / Daily goods / Transport の 3 本へ更新された。
+手動入力シートで ¥1,200 /「ローソン QA」/ 日用品 を登録した。左: 登録直前の月次一覧 (明細 0 件 / 支出 ¥0 / 収入 ¥0 / カテゴリ内訳セクションなし)。右: 「登録する」直後の月次一覧。月の切替・再読み込みなどの画面操作をしていないのに、一覧に `ローソン QA / 日用品 · 手動 / -¥1,200` が加わり、サマリーが 支出 ¥1,200 / 残り ¥-1,200 へ、カテゴリ内訳セクションが新たに現れて 日用品 ¥1,200 の横棒が出た。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/aeb660e8-e847-4850-9743-0f25c383fa41.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/1ddaa179-c624-4fce-9799-d77a1a6fbdba.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ad8df1d9-ee7b-4d97-85e4-463a4b806977.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/0584f2bc-564c-4c2f-9ac4-d1b4655bed03.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/1b1a3c3f-e2bf-4bf2-94c3-bd711be6a8bf.png" width="320">
 
 </details>
 
@@ -163,6 +174,25 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 </details>
 
+### **とった記録セクション行と残量チップ**: 明細リストの上に「とった記録」セクション行が表示され、右端のチップが無料プランでは「スキャン残り n 回」、プレミアムでは「スキャンし放題」になる (無料プランで残量未取得なら非表示)。チップをタップするとペイウォールが開く
+
+<details><summary>動作確認スクショ</summary>
+
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド (kashakeibo-dev)。RevenueCat の public API key は注入していないため、プレミアム判定は常に無料プランになる。
+
+左: 月次一覧。サマリーカードの下に「とった記録」セクション行が出て、右端に無料プランの残量チップ「スキャン残り50回」が表示された (Worker の `GET /analyses/quota` が App Check 検証込みで通っている)。右: チップをタップすると全画面のペイウォールが開き、「今月の無料スキャン 0/50」がチップの残量と整合していた。料金カードが「料金プランを取得できませんでした」になっているのは RevenueCat の key 未注入ビルドの既定の挙動 (lib/features/paywall/README.md) で、本項目の「タップでペイウォールが開く」の判定には影響しない。
+
+プレミアム側の「スキャンし放題」表示は、Test Store キーを注入して mock 購入する必要があるため本レーンでは確認していない (paywall QA.md の「購入後の残量チップ」で確認済み)。
+
+残量チップが出るには App Check の debug token 登録が必要 (未登録だと `GET /analyses/quota` が 401 で `monthlyScanQuotaProvider` が値を持たず、`isPremium || scanQuota != null` の条件を満たさずチップごと消える)。手順は root QA.md の実行ナレッジを参照。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/cbbe160a-7a5c-4c45-ab11-edc6cffcabca.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/b7825b24-06d0-4866-99c5-97168b422b31.png" width="320">
+
+</details>
+
 </details>
 
 ---
@@ -173,6 +203,8 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **明細が無い月への移動**: 明細が無い月へ移動すると空メッセージが表示され、当月へ戻ると明細が再表示される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
+- [x] **無料プランの履歴制限ペイウォール**: 無料プランで当月を含む直近 3 ヶ月より古い月へ前月ボタンで移動しようとするとペイウォールが開き、月は切り替わらない。ペイウォールを閉じると元の月のまま。プレミアムなら制限なく移動できる
+  - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 
 #### 動作確認
 <details>
@@ -182,14 +214,15 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、月ラベルの主表示も英語になる ("August 2026" + 副題 "AUGUST 2026")。項目文の「日本語 + 英語副題」は日本語ロケールでの表示で、英語ロケールでは主表示・副題とも英語になるのが l10n どおりの挙動。主表示と副題の 2 段構成・月切替でどちらも更新されることを確認した。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。日本語ロケールなので月ラベルは主表示「2026年8月」+ 英語副題「AUGUST 2026」の 2 段になる。
 
-左: 前月ボタン (画面左の円形ボタン) をタップして "August 2026 / AUGUST 2026" から "July 2026 / JULY 2026" へ切り替わり、サマリーも ¥0 に更新された。右: 次月ボタンで "August 2026" に戻り、サマリー (Spending ¥6,480 / Income ¥300,000 / Balance ¥293,520)・カテゴリ内訳・明細 4 件が再表示された。
+左: 前月ボタン (画面左の円形ボタン) をタップして「2026年8月 / AUGUST 2026」から「2026年7月 / JULY 2026」へ切り替わり、明細も 7 月の 1 件 (7月給与)、サマリーも 支出 ¥0 / 収入 ¥250,000 に更新された。中: もう一度前月ボタンで「2026年6月 / JUNE 2026」へ切り替わり、明細ゼロ・サマリー ¥0 になった。右: 次月ボタンを 2 回押して「2026年8月」へ戻り、サマリー (支出 ¥9,940 / 収入 ¥300,000 / 残り ¥290,060)・カテゴリ内訳・明細 6 件が再表示された。主表示と副題のどちらも月切替で更新されている。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/b42d45c6-2c1e-4727-9d2a-bfd7749e064c.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/aeb660e8-e847-4850-9743-0f25c383fa41.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/0a819f38-bbfc-43b7-ba64-d40a818c1b96.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/ea524a5c-cfa1-47db-85a9-a4d7e4e73d53.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/0a802475-0168-469a-9a9d-4c1da7ea549e.png" width="320">
 
 </details>
 
@@ -197,14 +230,32 @@ runner の Simulator が英語ロケールのため、月ラベルの主表示�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-左: 明細が無い 2026 年 7 月へ移動すると "No transactions this month" が表示された。右: 次月ボタンで 2026 年 8 月へ戻ると明細 4 件 (Salary August / Cash expense / Lawson QA / Past Date Cafe) とサマリーが再表示された。
+左: 明細が無い 2026 年 6 月へ移動すると「今月の明細はまだありません」が表示された。右: 次月ボタンを 2 回押して 2026 年 8 月へ戻ると明細 6 件 (8月給与 / 現金支出 / ローソン QA / スーパーマーケット / スーパーマーケット 渋谷店 / カフェ 2 件) とサマリー・カテゴリ内訳・重複候補バナーが再表示された。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/b42d45c6-2c1e-4727-9d2a-bfd7749e064c.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/aeb660e8-e847-4850-9743-0f25c383fa41.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/ea524a5c-cfa1-47db-85a9-a4d7e4e73d53.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/0a802475-0168-469a-9a9d-4c1da7ea549e.png" width="320">
+
+</details>
+
+### **無料プランの履歴制限ペイウォール**: 無料プランで当月を含む直近 3 ヶ月より古い月へ前月ボタンで移動しようとするとペイウォールが開き、月は切り替わらない。ペイウォールを閉じると元の月のまま。プレミアムなら制限なく移動できる
+
+<details><summary>動作確認スクショ</summary>
+
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。RevenueCat の key 未注入で無料プラン扱い。Simulator の当日は 2026-08-22 なので、無料で見られるのは 2026 年 8 月・7 月・6 月の 3 ヶ月。
+
+左: 当月 2026 年 8 月から前月ボタンを 2 回押した 2026 年 6 月。ここまでは制限なく移動できた。中: 6 月からもう一度前月ボタンを押した結果。5 月へは切り替わらずペイウォールが全画面で開いた (特典に「全期間の履歴」が並ぶ)。右: ペイウォールを閉じるボタンで閉じた直後。月ラベルは 2026 年 6 月のままで、5 月へ進んでいない。
+
+プレミアム側の「制限なく移動できる」は Test Store キーを注入した購入が必要なため本レーンでは確認していない (paywall QA.md「古い月への月送りでペイウォールを開く」と合わせて扱う)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/b3e79b05-fb0c-4810-a4fa-7d1dd32e781e.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/937c08ba-d6e9-4799-b80b-c19c07f89c0c.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/1135d095-a30b-4102-97b3-4ee85a5e2a63.png" width="320">
 
 </details>
 
@@ -214,7 +265,9 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 ## 3. 重複検知と手動マージ
 
-状態の作り込み: 同一金額・同一店名・取引日 3 日以内の支出 2 件を作る (手動入力を同条件で 2 回、またはデバッグメニューの「サンプル明細を追加」を 2 回実行。詳細は root QA.md「再現が難しい操作の手順」)。収入・計算対象外の明細は重複候補にならない (lib/entity/transaction.dart の isDuplicateCandidate)。
+状態の作り込み: 同一金額・店名が一致または包含・取引日 3 日以内の支出 2 件を作る (手動入力を同条件で 2 回、またはデバッグメニューの「サンプル明細を追加」を 2 回実行。詳細は root QA.md「再現が難しい操作の手順」)。収入・計算対象外の明細は重複候補にならない (lib/entity/transaction.dart の isDuplicateCandidate)。
+
+マージ結果の識別が必要な項目では、店名・日付が同一の組ではどちらが残ったか画面から分からないため、店名または日付をずらした組 (例: ¥3,480 の「スーパーマーケット」8/20 と「スーパーマーケット 渋谷店」8/18) を手動入力で作る。
 
 - [x] **重複候補バナー表示**: 重複候補があると月次一覧に件数付きバナーが表示される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
@@ -222,14 +275,12 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **重複マージ**: 「1件にまとめる」を実行すると 2 件が 1 件になり、削除された分だけ集計が減りバナー件数が更新される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [ ] **残す明細の選択がマージ結果に反映される**: 表示上区別できる重複候補 (日付または店名が異なる組) で下側の明細を選んで「1件にまとめる」を実行すると、選んだ下側が残り上側が削除される
+- [x] **残す明細の選択がマージ結果に反映される**: 表示上区別できる重複候補 (日付または店名が異なる組) で下側の明細を選んで「1件にまとめる」を実行すると、選んだ下側が残り上側が削除される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-  - ⏭️ スキップ: 2026-08-19 の実行では店名・日付・金額が同一の 2 件でマージしたため、残った 1 件が選択した方かどうかを画面から識別できなかった。次回 run-qa で日付をずらした組 (「日付ずれ・店名の表記揺れの重複候補」と同じデータ) を使って確認する
 - [x] **別々の支出として残す**: 「別々の支出として残す」を実行すると 2 件とも残り、同じ組み合わせが重複候補として再提示されない (アプリ再起動後も再提示されない)
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [ ] **日付ずれ・店名の表記揺れの重複候補**: 同額で取引日が 1〜3 日ずれ、店名が包含関係 (例: 「スーパーマーケット」と「スーパーマーケット 渋谷店」) の支出 2 件も重複候補になる。取引日が 4 日以上離れた組は候補にならない
+- [x] **日付ずれ・店名の表記揺れの重複候補**: 同額で取引日が 1〜3 日ずれ、店名が包含関係 (例: 「スーパーマーケット」と「スーパーマーケット 渋谷店」) の支出 2 件も重複候補になる。取引日が 4 日以上離れた組は候補にならない
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-  - ⏭️ スキップ: 2026-08-19 の実行では未実施 (サンプル明細 2 回投入による同日・同一店名の組のみ確認)。次回 run-qa で手動入力により日付・店名をずらした 2 件を登録して確認する
 
 #### 動作確認
 <details>
@@ -239,13 +290,14 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、バナーの文言は英語 ("3 possible duplicates" / "Tap to review") になる。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-デバッグメニューの「サンプル明細を追加」を 2 回実行して、支出 3 件 (スーパーマーケット ¥3,480 / ドラッグストア ¥880 / 電車 ¥460) がそれぞれ同額・同店名・同日で 2 件ずつある状態を作った。サマリーカードの直下に「3 possible duplicates / Tap to review」のバナーが出て、件数 3 が重複候補の組数と一致した。2 件ずつになった収入の給与 (+¥280,000) と計算対象外の鳥貴族 (¥4,230) は候補に数えられていない。
+手動入力で重複候補になる組を作って確認した。左: スーパーマーケット ¥3,480 (8/20) と スーパーマーケット 渋谷店 ¥3,480 (8/18) の 1 組だけがある状態。サマリーカードの直下に「重複の可能性が1件あります / タップして確認」のバナーが出た。同じ ¥500 のカフェ 2 件 (8/1 と 8/10) を足しても件数が 1 のままなのは、取引日が 9 日離れていて候補条件 (3 日以内) を満たさないため。右: ドラッグストア ¥2,000 (8/19・8/17) の組を追加すると「重複の可能性が2件あります」に増え、件数が候補の組数と一致した。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ebdf29a2-62f6-457c-b360-8d54b447414f.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/dd055532-0f28-4a97-adaf-3465aac9c11a.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/ed7ca0e2-f72a-4230-b931-c3dd81f9a0ad.png" width="320">
 
 </details>
 
@@ -253,14 +305,14 @@ runner の Simulator が英語ロケールのため、バナーの文言は英�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、シートの文言は英語 ("Review possible duplicate" / "Keep this transaction" / "Merge into one" / "Keep as separate expenses") になる。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-左: バナーをタップするとボトムシート "Review possible duplicate" が開き、候補 2 件 (どちらも「スーパーマーケット / 8/17/2026 / ¥3,480」) が上下に並んで比較表示された。間に検出理由 "Same amount with nearby dates and similar store names" が出る。初期状態では上の 1 件が選択され (緑の枠 + 塗りつぶしのラジオ + "Keep this transaction")、下は未選択の空ラジオ。右: 下の明細をタップすると選択が下へ移り、枠・ラジオ・"Keep this transaction" の表示も下の明細に移動した。タップで残す明細を選び替えられる。
+左: バナーをタップするとボトムシート「重複候補の確認」が開き、説明文「金額・日付・店名が近い明細です。同じ支出か確認してください。」の下に候補 2 件 (スーパーマーケット / 2026/8/20 / ¥3,480 と スーパーマーケット 渋谷店 / 2026/8/18 / ¥3,480) が上下に並んで比較表示された。間に検出理由「金額が同じ・日付と店名が近い」が出る。初期状態では上の 1 件が選択され (緑の枠 + 塗りつぶしのラジオ +「この明細を残す」)、下は未選択の空ラジオ。右: 下の明細をタップすると選択が下へ移り、枠・ラジオ・「この明細を残す」の表示も下の明細に移動した。タップで残す明細を選び替えられる。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/69023fd9-f296-43d1-89ac-bd4869358cfc.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/7129a3c5-93cd-477c-8850-0b52edc1c549.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/dc4cf65c-4526-4578-86ab-0ef29b0131e3.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/2c07bd8a-266d-4bb0-8543-9a71f2e4f43b.png" width="320">
 
 </details>
 
@@ -268,14 +320,14 @@ runner の Simulator が英語ロケールのため、シートの文言は英�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、「1件にまとめる」は英語の "Merge into one" として表示される。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-スーパーマーケット ¥3,480 の組で下の明細を選んだ状態から "Merge into one" をタップした。左: 実行直後の月次一覧。バナー件数が 3 → 2 possible duplicates に減り、Spending が ¥16,120 → ¥12,640 (ちょうど ¥3,480 減)、Balance が ¥843,880 → ¥847,360、カテゴリ内訳の Food が ¥13,440 → ¥9,960 (同じく ¥3,480 減) に更新された。集計が 1 件分だけ減っていることが、もう片方が削除されて二重計上が解消されたことの裏付けになる。右: 一覧をスクロールした状態。Mon, Aug 17 のスーパーマーケット ¥3,480 は 1 件だけになり、まだマージしていないドラッグストア ¥880 と電車 ¥460 は 2 件ずつ残っている。
+スーパーマーケットの組で下の明細 (渋谷店 / 8/18) を選んだ状態から「1件にまとめる」をタップした。左: 実行直後の月次一覧。バナー件数が 2 件 → 1 件に減り、支出が ¥13,940 → ¥10,460 (ちょうど ¥3,480 減)、残りが ¥286,060 → ¥289,540、カテゴリ内訳の食費が ¥7,740 → ¥4,260 (同じく ¥3,480 減) に更新された。集計が 1 件分だけ減っていることが、もう片方が削除されて二重計上が解消されたことの裏付けになる。右: 一覧をスクロールした状態。8月20日(木) の日付グループごと消えて スーパーマーケット 渋谷店 の 1 件だけになり、まだ処理していないドラッグストア ¥2,000 は 8/19・8/17 の 2 件とも残っている。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/98d4cbc3-e2e2-4e87-9460-92dbe82aaf94.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/5cb8cd02-a643-4848-8935-24e7fa74b14a.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/e5ea2723-be10-4229-96e8-98fabcc82070.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/10200ed6-c7d5-4066-ab33-0e18891509a3.png" width="320">
 
 </details>
 
@@ -283,7 +335,16 @@ runner の Simulator が英語ロケールのため、「1件にまとめる」�
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+
+店名と日付が異なる組 (上: スーパーマーケット / 2026/8/20、下: スーパーマーケット 渋谷店 / 2026/8/18) を使い、どちらが残ったか画面から識別できる状態で確認した。
+
+左: 下の明細をタップして選択を移し、「この明細を残す」が下の スーパーマーケット 渋谷店 に付いた状態。右: 「1件にまとめる」を実行した後の一覧。残ったのは選んだ下側の「スーパーマーケット 渋谷店 / 8月18日(火) / -¥3,480」で、選ばなかった上側の「スーパーマーケット / 8月20日」は 8月20日(木) の日付グループごと消えた。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/2c07bd8a-266d-4bb0-8543-9a71f2e4f43b.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/10200ed6-c7d5-4066-ab33-0e18891509a3.png" width="320">
 
 </details>
 
@@ -291,19 +352,21 @@ runner の Simulator が英語ロケールのため、「1件にまとめる」�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、「別々の支出として残す」は英語の "Keep as separate expenses" として表示される。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-スーパーマーケットのマージ後に残った 2 candidates のうち、ドラッグストア ¥880 (8/16/2026) の組で "Keep as separate expenses" をタップした。左: 確認シートに出たドラッグストアの組。中: 実行直後の月次一覧。バナー件数は 2 → "1 possible duplicate" に減ったのに Spending は ¥12,640 のまま変わらず、カテゴリ内訳の Daily goods も ¥1,760 (= 880 × 2) のままで、2 件とも削除されずに残っている (マージなら 1 件分減るはずの金額が減っていない)。残った 1 件は未処理の電車 ¥460 の組。右: `terminate` → `launch` でアプリを再起動した後も "1 possible duplicate" のままで、Spending ¥12,640 / Daily goods ¥1,760 も変わらない。別物と判断したドラッグストアの組が再提示されないことを確認した。
+スーパーマーケットの組をマージした後に残った 1 件、ドラッグストア ¥2,000 (8/19 と 8/17) の組で「別々の支出として残す」をタップした。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/3c10055a-91ec-4729-80bd-3b8e69326bd2.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/c92bdb2a-2ec5-4627-99a1-be597ad9174b.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/225e5c48-317d-4b39-8eed-dd6cbbdf7c64.jpg" width="320">
+左: 確認シートに出たドラッグストアの組。中: 実行直後の月次一覧。バナーが消えた (残る候補が 0 件になった) のに支出は ¥10,460 のまま変わらず、カテゴリ内訳の日用品も ¥5,200 (= 1,200 + 2,000 + 2,000) のままで、2 件とも削除されずに残っている (マージなら 1 件分減るはずの金額が減っていない)。右: アプリを再起動した後もバナーは出ず、支出 ¥10,460 / 日用品 ¥5,200 も変わらず、ドラッグストアは 8月19日(水)・8月17日(月) の 2 件とも一覧に残っている。別物と判断した組が再提示されないことを確認した。
 
-再起動を挟んだ証拠として、`bash tmp/qa/wda.sh terminate com.bannzai.kashakeibo` の直後にホーム画面が出ている (アプリのプロセスが残っていない) ことも確認した。
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/c44424f9-f27b-4623-b3a9-6974729a2a66.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/a6841966-f3e5-4b4d-983c-b9c6bfdf1b88.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/60faf67e-366d-4a34-a739-6d97d70abbf0.png" width="320">
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/cf83dc48-c076-45ec-a0ed-6a2b1c9f2bf7.jpg" width="320">
+再起動を挟んだ証拠として、`bash tmp/qa/sim.sh terminate` の直後にホーム画面が出ている (アプリのプロセスが残っていない) ことも確認した。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/53a5eee5-612d-453e-8e23-f068d043264c.png" width="320">
 
 </details>
 
@@ -311,7 +374,19 @@ runner の Simulator が英語ロケールのため、「別々の支出とし�
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。手動入力で次の 2 組を作って確認した。
+
+- 候補になる組: ¥3,480 /「スーパーマーケット」(8/20) と ¥3,480 /「スーパーマーケット 渋谷店」(8/18)。同額・取引日の差 2 日・店名が包含関係
+- 候補にならない組: ¥500 /「カフェ」(8/1) と ¥500 /「カフェ」(8/10)。同額・同一店名だが取引日が 9 日離れている
+
+左: スーパーマーケットの組を登録した直後。「重複の可能性が1件あります」のバナーが出た。日付が 2 日ずれていて店名も完全一致していないのに候補として検出されている。右: その後カフェ 2 件を登録しても件数は 1 件のままで、4 日以上離れた組が候補に加わっていない (支出は ¥8,940 → ¥9,940 と 2 件分増えており、明細自体は登録されている)。
+
+確認シートの検出理由も「金額が同じ・日付と店名が近い」と表示された (「重複確認シート表示」のスクショ)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/cd2ad263-cfdd-4ada-a663-89e44e365317.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/dd055532-0f28-4a97-adaf-3465aac9c11a.png" width="320">
 
 </details>
 
@@ -323,7 +398,9 @@ runner の Simulator が英語ロケールのため、「別々の支出とし�
 
 - [x] **設定画面への遷移**: ヘッダー右上の設定アイコンをタップすると設定画面へ遷移する
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [x] **手動入力シートの起動**: 「手動で入力」FAB をタップすると ManualEntrySheet が開く
+- [x] **記録するシートから手動入力**: 「記録する」FAB でボトムシートが開き、「手動で入力」を選ぶと ManualEntrySheet が開く (シートの 3 経路表示自体は capture QA.md「3 経路の表示」で確認する)
+  - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する。2026-08-22 の見直しで FAB が「手動で入力」から「記録する」シート経由に変わったため項目を差し替えた)
+- [x] **明細詳細への遷移**: 明細行をタップすると明細詳細画面 (TransactionDetailPage) が開く (詳細画面の中身は lib/features/transaction_detail/QA.md で確認する)
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 
 #### 動作確認
@@ -355,6 +432,35 @@ runner の Simulator が英語ロケールのため、FAB のラベルは "Enter
 右下の "Enter manually" FAB をタップすると ManualEntrySheet がボトムシートで開いた。金額欄 (Amount) が autofocus されて数字キーボードが立ち上がり、店名欄 (Store or note)・収支種別 (Spending / Income)・カテゴリ (Food / Eating out / Daily goods / Transport / Subscriptions / Other) が表示された。右上の閉じるボタンで月次一覧へ戻れることも確認した。
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/f0eecf1a-49a1-45d1-b1ba-a94274a7969e.jpg" width="320">
+
+</details>
+
+### **記録するシートから手動入力**: 「記録する」FAB でボトムシートが開き、「手動で入力」を選ぶと ManualEntrySheet が開く (シートの 3 経路表示自体は capture QA.md「3 経路の表示」で確認する)
+
+<details><summary>動作確認スクショ</summary>
+
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+
+左: 右下の「記録する」FAB をタップして開いたボトムシート。「カメラで撮影」「写真・スクショから選ぶ」「手動で入力」の 3 経路と、下部に残量「スキャン残り50回」が並ぶ。右: 「手動で入力」をタップすると ManualEntrySheet が開き、金額欄が autofocus されて数字キーボードが立ち上がり、店名・メモ欄、収支種別 (支出 / 収入)、カテゴリ (食費 / 外食 / 日用品 / 交通 / サブスク / その他)、日付が表示された。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/e9333654-3626-4ec2-a1fe-35560712e3a6.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/622d7015-1abc-4592-95d6-2597f396660a.png" width="320">
+
+</details>
+
+### **明細詳細への遷移**: 明細行をタップすると明細詳細画面 (TransactionDetailPage) が開く (詳細画面の中身は lib/features/transaction_detail/QA.md で確認する)
+
+<details><summary>動作確認スクショ</summary>
+
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+
+月次一覧の `ローソン QA / 日用品 · 手動 / -¥1,200` の行をタップすると、タイトル「明細」の明細詳細画面へ遷移し、タップした明細と同じ金額 ¥1,200・店名・日付・カテゴリが表示された。左上の戻るボタンで月次一覧へ戻れることも確認した。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/35c669ce-c6ff-49a0-a2a5-ba09f0cbf756.png" width="320">
 
 </details>
 
