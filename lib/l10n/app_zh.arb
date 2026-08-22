@@ -12,5 +12,6 @@
   "duplicateCandidateDescription": "这些交易的金额、日期和商店名称相似。请确认它们是否为同一笔支出。",
   "duplicateCandidateReason": "金额相同，日期接近，商家名称相似",
   "duplicateCandidateKeep": "保留此笔交易",
-  "mergeDuplicateCandidate": "合并为一笔"
+  "mergeDuplicateCandidate": "合并为一笔",
+  "keepBothDuplicateCandidates": "分别保留为支出"
 }

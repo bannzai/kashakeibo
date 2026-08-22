@@ -12,5 +12,6 @@
   "duplicateCandidateDescription": "이 거래들은 금액, 날짜, 상점명이 비슷합니다. 동일한 지출인지 확인해 주십시오.",
   "duplicateCandidateReason": "금액이 같고 날짜가 가까우며 상점명이 유사합니다.",
   "duplicateCandidateKeep": "이 거래 유지",
-  "mergeDuplicateCandidate": "한 건으로 병합"
+  "mergeDuplicateCandidate": "한 건으로 병합",
+  "keepBothDuplicateCandidates": "별도 지출로 유지"
 }
