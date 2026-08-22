@@ -99,5 +99,6 @@
   "transactionDetailDeleteConfirmationMessage": "交易记录及其来源图片将被永久删除。此操作无法撤销。",
   "transactionDetailDeleted": "交易记录已删除",
   "transactionDetailNotFound": "这笔明细已删除",
-  "transactionDetailProvenance": "来源"
+  "transactionDetailProvenance": "来源",
+  "transactionDetailExcludeFromAggregation": "不计入总额"
 }
