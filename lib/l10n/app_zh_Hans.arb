@@ -13,5 +13,6 @@
   "duplicateCandidateReason": "金额相同，日期接近，商家名称相似",
   "duplicateCandidateKeep": "保留此笔交易",
   "mergeDuplicateCandidate": "合并为一笔",
-  "keepBothDuplicateCandidates": "分别保留为支出"
+  "keepBothDuplicateCandidates": "分别保留为支出",
+  "previousMonth": "上个月"
 }

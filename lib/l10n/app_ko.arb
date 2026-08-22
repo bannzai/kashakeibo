@@ -13,5 +13,6 @@
   "duplicateCandidateReason": "금액이 같고 날짜가 가까우며 상점명이 유사합니다.",
   "duplicateCandidateKeep": "이 거래 유지",
   "mergeDuplicateCandidate": "한 건으로 병합",
-  "keepBothDuplicateCandidates": "별도 지출로 유지"
+  "keepBothDuplicateCandidates": "별도 지출로 유지",
+  "previousMonth": "이전 달"
 }
