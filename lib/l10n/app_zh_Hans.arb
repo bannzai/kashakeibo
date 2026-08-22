@@ -36,5 +36,6 @@
   "deleteAccount": "删除账户",
   "deleteAccountConfirmationTitle": "要删除您的账户吗？",
   "deleteAccountConfirmationMessage": "您的账户和已保存的交易记录将永久删除，且无法恢复。",
-  "cancel": "取消"
+  "cancel": "取消",
+  "delete": "删除"
 }
