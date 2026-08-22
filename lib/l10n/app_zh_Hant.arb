@@ -122,5 +122,6 @@
   "paywallAnnualSavings": "節省 {percent}%",
   "paywallPerMonthEquivalent": "{price}/月",
   "paywallStartPremium": "開通進階版",
-  "paywallCancelAnytime": "隨時取消"
+  "paywallCancelAnytime": "隨時取消",
+  "paywallRestore": "回復購買"
 }
