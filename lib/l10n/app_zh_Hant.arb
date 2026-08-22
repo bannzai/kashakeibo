@@ -88,5 +88,6 @@
   "transactionDetailSourceImage": "原始圖片",
   "transactionDetailSourceImageNote": "隨時查看原始圖片",
   "transactionDetailNoImageManual": "無圖片 · 手動輸入",
-  "transactionDetailNoImage": "沒有原始圖片"
+  "transactionDetailNoImage": "沒有原始圖片",
+  "transactionDetailZoom": "縮放"
 }
