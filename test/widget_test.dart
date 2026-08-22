@@ -362,13 +362,20 @@ void main() {
 
   testWidgets('手動入力: 必須項目を登録すると出所 manual で保存する', (tester) async {
     final addTransaction = _RecordingAddTransaction();
+    final analyticsEvents = <String>[];
     await tester.pumpWidget(
       ProviderScope(
         overrides: [addTransactionProvider.overrideWithValue(addTransaction)],
-        child: const MaterialApp(
+        child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: ManualEntrySheet()),
+          home: Scaffold(
+            body: ManualEntrySheet(
+              logAnalyticsEvent: ({required name, parameters}) async {
+                analyticsEvents.add(name);
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -396,6 +403,7 @@ void main() {
     expect(addTransaction.excludedFromAggregation, false);
     expect(addTransaction.sourceImageObjectKey, isNull);
     expect(addTransaction.analysisAdjustedByUser, false);
+    expect(analyticsEvents, ['manual_entry_register']);
   });
 
   testWidgets('手動入力: 金額だけで食費の現金支出として保存する', (tester) async {
@@ -406,7 +414,9 @@ void main() {
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: ManualEntrySheet()),
+          home: Scaffold(
+            body: ManualEntrySheet(logAnalyticsEvent: discardAnalyticsEvent),
+          ),
         ),
       ),
     );
@@ -434,7 +444,10 @@ void main() {
             builder: (context) => Scaffold(
               body: TextButton(
                 onPressed: () async {
-                  result = await showManualEntrySheet(context: context);
+                  result = await showManualEntrySheet(
+                    context: context,
+                    logAnalyticsEvent: discardAnalyticsEvent,
+                  );
                 },
                 child: const Text('Open manual entry'),
               ),
@@ -516,7 +529,9 @@ void main() {
     ]);
   });
 
-  testWidgets('月次一覧: 重複候補バナーから2件を比較する確認シートを開ける', (tester) async {
+  testWidgets('月次一覧: 重複候補バナーから2件を比較する確認シートを開き、マージを記録する', (tester) async {
+    final mergeDuplicateTransactions = _RecordingMergeDuplicateTransactions();
+    final analyticsEvents = <({String name, Map<String, Object>? parameters})>[];
     final transactions = [
       buildTransaction(
         id: 'receipt-transaction',
@@ -547,11 +562,18 @@ void main() {
           ).overrideWith(
             (ref) => duplicateCandidates(transactions: transactions),
           ),
+          mergeDuplicateTransactionsProvider.overrideWithValue(
+            mergeDuplicateTransactions,
+          ),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
+          home: MonthlyPage(
+            logAnalyticsEvent: ({required name, parameters}) async {
+              analyticsEvents.add((name: name, parameters: parameters));
+            },
+          ),
         ),
       ),
     );
@@ -582,6 +604,27 @@ void main() {
       find.text(AppLocalizationsEn().duplicateCandidateKeep),
       findsOneWidget,
     );
+    expect(
+      analyticsEvents.map((event) => event.name),
+      contains('duplicate_candidate_open'),
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().mergeDuplicateCandidate));
+    await tester.pumpAndSettle();
+
+    expect(
+      mergeDuplicateTransactions.primaryTransaction?.id,
+      'receipt-transaction',
+    );
+    expect(
+      mergeDuplicateTransactions.duplicateTransaction?.id,
+      'card-transaction',
+    );
+    expect(analyticsEvents.last.name, 'duplicate_merge');
+    expect(analyticsEvents.last.parameters, {
+      'primaryTransactionID': 'receipt-transaction',
+      'duplicateTransactionID': 'card-transaction',
+    });
   });
 
   testWidgets('月次一覧: 前月末と当月初の明細も重複候補として表示する', (tester) async {
@@ -810,5 +853,26 @@ class _PendingAddTransaction extends _RecordingAddTransaction {
     this.sourceImageObjectKey = sourceImageObjectKey;
     this.analysisAdjustedByUser = analysisAdjustedByUser;
     return _completer.future;
+  }
+}
+
+/// Firestore へ書き込まず、マージに渡された 2 件を記録する MergeDuplicateTransactions。
+class _RecordingMergeDuplicateTransactions extends MergeDuplicateTransactions {
+  _RecordingMergeDuplicateTransactions()
+    : super(deleteStoredImage: ({required imageObjectKey}) async {});
+
+  /// マージ後に残す明細として渡された明細。
+  Transaction? primaryTransaction;
+
+  /// マージで削除する明細として渡された明細。
+  Transaction? duplicateTransaction;
+
+  @override
+  Future<void> call({
+    required Transaction primaryTransaction,
+    required Transaction duplicateTransaction,
+  }) async {
+    this.primaryTransaction = primaryTransaction;
+    this.duplicateTransaction = duplicateTransaction;
   }
 }
