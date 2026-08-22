@@ -60,5 +60,6 @@
   "manualEntryRegistered": "已新增交易紀錄",
   "transactionSourceReceipt": "收據",
   "transactionSourceScreenshot": "截圖",
-  "transactionSourceManual": "手動"
+  "transactionSourceManual": "手動",
+  "transactionSourceUnknown": "來源不明"
 }

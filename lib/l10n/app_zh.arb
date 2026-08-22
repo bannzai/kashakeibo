@@ -60,5 +60,6 @@
   "manualEntryRegistered": "已添加交易记录",
   "transactionSourceReceipt": "小票",
   "transactionSourceScreenshot": "截图",
-  "transactionSourceManual": "手动"
+  "transactionSourceManual": "手动",
+  "transactionSourceUnknown": "未知来源"
 }
