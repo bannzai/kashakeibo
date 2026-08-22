@@ -100,5 +100,6 @@
   "transactionDetailDeleted": "交易記錄已刪除",
   "transactionDetailNotFound": "這筆明細已刪除",
   "transactionDetailProvenance": "來源",
-  "transactionDetailExcludeFromAggregation": "不計入總額"
+  "transactionDetailExcludeFromAggregation": "不計入總額",
+  "transactionDetailExcludeFromAggregationDescription": "開啟後，將不計入總額和分類明細"
 }

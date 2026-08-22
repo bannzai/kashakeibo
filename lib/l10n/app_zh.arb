@@ -100,5 +100,6 @@
   "transactionDetailDeleted": "交易记录已删除",
   "transactionDetailNotFound": "这笔明细已删除",
   "transactionDetailProvenance": "来源",
-  "transactionDetailExcludeFromAggregation": "不计入总额"
+  "transactionDetailExcludeFromAggregation": "不计入总额",
+  "transactionDetailExcludeFromAggregationDescription": "开启后，将不计入总额和分类明细"
 }
