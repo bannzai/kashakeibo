@@ -118,25 +118,38 @@ function scoreAgainstGroundTruth({ expectedTransactions, analysisResult }) {
       const extractedTransaction = analysisResult.transactions.find(
         (transaction) => transaction.amount === expectedTransaction.amount,
       );
-      // 抽出側は「Amazon.co.jp ワイヤレスイヤホン…」のようにサイト名等の前置きが付くことがあるため包含を一致とみなすが、
-      // 1〜2文字の偶然の部分一致を合格させないよう、包含された側が4文字以上かつ期待タイトルの半分以上の長さであることを要求する
-      const normalizedExpectedTitle = normalizeTitle(expectedTransaction.title);
+      // タイトルは正解の title と titleAliases (レシート上に併記される別表記。例: ローマ字ロゴとカタカナ店名) の
+      // いずれかに一致すればよい。抽出側は「Amazon.co.jp ワイヤレスイヤホン…」のようにサイト名等の前置きが
+      // 付くことがあるため包含を一致とみなす。正解タイトル全体が抽出側に含まれる場合は長さ不問
+      // (「王将」のような短い正式店名を構造的に落とさない)。逆方向 (抽出側が正解の一部だけ) は、
+      // 1〜2文字の偶然の部分一致を合格させないよう 4文字以上かつ正解の半分以上の長さであることを要求する
       const normalizedExtractedTitle = normalizeTitle(extractedTransaction?.title);
-      const containedTitle = normalizedExtractedTitle.includes(normalizedExpectedTitle)
-        ? normalizedExpectedTitle
-        : normalizedExpectedTitle.includes(normalizedExtractedTitle)
-          ? normalizedExtractedTitle
-          : "";
+      const titleMatched =
+        extractedTransaction !== undefined &&
+        [expectedTransaction.title, ...(expectedTransaction.titleAliases ?? [])].some((candidateTitle) => {
+          const normalizedCandidateTitle = normalizeTitle(candidateTitle);
+          if (normalizedCandidateTitle === "" || normalizedExtractedTitle === "") {
+            return false;
+          }
+          if (normalizedExtractedTitle.includes(normalizedCandidateTitle)) {
+            return true;
+          }
+          return (
+            normalizedCandidateTitle.includes(normalizedExtractedTitle) &&
+            normalizedExtractedTitle.length >= 4 &&
+            normalizedExtractedTitle.length * 2 >= normalizedCandidateTitle.length
+          );
+        });
       return {
         expectedTitle: expectedTransaction.title,
         amountMatched: extractedTransaction !== undefined,
-        titleMatched:
-          extractedTransaction !== undefined &&
-          containedTitle.length >= 4 &&
-          containedTitle.length * 2 >= normalizedExpectedTitle.length,
+        titleMatched,
         dateMatched: extractedTransaction?.transactionDate === expectedTransaction.transactionDate,
         typeMatched: extractedTransaction?.type === expectedTransaction.type,
-        categoryMatched: extractedTransaction?.category === expectedTransaction.category,
+        // categoryAliases は正解が一意に決まらない境界ケース (例: ベーカリーの food / eatingOut) の許容値
+        categoryMatched: [expectedTransaction.category, ...(expectedTransaction.categoryAliases ?? [])].includes(
+          extractedTransaction?.category,
+        ),
         extractedTitle: extractedTransaction?.title ?? null,
         extractedCategory: extractedTransaction?.category ?? null,
       };

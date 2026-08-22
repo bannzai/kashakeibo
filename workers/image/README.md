@@ -77,6 +77,7 @@ FIXTURES_DIR=tmp/analysis-fixtures-degraded node --experimental-strip-types scri
 ```
 
 - 本番のトークン数は `src/analysis.ts` が解析ごとに `{"event":"gemini_usage",...}` の構造化ログで記録する (Workers のログで集計できる)
+- **実レシートベンチマーク**: Wikimedia Commons の再配布可能な実レシート 8 枚 (`benchmark/`) で、モデル・プロンプト変更時の品質回帰を検証する。基準値 (採用構成で全項目一致 8/8・約 ¥0.070/スキャン)・出典・実行手順は `benchmark/README.md` を参照。実レシートでも mediaResolution low は全項目一致 (約 ¥0.040) だったため、上記の不採用判断はサンプル数を増やした上で再検討の余地がある
 
 ## 開発
 

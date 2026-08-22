@@ -1,0 +1,107 @@
+{
+  "lawson_convenience.jpg": [
+    {
+      "title": "LAWSON",
+      "titleAliases": [
+        "ローソン"
+      ],
+      "amount": 103,
+      "transactionDate": "2019-11-12",
+      "type": "expense",
+      "category": "food"
+    }
+  ],
+  "maxvalu_supermarket.jpg": [
+    {
+      "title": "マックスバリュ",
+      "titleAliases": [
+        "MaxValu",
+        "イオン琉球",
+        "イオン"
+      ],
+      "amount": 246,
+      "transactionDate": "2019-11-09",
+      "type": "expense",
+      "category": "food"
+    }
+  ],
+  "camelmart_convenience.jpg": [
+    {
+      "title": "キャメルマート",
+      "titleAliases": [
+        "Camel Mart",
+        "CamelMart"
+      ],
+      "amount": 697,
+      "transactionDate": "2022-09-17",
+      "type": "expense",
+      "category": "food"
+    }
+  ],
+  "mcdonalds_fastfood.jpg": [
+    {
+      "title": "マクドナルド",
+      "titleAliases": [
+        "McDonald's",
+        "McDonalds"
+      ],
+      "amount": 400,
+      "transactionDate": "2022-03-07",
+      "type": "expense",
+      "category": "eatingOut"
+    }
+  ],
+  "sugakiya_ramen.jpg": [
+    {
+      "title": "スガキヤ",
+      "titleAliases": [
+        "Sugakiya"
+      ],
+      "amount": 330,
+      "transactionDate": "2019-10-09",
+      "type": "expense",
+      "category": "eatingOut"
+    }
+  ],
+  "ohsho_restaurant.jpg": [
+    {
+      "title": "餃子の王将",
+      "titleAliases": [
+        "王将",
+        "OHSHO"
+      ],
+      "amount": 2033,
+      "transactionDate": "2026-06-21",
+      "type": "expense",
+      "category": "eatingOut"
+    }
+  ],
+  "monorail_transport.jpg": [
+    {
+      "title": "沖縄都市モノレール",
+      "titleAliases": [
+        "ゆいレール",
+        "モノレール"
+      ],
+      "amount": 230,
+      "transactionDate": "2019-11-11",
+      "type": "expense",
+      "category": "transportation"
+    }
+  ],
+  "cascade_bakery.jpg": [
+    {
+      "title": "Cascade",
+      "titleAliases": [
+        "カスケード"
+      ],
+      "amount": 357,
+      "transactionDate": "2019-03-12",
+      "type": "expense",
+      "category": "food",
+      "categoryAliases": [
+        "eatingOut"
+      ]
+    }
+  ]
+}
