@@ -68,5 +68,6 @@
   "captureReceiptWithCameraDescription": "拍摄收据，AI 自动读取明细",
   "capturePickFromPhotoLibrary": "从照片中选择",
   "capturePickFromPhotoLibraryDescription": "AI 会将账单或订单截图拆分为多笔记录",
-  "manualEntryDescription": "输入无图片的现金支出"
+  "manualEntryDescription": "输入无图片的现金支出",
+  "captureAnalyzingTitle": "AI 正在读取您的图片"
 }
