@@ -64,5 +64,6 @@
   "transactionSourceUnknown": "來源不明",
   "addRecordOpen": "新增記錄",
   "addRecordTitle": "新增記錄",
-  "captureReceiptWithCamera": "拍照"
+  "captureReceiptWithCamera": "拍照",
+  "captureReceiptWithCameraDescription": "拍攝收據，AI 自動讀取明細"
 }

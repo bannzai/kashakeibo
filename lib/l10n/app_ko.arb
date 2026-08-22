@@ -64,5 +64,6 @@
   "transactionSourceUnknown": "출처 불명",
   "addRecordOpen": "기록 추가",
   "addRecordTitle": "기록 추가",
-  "captureReceiptWithCamera": "사진 촬영"
+  "captureReceiptWithCamera": "사진 촬영",
+  "captureReceiptWithCameraDescription": "영수증을 촬영하면 AI가 내역을 읽습니다"
 }
