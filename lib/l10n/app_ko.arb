@@ -50,5 +50,6 @@
   "manualEntryAmount": "금액",
   "manualEntryAmountRequired": "1엔 이상의 금액을 입력하십시오",
   "manualEntryStore": "매장 또는 메모",
-  "manualEntryDefaultTitle": "현금 지출"
+  "manualEntryDefaultTitle": "현금 지출",
+  "manualEntryStoreRequired": "가게 또는 메모 입력"
 }
