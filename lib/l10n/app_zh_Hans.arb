@@ -44,5 +44,6 @@
   "categoryTransportation": "交通",
   "categorySubscription": "订阅",
   "categorySalary": "工资",
-  "categoryOther": "其他"
+  "categoryOther": "其他",
+  "manualEntryOpen": "手动输入"
 }

@@ -44,5 +44,6 @@
   "categoryTransportation": "교통",
   "categorySubscription": "구독",
   "categorySalary": "급여",
-  "categoryOther": "기타"
+  "categoryOther": "기타",
+  "manualEntryOpen": "수동 입력"
 }
