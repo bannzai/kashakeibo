@@ -124,5 +124,6 @@
   "paywallStartPremium": "开通高级版",
   "paywallCancelAnytime": "随时取消",
   "paywallRestore": "恢复购买",
-  "paywallRestored": "已恢复购买。高级版已启用。"
+  "paywallRestored": "已恢复购买。高级版已启用。",
+  "paywallRestoreNotFound": "没有可恢复的购买记录"
 }

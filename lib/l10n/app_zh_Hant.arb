@@ -124,5 +124,6 @@
   "paywallStartPremium": "開通進階版",
   "paywallCancelAnytime": "隨時取消",
   "paywallRestore": "回復購買",
-  "paywallRestored": "已恢復購買。進階版已啟用。"
+  "paywallRestored": "已恢復購買。進階版已啟用。",
+  "paywallRestoreNotFound": "沒有可還原的購買項目"
 }
