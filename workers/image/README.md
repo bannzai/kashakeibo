@@ -51,6 +51,15 @@ multipart/form-data の `file` フィールドで画像をアップロードす�
 
 今月のスキャン (解析) 回数と無料枠の上限を返す: `200 {"monthlyScanCount": 3, "monthlyFreeScanLimit": 50}`。クライアントは残量チップの表示 (`monthlyFreeScanLimit - monthlyScanCount`) と、残量 0 でのペイウォール表示判定に使う。プレミアムかどうかはクライアントが RevenueCat SDK (`CustomerInfo`) から直接得るため含めない。
 
+### POST /debug/scan-count (dev 環境限定)
+
+今月のスキャン回数を指定値に設定する。リクエストは `{"monthlyScanCount": 50}`、レスポンスは `GET /analyses/quota` と同じ `200 {"monthlyScanCount": 50, "monthlyFreeScanLimit": 50}`。
+
+- 目的: スキャン回数は Durable Object の中にしか無く firebase / gcloud / wrangler のどれからも書き換えられないため、残量 0 の QA (残量 0 のペイウォールガード、無料枠超過 402 → 購入 → 再解析) の状態を作れない。アプリの DEBUG 開発者メニュー (`lib/features/debug/debug_sheet.dart` の「スキャン残量を使い切る」) から作れるようにするための経路 (`~/.claude/rules/debug-menu-first-for-hard-to-reach-states.md`)
+- **有効化は dev 環境だけ**: wrangler.jsonc の `env.dev.vars.DEBUG_ENDPOINTS_ENABLED` が `"true"` の時だけ経路が存在する。prod の vars にはこの項目を置かないため、prod では未知のパスと同じ `404 {"error": "not found"}` になる (`test/handler.test.ts` の「prod 相当 (DEBUG_ENDPOINTS_ENABLED 無し) では 404 になり、回数も変わらない」で保証)
+- 認証は他のエンドポイントと同じく ID token + App Check token が必須。変更できるのは JWT の uid 本人のカウンターだけで、他ユーザーの回数は変更できない
+- `monthlyScanCount` は 0 以上 `monthlyPremiumScanLimit` 以下の整数。それ以外は 400。冪等 (同じ値で何度呼んでも結果は同じ)
+
 ## スキャン原価 (実測)
 
 1 スキャンあたりの LLM 原価の実測 (issue #50。2026-08-22、合成テスト画像 4 枚: 紙レシート2・明細スクショ2、円換算 150円/USD)。

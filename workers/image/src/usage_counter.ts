@@ -61,6 +61,19 @@ export class UsageCounter extends DurableObject {
     return (await this.ctx.storage.get<number>(counterKey)) ?? 0;
   }
 
+  /**
+   * カウンターの値を指定値に上書きする (DEBUG 用。現在値を見ずに設定する)。
+   * 加算と同じく、初回設定時にアラームが未設定ならストレージ削除のアラームを立てる
+   * (設定しただけのインスタンスがゴミとして残らないようにする)。
+   * 冪等: 同じ値で何度呼んでも結果は同じ。
+   */
+  async setCount(counterKey: string, count: number, purgeDelayMilliseconds: number): Promise<void> {
+    await this.ctx.storage.put(counterKey, count);
+    if ((await this.ctx.storage.getAlarm()) === null) {
+      await this.ctx.storage.setAlarm(Date.now() + purgeDelayMilliseconds);
+    }
+  }
+
   /** カウンターの掃除。当日・当月を過ぎたインスタンスのストレージを全削除する。 */
   async alarm(): Promise<void> {
     await this.ctx.storage.deleteAll();
