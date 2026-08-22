@@ -121,5 +121,6 @@
   "paywallRecommended": "최고 혜택",
   "paywallAnnualSavings": "{percent}% 할인",
   "paywallPerMonthEquivalent": "{price}/월",
-  "paywallStartPremium": "프리미엄 이용 시작"
+  "paywallStartPremium": "프리미엄 이용 시작",
+  "paywallCancelAnytime": "언제든지 취소할 수 있습니다"
 }

@@ -121,5 +121,6 @@
   "paywallRecommended": "最划算",
   "paywallAnnualSavings": "节省 {percent}%",
   "paywallPerMonthEquivalent": "{price}/月",
-  "paywallStartPremium": "开通高级版"
+  "paywallStartPremium": "开通高级版",
+  "paywallCancelAnytime": "随时取消"
 }
