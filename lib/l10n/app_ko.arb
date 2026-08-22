@@ -38,5 +38,6 @@
   "deleteAccountConfirmationMessage": "계정과 저장된 거래 내역이 영구적으로 삭제되며, 복구할 수 없습니다.",
   "cancel": "취소",
   "delete": "삭제",
-  "categoryFood": "식비"
+  "categoryFood": "식비",
+  "categoryEatingOut": "외식"
 }

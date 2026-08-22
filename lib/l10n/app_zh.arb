@@ -38,5 +38,6 @@
   "deleteAccountConfirmationMessage": "您的帳戶和已儲存的交易記錄將永久刪除，且無法復原。",
   "cancel": "取消",
   "delete": "删除",
-  "categoryFood": "食品"
+  "categoryFood": "食品",
+  "categoryEatingOut": "外出就餐"
 }
