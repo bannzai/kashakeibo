@@ -133,5 +133,6 @@
   "paywallFairUseNote": "扫描功能每月有合理使用上限，正常使用一般不会达到。",
   "paywallSubscriptionNote": "确认后，费用将从您的商店账户中扣除。除非您在当前订阅周期结束前至少24小时取消订阅，否则订阅将自动续订。您可以在商店账户设置中管理或取消订阅。",
   "settingsPlan": "方案",
-  "planFree": "免费"
+  "planFree": "免费",
+  "planPremium": "高级版"
 }
