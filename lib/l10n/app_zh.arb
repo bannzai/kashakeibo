@@ -73,5 +73,6 @@
   "captureAnalyzingStepLoading": "正在加载图片",
   "captureAnalyzingStepReading": "正在读取金额和日期",
   "captureAnalyzingStepCategory": "正在推测类别",
-  "captureAnalysisFailedTitle": "无法读取图片"
+  "captureAnalysisFailedTitle": "无法读取图片",
+  "captureAnalysisNoTransactions": "无法从图片中读取交易记录"
 }

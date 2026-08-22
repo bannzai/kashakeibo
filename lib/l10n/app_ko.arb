@@ -73,5 +73,6 @@
   "captureAnalyzingStepLoading": "이미지를 불러오는 중입니다",
   "captureAnalyzingStepReading": "금액과 날짜를 읽고 있습니다",
   "captureAnalyzingStepCategory": "카테고리를 추정하고 있습니다",
-  "captureAnalysisFailedTitle": "이미지를 읽을 수 없습니다"
+  "captureAnalysisFailedTitle": "이미지를 읽을 수 없습니다",
+  "captureAnalysisNoTransactions": "이미지에서 거래 내역을 읽을 수 없습니다"
 }
