@@ -70,6 +70,13 @@ jobs:
               echo "::error::$f is suspiciously small ($SIZE bytes). Secrets の base64 が壊れている可能性があります。"
               exit 1
             fi
+            # REVERSED_CLIENT_ID が無い plist だと Google サインインが実行時に
+            # PlatformException(missing support for the following URL schemes) で失敗するため、
+            # ビルド前に落とす (issue #66。Firebase の iOS OAuth クライアント構成前に取得した古い secret を検出する)
+            if ! /usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" "$f" >/dev/null 2>&1; then
+              echo "::error::$f に REVERSED_CLIENT_ID がありません。firebase apps:sdkconfig IOS <App ID> --project <プロジェクトID> で取得し直した plist で Secrets を更新してください。"
+              exit 1
+            fi
           done
 
       - run: flutter pub get
