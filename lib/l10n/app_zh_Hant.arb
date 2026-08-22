@@ -107,5 +107,6 @@
   "capturesSection": "截圖記錄",
   "scanQuotaRemaining": "剩餘 {count} 次掃描",
   "scanQuotaUnlimited": "無限掃描",
-  "scanQuotaExhausted": "本月免費掃描次數已用完"
+  "scanQuotaExhausted": "本月免費掃描次數已用完",
+  "paywallTitle": "使用進階版，盡情掃描"
 }

@@ -107,5 +107,6 @@
   "capturesSection": "캡처 기록",
   "scanQuotaRemaining": "스캔 {count}회 남음",
   "scanQuotaUnlimited": "무제한 스캔",
-  "scanQuotaExhausted": "이번 달 무료 스캔을 모두 사용했습니다."
+  "scanQuotaExhausted": "이번 달 무료 스캔을 모두 사용했습니다.",
+  "paywallTitle": "프리미엄으로 자유롭게 스캔"
 }
