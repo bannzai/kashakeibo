@@ -74,5 +74,6 @@
   "captureAnalyzingStepReading": "正在读取金额和日期",
   "captureAnalyzingStepCategory": "正在推测类别",
   "captureAnalysisFailedTitle": "无法读取图片",
-  "captureAnalysisNoTransactions": "无法从图片中读取交易记录"
+  "captureAnalysisNoTransactions": "无法从图片中读取交易记录",
+  "captureRetry": "再试一次"
 }
