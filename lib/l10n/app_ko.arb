@@ -3,5 +3,6 @@
   "appName": "Kashakeibo",
   "monthlyIncome": "수입",
   "monthlyExpense": "지출",
-  "monthlyBalance": "잔액"
+  "monthlyBalance": "잔액",
+  "categoryBreakdown": "카테고리"
 }
