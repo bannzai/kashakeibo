@@ -33,5 +33,6 @@
   "accountSwitchWarningTitle": "檢查此裝置上的資料",
   "accountSwitchWarningMessage": "如果您選擇的帳戶已在其他裝置上使用，此裝置上的匿名資料將無法再存取。繼續前請查看需要保留的交易紀錄。",
   "continueAccountLink": "繼續",
-  "deleteAccount": "刪除帳戶"
+  "deleteAccount": "刪除帳戶",
+  "deleteAccountConfirmationTitle": "要刪除您的帳戶嗎？"
 }
