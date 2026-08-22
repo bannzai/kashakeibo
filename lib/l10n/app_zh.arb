@@ -1,4 +1,5 @@
 {
   "@@locale": "zh",
-  "appName": "Kashakeibo"
+  "appName": "Kashakeibo",
+  "monthlyIncome": "收入"
 }
