@@ -29,5 +29,6 @@
   "linkOrSignInWithApple": "Apple 연결",
   "linkOrSignInWithGoogle": "Google 연결",
   "accountLinked": "계정이 연결되었습니다",
-  "existingAccountSignedIn": "기존 계정으로 전환되었습니다."
+  "existingAccountSignedIn": "기존 계정으로 전환되었습니다.",
+  "accountSwitchWarningTitle": "이 기기의 데이터 확인"
 }

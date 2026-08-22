@@ -29,5 +29,6 @@
   "linkOrSignInWithApple": "关联 Apple",
   "linkOrSignInWithGoogle": "使用 Google 关联",
   "accountLinked": "账号已关联",
-  "existingAccountSignedIn": "已切换到您已有的账户"
+  "existingAccountSignedIn": "已切换到您已有的账户",
+  "accountSwitchWarningTitle": "检查此设备上的数据"
 }
