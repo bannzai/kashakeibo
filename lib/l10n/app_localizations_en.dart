@@ -379,13 +379,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get scanQuotaUnlimited => 'Unlimited scans';
+  String get scanQuotaUnlimited => 'Scan freely';
 
   @override
   String get scanQuotaExhausted => 'You\'ve used all free scans this month';
 
   @override
-  String get paywallTitle => 'Go unlimited with Premium';
+  String get paywallTitle => 'Scan freely with Premium';
 
   @override
   String get paywallSubtitle =>
@@ -397,7 +397,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get paywallBenefitUnlimitedScans => 'Unlimited scans';
+  String get paywallBenefitUnlimitedScans => 'Scan freely';
 
   @override
   String get paywallBenefitFullHistory => 'Full history, every month';
@@ -447,10 +447,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallPremiumActiveDescription =>
-      'You have unlimited scans and full history.';
+      'You can scan freely and browse your full history.';
 
   @override
   String get paywallOfferingUnavailable => 'Plans are unavailable right now';
+
+  @override
+  String get paywallFairUseNote =>
+      'Scanning is subject to a monthly fair-use limit that typical use won\'t reach.';
 
   @override
   String get paywallSubscriptionNote =>

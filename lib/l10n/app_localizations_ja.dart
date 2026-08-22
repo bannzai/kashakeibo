@@ -351,7 +351,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get scanQuotaUnlimited => 'スキャン無制限';
+  String get scanQuotaUnlimited => 'スキャンし放題';
 
   @override
   String get scanQuotaExhausted => '今月の無料スキャンを使い切りました';
@@ -368,7 +368,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get paywallBenefitUnlimitedScans => 'スキャン無制限';
+  String get paywallBenefitUnlimitedScans => 'スキャンし放題';
 
   @override
   String get paywallBenefitFullHistory => '全期間の履歴';
@@ -417,10 +417,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get paywallPremiumActive => 'プレミアム利用中';
 
   @override
-  String get paywallPremiumActiveDescription => 'スキャン無制限と全期間の履歴が使えます。';
+  String get paywallPremiumActiveDescription => 'スキャンし放題と全期間の履歴が使えます。';
 
   @override
   String get paywallOfferingUnavailable => '料金プランを取得できませんでした';
+
+  @override
+  String get paywallFairUseNote =>
+      'スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。';
 
   @override
   String get paywallSubscriptionNote =>

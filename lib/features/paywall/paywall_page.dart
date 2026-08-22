@@ -39,7 +39,7 @@ Future<bool?> showPaywall({
   );
 }
 
-/// プレミアム (スキャン無制限 + 全履歴) のハードペイウォール
+/// プレミアム (スキャンし放題 + 全履歴) のハードペイウォール
 /// (design_handoff_kashakeibo/README.md の 9「ペイウォール」)。
 ///
 /// 今月の無料枠の消費状況、特典、月額 / 年額 (推奨) の料金カード、購入 CTA、購入の復元を表示する。
@@ -390,6 +390,14 @@ class PaywallPage extends HookConsumerWidget {
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   l10n.paywallSubscriptionNote,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10, color: appColors.textMuted),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                // 「スキャンし放題」の表記と月次上限 (workers/image の monthlyPremiumScanLimit) を両立させる
+                // フェアユースの注記 (誇大表示にしないための開示。documents/PROJECT.md の課金設計)
+                Text(
+                  l10n.paywallFairUseNote,
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 10, color: appColors.textMuted),
                 ),

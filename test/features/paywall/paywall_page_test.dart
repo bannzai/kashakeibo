@@ -155,7 +155,7 @@ void main() {
 
       expect(find.text('スキャン、し放題に。'), findsOneWidget);
       expect(find.text('今月の無料スキャン 7/10'), findsOneWidget);
-      expect(find.text('スキャン無制限'), findsOneWidget);
+      expect(find.text('スキャンし放題'), findsOneWidget);
       expect(find.text('全期間の履歴'), findsOneWidget);
       expect(find.text('¥480'), findsOneWidget);
       expect(find.text('¥3,800'), findsOneWidget);
@@ -164,6 +164,11 @@ void main() {
       expect(find.text('¥317/月換算'), findsOneWidget);
       await scrollToRestoreLink(tester);
       expect(find.text('購入の復元'), findsOneWidget);
+      // 「スキャンし放題」と月次上限を両立させるフェアユースの注記 (workers/image の monthlyPremiumScanLimit)
+      expect(
+        find.text('スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('プレミアムを始める'));
       await tester.pumpAndSettle();

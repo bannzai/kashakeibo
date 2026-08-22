@@ -755,7 +755,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanQuotaUnlimited.
   ///
   /// In en, this message translates to:
-  /// **'Unlimited scans'**
+  /// **'Scan freely'**
   String get scanQuotaUnlimited;
 
   /// No description provided for @scanQuotaExhausted.
@@ -767,7 +767,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallTitle.
   ///
   /// In en, this message translates to:
-  /// **'Go unlimited with Premium'**
+  /// **'Scan freely with Premium'**
   String get paywallTitle;
 
   /// No description provided for @paywallSubtitle.
@@ -785,7 +785,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallBenefitUnlimitedScans.
   ///
   /// In en, this message translates to:
-  /// **'Unlimited scans'**
+  /// **'Scan freely'**
   String get paywallBenefitUnlimitedScans;
 
   /// No description provided for @paywallBenefitFullHistory.
@@ -875,7 +875,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallPremiumActiveDescription.
   ///
   /// In en, this message translates to:
-  /// **'You have unlimited scans and full history.'**
+  /// **'You can scan freely and browse your full history.'**
   String get paywallPremiumActiveDescription;
 
   /// No description provided for @paywallOfferingUnavailable.
@@ -883,6 +883,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plans are unavailable right now'**
   String get paywallOfferingUnavailable;
+
+  /// No description provided for @paywallFairUseNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning is subject to a monthly fair-use limit that typical use won\'t reach.'**
+  String get paywallFairUseNote;
 
   /// No description provided for @paywallSubscriptionNote.
   ///
