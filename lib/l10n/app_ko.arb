@@ -57,5 +57,6 @@
   "manualEntryCategoryRequired": "카테고리 선택",
   "manualEntryDate": "날짜",
   "manualEntryRegister": "거래 추가",
-  "manualEntryRegistered": "거래가 추가되었습니다"
+  "manualEntryRegistered": "거래가 추가되었습니다",
+  "transactionSourceReceipt": "영수증"
 }

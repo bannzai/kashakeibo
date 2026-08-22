@@ -57,5 +57,6 @@
   "manualEntryCategoryRequired": "選擇分類",
   "manualEntryDate": "日期",
   "manualEntryRegister": "新增帳目",
-  "manualEntryRegistered": "已新增交易紀錄"
+  "manualEntryRegistered": "已新增交易紀錄",
+  "transactionSourceReceipt": "收據"
 }
