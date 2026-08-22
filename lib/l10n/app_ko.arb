@@ -131,5 +131,6 @@
   "paywallPremiumActiveDescription": "스캔을 무제한으로 이용하고 전체 기록을 확인할 수 있습니다.",
   "paywallOfferingUnavailable": "현재 요금제를 이용할 수 없습니다",
   "paywallFairUseNote": "스캔 기능에는 월별 공정 사용 한도가 있으며, 일반적인 사용으로는 한도에 도달하지 않습니다.",
-  "paywallSubscriptionNote": "확인 시 스토어 계정으로 요금이 청구됩니다. 현재 구독 기간이 종료되기 최소 24시간 전에 취소하지 않으면 구독이 자동으로 갱신됩니다. 스토어 계정 설정에서 구독을 관리하거나 취소할 수 있습니다."
+  "paywallSubscriptionNote": "확인 시 스토어 계정으로 요금이 청구됩니다. 현재 구독 기간이 종료되기 최소 24시간 전에 취소하지 않으면 구독이 자동으로 갱신됩니다. 스토어 계정 설정에서 구독을 관리하거나 취소할 수 있습니다.",
+  "settingsPlan": "요금제"
 }
