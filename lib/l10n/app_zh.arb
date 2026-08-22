@@ -24,5 +24,6 @@
   "accountBackupTitle": "备份",
   "accountBackupNotSet": "未设置",
   "accountBackupConfigured": "已设置",
-  "accountBackupDescription": "关联账户，以便更换设备时保留您的数据。"
+  "accountBackupDescription": "关联账户，以便更换设备时保留您的数据。",
+  "accountBackupConfiguredDescription": "在其他设备上选择同一账号，即可访问已保存的数据。"
 }
