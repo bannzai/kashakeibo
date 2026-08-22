@@ -86,5 +86,6 @@
   "captureRegistered": "已記錄 ✓",
   "transactionDetailTitle": "明細",
   "transactionDetailSourceImage": "原始圖片",
-  "transactionDetailSourceImageNote": "隨時查看原始圖片"
+  "transactionDetailSourceImageNote": "隨時查看原始圖片",
+  "transactionDetailNoImageManual": "無圖片 · 手動輸入"
 }
