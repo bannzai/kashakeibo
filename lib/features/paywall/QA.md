@@ -56,7 +56,7 @@ last_verified_at: 2026-08-22
 
 ローカル Simulator (iPhone 16 Pro / iOS 18.5、日本語ロケール)、debug ビルドの開発者メニュー「ペイウォールをサンプル価格で開く」で確認。見出し「スキャンし放題に」と無料枠バーの間に、訴求文「家計簿で支出が減った人の約半数が、月5,000円〜1万円未満の節約を実感*」と出典注記「* 東証マネ部!「お金に関するアンケート」2022年10月・全国20〜40代の会社員1,111名」のカードが表示された。文言・数字は原典 https://money-bu-jpx.com/news/article042167/ (支出が減った人のうち 48.6% が月5,000円〜1万円未満) と一致する。issue #54 の句読点整理後の subtitle「連携しないから壊れない。撮るだけでレシートも明細も AI が読み取ります」とフェアユース注記 (末尾句点なし) も同じ画面で確認した。maestro/flows/paywall.yaml (表示アサート + mock 購入) も green。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/4a002401-4448-49be-8297-df9b4fc46747.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/30d45570-962a-4183-82b4-2e8bd3de59e7.png" width="320">
 
 </details>
 
