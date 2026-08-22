@@ -97,5 +97,6 @@
   "transactionDetailDelete": "刪除交易",
   "transactionDetailDeleteConfirmationTitle": "刪除此筆明細？",
   "transactionDetailDeleteConfirmationMessage": "交易紀錄及其來源圖片將永久刪除。此操作無法復原。",
-  "transactionDetailDeleted": "交易記錄已刪除"
+  "transactionDetailDeleted": "交易記錄已刪除",
+  "transactionDetailNotFound": "這筆明細已刪除"
 }

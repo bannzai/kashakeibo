@@ -97,5 +97,6 @@
   "transactionDetailDelete": "거래 삭제",
   "transactionDetailDeleteConfirmationTitle": "이 거래 내역을 삭제하시겠습니까?",
   "transactionDetailDeleteConfirmationMessage": "거래 내역과 원본 이미지는 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
-  "transactionDetailDeleted": "거래 내역이 삭제되었습니다"
+  "transactionDetailDeleted": "거래 내역이 삭제되었습니다",
+  "transactionDetailNotFound": "이 내역은 삭제되었습니다"
 }
