@@ -23,5 +23,6 @@
   "specifiedCommercialTransactionAct": "商业交易披露",
   "accountBackupTitle": "备份",
   "accountBackupNotSet": "未设置",
-  "accountBackupConfigured": "已设置"
+  "accountBackupConfigured": "已设置",
+  "accountBackupDescription": "关联账户，以便更换设备时保留您的数据。"
 }

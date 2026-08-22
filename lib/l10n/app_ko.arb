@@ -23,5 +23,6 @@
   "specifiedCommercialTransactionAct": "상거래 공개",
   "accountBackupTitle": "백업",
   "accountBackupNotSet": "미설정",
-  "accountBackupConfigured": "설정됨"
+  "accountBackupConfigured": "설정됨",
+  "accountBackupDescription": "기기를 변경해도 데이터를 유지하려면 계정을 연결하십시오."
 }

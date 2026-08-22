@@ -23,5 +23,6 @@
   "specifiedCommercialTransactionAct": "商業交易揭露",
   "accountBackupTitle": "備份",
   "accountBackupNotSet": "尚未設定",
-  "accountBackupConfigured": "已設定"
+  "accountBackupConfigured": "已設定",
+  "accountBackupDescription": "連結帳戶，換裝置時也能保留資料。"
 }
