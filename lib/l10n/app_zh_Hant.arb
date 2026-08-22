@@ -63,5 +63,6 @@
   "transactionSourceManual": "手動",
   "transactionSourceUnknown": "來源不明",
   "addRecordOpen": "新增記錄",
-  "addRecordTitle": "新增記錄"
+  "addRecordTitle": "新增記錄",
+  "captureReceiptWithCamera": "拍照"
 }
