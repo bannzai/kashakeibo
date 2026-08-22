@@ -24,7 +24,7 @@ const revenueCatTestStorePublicApiKey = String.fromEnvironment(
   'REVENUECAT_TEST_STORE_API_KEY',
 );
 
-/// プレミアム (スキャン無制限 + 全履歴) の entitlement 識別子。
+/// プレミアム (スキャンし放題 + 全履歴) の entitlement 識別子。
 /// RevenueCat 側の entitlement の lookup_key と一致させる (~/.claude/skills/revenuecat-product-setup の config)。
 const premiumEntitlementIdentifier = 'premium';
 

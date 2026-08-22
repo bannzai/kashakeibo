@@ -86,7 +86,7 @@
           "introductoryOffer": null,
           "localizations": [
             {
-              "description": "スキャン無制限と全期間の履歴を毎月更新で使えます",
+              "description": "スキャンし放題と全期間の履歴を毎月更新で使えます",
               "displayName": "プレミアム (月額)",
               "locale": "ja_JP"
             }
@@ -108,7 +108,7 @@
           "introductoryOffer": null,
           "localizations": [
             {
-              "description": "スキャン無制限と全期間の履歴を年額でお得に使えます",
+              "description": "スキャンし放題と全期間の履歴を年額でお得に使えます",
               "displayName": "プレミアム (年額)",
               "locale": "ja_JP"
             }

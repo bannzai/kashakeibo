@@ -22,7 +22,7 @@ Future<void> openAddRecordSheet({
         // 残量表示が読む無料プランの fake (残量表示の内容自体は paywall 側のテストで検証する)。
         fetchScanQuotaProvider.overrideWithValue(
           () async =>
-              const ScanQuota(monthlyScanCount: 0, monthlyFreeScanLimit: 10),
+              const ScanQuota(monthlyScanCount: 0, monthlyFreeScanLimit: 50),
         ),
         isPremiumProvider.overrideWithValue(false),
       ],

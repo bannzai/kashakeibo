@@ -20,7 +20,7 @@
           "referenceName": "Premium Monthly",
           "subscriptionPeriod": "ONE_MONTH",
           "groupLevel": 1,
-          "reviewNote": "無料枠 (月10スキャン) を超えたユーザー向けのプレミアム月額プランです。ホーム画面のスキャン残量チップ、または設定 > プランからペイウォールを開き購入できます。",
+          "reviewNote": "無料枠 (月50スキャン) を超えたユーザー向けのプレミアム月額プランです。ホーム画面のスキャン残量チップ、または設定 > プランからペイウォールを開き購入できます。",
           "price": {
             "base_territory": "JPN",
             "customer_price": "480"
@@ -33,12 +33,12 @@
             {
               "locale": "ja",
               "name": "プレミアム (月額)",
-              "description": "スキャン無制限と全期間の履歴を毎月更新で使えます"
+              "description": "スキャンし放題と全期間の履歴を毎月更新で使えます"
             },
             {
               "locale": "en-US",
               "name": "Premium (Monthly)",
-              "description": "Unlimited scans and full history, billed monthly"
+              "description": "Scan freely plus full history, billed monthly"
             }
           ]
         },
@@ -47,7 +47,7 @@
           "referenceName": "Premium Annual",
           "subscriptionPeriod": "ONE_YEAR",
           "groupLevel": 1,
-          "reviewNote": "無料枠 (月10スキャン) を超えたユーザー向けのプレミアム年額プランです。ホーム画面のスキャン残量チップ、または設定 > プランからペイウォールを開き購入できます。",
+          "reviewNote": "無料枠 (月50スキャン) を超えたユーザー向けのプレミアム年額プランです。ホーム画面のスキャン残量チップ、または設定 > プランからペイウォールを開き購入できます。",
           "price": {
             "base_territory": "JPN",
             "customer_price": "3800"
@@ -60,12 +60,12 @@
             {
               "locale": "ja",
               "name": "プレミアム (年額)",
-              "description": "スキャン無制限と全期間の履歴を年額でお得に使えます"
+              "description": "スキャンし放題と全期間の履歴を年額でお得に使えます"
             },
             {
               "locale": "en-US",
               "name": "Premium (Annual)",
-              "description": "Unlimited scans and full history, billed yearly"
+              "description": "Scan freely plus full history, billed yearly"
             }
           ]
         }

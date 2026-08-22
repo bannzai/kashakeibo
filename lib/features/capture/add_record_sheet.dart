@@ -33,7 +33,7 @@ Future<AddRecordOption?> showAddRecordSheet({required BuildContext context}) =>
 /// 入力経路 (カメラで撮影 / 写真・スクショから選ぶ / 手動で入力) を選ぶボトムシート
 /// (design_handoff_kashakeibo/README.md の取込フロー 1「記録する」)。
 ///
-/// 下部に今月のスキャン残量 (プレミアムなら無制限) を表示する。
+/// 下部に今月のスキャン残量 (プレミアムなら「スキャンし放題」) を表示する。
 class AddRecordSheet extends ConsumerWidget {
   const AddRecordSheet({super.key});
 

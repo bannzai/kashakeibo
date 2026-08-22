@@ -75,12 +75,20 @@ const analysisPrompt = [
   "- amount は日本円の整数 (税込)。通貨記号・桁区切りは含めません。金額が読み取れない明細は含めません",
   "- transactionDate は取引日 (YYYY-MM-DD)。年・月・日のいずれかが読み取れない場合は null にします。時刻は不要です",
   "- type は支払いなら expense、入金・給与・返金なら income にします",
-  "- category は次から選びます: food (食料品・スーパー・コンビニ), eatingOut (外食・カフェ・居酒屋), dailyGoods (日用品・ドラッグストア), transportation (鉄道・バス・タクシー・ガソリン), subscription (定額サービス), salary (給与), other (上記以外)",
+  "- category は次から選びます: food (食料品・スーパー・コンビニ), eatingOut (外食・カフェ・居酒屋), dailyGoods (洗剤・トイレットペーパー等の消耗品・ドラッグストア), transportation (鉄道・バス・タクシー・ガソリン), subscription (定額サービス), salary (給与), other (上記以外。家電・ガジェット・EC の雑貨など)",
   "- 家計簿の明細が写っていない画像の場合は transactions を空配列にします",
 ].join("\n");
 
 // 取引日として受け付ける形式。YYYY-MM-DD 以外 (時刻付き・和暦・全角) は null に落とす
 const transactionDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+/** generationConfig のうち 1 スキャンあたりの原価 (トークン数) に効く設定。実測は scripts/measure-analysis-cost.mjs (issue #50)。 */
+export interface GeminiCostTuningConfig {
+  /** thinking の強さ (generationConfig.thinkingConfig.thinkingLevel)。未指定はモデル既定。 */
+  thinkingLevel?: "low" | "medium" | "high";
+  /** 画像入力へのトークン割当 (generationConfig.mediaResolution)。未指定はモデル既定。 */
+  mediaResolution?: "MEDIA_RESOLUTION_LOW" | "MEDIA_RESOLUTION_MEDIUM" | "MEDIA_RESOLUTION_HIGH";
+}
 
 /** Gemini generateContent の呼び出しに必要な設定。 */
 export interface GeminiAnalysisOptions {
@@ -94,6 +102,61 @@ export interface GeminiAnalysisOptions {
   geminiModel: string;
   /** Gemini API のベース URL。テストでは差し替える。 */
   geminiApiBaseUrl?: string;
+  /** 原価チューニング設定。未指定は本番採用値 (adoptedCostTuningConfig)。 */
+  costTuningConfig?: GeminiCostTuningConfig;
+}
+
+/**
+ * 本番で採用している原価チューニング設定。値の根拠 (実測) は workers/image/README.md の「スキャン原価」を参照。
+ */
+export const adoptedCostTuningConfig: GeminiCostTuningConfig = {};
+
+/**
+ * generateContent のリクエスト本体を組み立てる。
+ * 本番 (analyzeImageWithGemini) と原価実測スクリプト (scripts/measure-analysis-cost.mjs) で同じ組み立てを使う。
+ */
+export function buildGeminiAnalysisRequestBody({
+  imageBytes,
+  imageContentType,
+  costTuningConfig,
+}: {
+  imageBytes: ArrayBuffer;
+  imageContentType: string;
+  costTuningConfig: GeminiCostTuningConfig;
+}): object {
+  return {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { inline_data: { mime_type: imageContentType, data: arrayBufferToBase64(imageBytes) } },
+          { text: analysisPrompt },
+        ],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: analysisResponseSchema,
+      // 抽出タスクなので出力の揺れを抑える
+      temperature: 0,
+      ...(costTuningConfig.mediaResolution === undefined ? {} : { mediaResolution: costTuningConfig.mediaResolution }),
+      ...(costTuningConfig.thinkingLevel === undefined
+        ? {}
+        : { thinkingConfig: { thinkingLevel: costTuningConfig.thinkingLevel } }),
+    },
+  };
+}
+
+/** generateContent レスポンスの usageMetadata (原価の記録に使うトークン数)。 */
+export interface GeminiUsageMetadata {
+  /** 入力 (プロンプト + 画像) のトークン数。 */
+  promptTokenCount?: number;
+  /** thinking のトークン数 (出力単価で課金される)。 */
+  thoughtsTokenCount?: number;
+  /** 出力本文のトークン数。 */
+  candidatesTokenCount?: number;
+  /** 合計トークン数。 */
+  totalTokenCount?: number;
 }
 
 /** Gemini API の呼び出し失敗 (HTTP エラー・空応答)。 */
@@ -119,6 +182,7 @@ export async function analyzeImageWithGemini({
   geminiApiKey,
   geminiModel,
   geminiApiBaseUrl = "https://generativelanguage.googleapis.com",
+  costTuningConfig = adoptedCostTuningConfig,
 }: GeminiAnalysisOptions): Promise<ImageAnalysisResult> {
   const geminiResponse = await fetch(`${geminiApiBaseUrl}/v1beta/models/${geminiModel}:generateContent`, {
     method: "POST",
@@ -127,23 +191,7 @@ export async function analyzeImageWithGemini({
       // API キーは URL クエリではなくヘッダーで渡し、アクセスログ等に残さない
       "x-goog-api-key": geminiApiKey,
     },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { inline_data: { mime_type: imageContentType, data: arrayBufferToBase64(imageBytes) } },
-            { text: analysisPrompt },
-          ],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: analysisResponseSchema,
-        // 抽出タスクなので出力の揺れを抑える
-        temperature: 0,
-      },
-    }),
+    body: JSON.stringify(buildGeminiAnalysisRequestBody({ imageBytes, imageContentType, costTuningConfig })),
   });
 
   if (!geminiResponse.ok) {
@@ -156,7 +204,21 @@ export async function analyzeImageWithGemini({
 
   const geminiResponseBody = (await geminiResponse.json()) as {
     candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
+    usageMetadata?: GeminiUsageMetadata;
   };
+  // 1 スキャンあたりの原価を継続的に実測できるよう、トークン数を構造化ログに残す
+  // (Workers のログで集計する。issue #50 の受け入れ条件「原価が実測値で記録されている」)
+  // usageMetadata が欠落した応答は「実測 0 トークン」と区別するため null で記録する
+  console.log(
+    JSON.stringify({
+      event: "gemini_usage",
+      model: geminiModel,
+      promptTokenCount: geminiResponseBody.usageMetadata?.promptTokenCount ?? null,
+      thoughtsTokenCount: geminiResponseBody.usageMetadata?.thoughtsTokenCount ?? null,
+      candidatesTokenCount: geminiResponseBody.usageMetadata?.candidatesTokenCount ?? null,
+      totalTokenCount: geminiResponseBody.usageMetadata?.totalTokenCount ?? null,
+    }),
+  );
   // thinking 対応モデルは thought パートを含み得るため、本文パートだけを結合する
   const outputText = (geminiResponseBody.candidates?.[0]?.content?.parts ?? [])
     .filter((part) => part.thought !== true && typeof part.text === "string")

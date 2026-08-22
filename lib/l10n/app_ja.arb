@@ -137,9 +137,9 @@
       }
     }
   },
-  "scanQuotaUnlimited": "スキャン無制限",
+  "scanQuotaUnlimited": "スキャンし放題",
   "scanQuotaExhausted": "今月の無料スキャンを使い切りました",
-  "paywallTitle": "スキャン、し放題に。",
+  "paywallTitle": "スキャンし放題に",
   "paywallSubtitle": "連携しないから壊れない。撮るだけで、レシートも明細も AI が読み取ります。",
   "paywallFreeQuota": "今月の無料スキャン {used}/{limit}",
   "@paywallFreeQuota": {
@@ -152,7 +152,7 @@
       }
     }
   },
-  "paywallBenefitUnlimitedScans": "スキャン無制限",
+  "paywallBenefitUnlimitedScans": "スキャンし放題",
   "paywallBenefitFullHistory": "全期間の履歴",
   "paywallBenefitFutureFeatures": "今後の新機能",
   "paywallMonthlyPlan": "月額",
@@ -181,8 +181,9 @@
   "paywallRestoreNotFound": "復元できる購入がありません",
   "paywallPurchased": "プレミアムを開始しました。スキャンし放題です!",
   "paywallPremiumActive": "プレミアム利用中",
-  "paywallPremiumActiveDescription": "スキャン無制限と全期間の履歴が使えます。",
+  "paywallPremiumActiveDescription": "スキャンし放題と全期間の履歴が使えます。",
   "paywallOfferingUnavailable": "料金プランを取得できませんでした",
+  "paywallFairUseNote": "スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。",
   "paywallSubscriptionNote": "購入の確認時にストアのアカウントに課金されます。期間終了の24時間前までに解約しない限り自動更新されます。解約・管理はストアのアカウント設定から行えます。",
   "settingsPlan": "プラン",
   "planFree": "無料",

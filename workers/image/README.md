@@ -9,7 +9,7 @@ Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github
 
 設計の決定は `documents/adr/0001-tech-stack.md` の「画像ストレージ」「画像解析」を参照。
 
-AI 画像解析 (Gemini) は、スキャン無料枠 (uid ごとの月次回数・entitlement 判定) をサーバー側で強制するため本 Worker の解析エンドポイント (`POST /analyses`) が担う。Gemini の API キーは Worker の secret にだけ置き、クライアントへ配布しない。無料枠 (月10スキャン。documents/PROJECT.md の課金設計) を超えた解析は、RevenueCat のプレミアム entitlement をサーバー側で確認したユーザーだけに許可する (`src/entitlement.ts`。クライアント申告のプレミアム状態は信用しない)。
+AI 画像解析 (Gemini) は、スキャン無料枠 (uid ごとの月次回数・entitlement 判定) をサーバー側で強制するため本 Worker の解析エンドポイント (`POST /analyses`) が担う。Gemini の API キーは Worker の secret にだけ置き、クライアントへ配布しない。無料枠 (月50スキャン。documents/PROJECT.md の課金設計) を超えた解析は、RevenueCat のプレミアム entitlement をサーバー側で確認したユーザーだけに許可する (`src/entitlement.ts`。クライアント申告のプレミアム状態は信用しない)。
 
 ## API
 
@@ -45,11 +45,39 @@ multipart/form-data の `file` フィールドで画像をアップロードす�
 - Gemini は `generateContent` を構造化出力 (`responseSchema`) で 1 回呼ぶステートレスな呼び出しで、画像・結果とも Gemini 側に保存しない。モデルは wrangler.jsonc の `GEMINI_MODEL`。プロンプト・出力スキーマ・出力の検証は `src/analysis.ts`
 - レスポンス: `200 {"transactions": [{"title": "店名", "amount": 872, "transactionDate": "2026-08-16" | null, "type": "income" | "expense", "category": "food" | "eatingOut" | "dailyGoods" | "transportation" | "subscription" | "salary" | "other"}]}`。`type` / `category` は Flutter 側 Entity (`lib/entity/transaction.dart`) と同じ enum 名。紙のレシートは 1 枚 1 件 (合計金額)、明細スクショは取引ごとに 1 件、明細が写っていなければ空配列
 - Gemini API のエラーは 502 でエラー本文をそのまま返す (クライアントは手動入力へフォールバックする)
-- スキャン無料枠: uid ごとに今月 (UTC の暦月) の解析回数を数え、`src/handler.ts` の `monthlyFreeScanLimit` (10) までは無条件に解析する。使い切った後は RevenueCat API v2 の `active_entitlements` を uid (= クライアントが `Purchases.logIn` に渡す app user ID) で引き、`REVENUECAT_PREMIUM_ENTITLEMENT_ID` の entitlement が有効なら解析する (回数は記録し続ける)。有効でなければ `402 {"error": "...", "monthlyScanCount": 10, "monthlyFreeScanLimit": 10}` を返し、クライアントはペイウォールを表示する。RevenueCat API の失敗 (5xx・接続不能) は 402 と区別して 503 で返す (再試行可)。判定は日次上限 (429) の後、Gemini 呼び出しの前に行い、無料枠内の解析では RevenueCat を呼ばない。RevenueCat の設定 (`REVENUECAT_SECRET_API_KEY` / `REVENUECAT_PROJECT_ID` / `REVENUECAT_PREMIUM_ENTITLEMENT_ID`) が無い環境では全ユーザーを無料プランとして扱う (無料枠だけを強制する fail-closed)。回数の判定と加算は月次シングルトンの Durable Object (`src/usage_counter.ts`。日次カウンターと同じクラスの別インスタンス) で直列化する
+- スキャン無料枠: uid ごとに今月 (UTC の暦月) の解析回数を数え、`src/handler.ts` の `monthlyFreeScanLimit` (50) までは無条件に解析する。使い切った後は RevenueCat API v2 の `active_entitlements` を uid (= クライアントが `Purchases.logIn` に渡す app user ID) で引き、`REVENUECAT_PREMIUM_ENTITLEMENT_ID` の entitlement が有効なら `monthlyPremiumScanLimit` (1000。プレミアムでも LLM 原価の上限を固定する月次キャップ。到達時は 429) の範囲で解析する。有効でなければ `402 {"error": "...", "monthlyScanCount": 50, "monthlyFreeScanLimit": 50}` を返し、クライアントはペイウォールを表示する。RevenueCat API の失敗 (5xx・接続不能) は 402 と区別して 503 で返す (再試行可)。判定は日次上限 (429) の後、Gemini 呼び出しの前に行い、無料枠内の解析では RevenueCat を呼ばない。RevenueCat の設定 (`REVENUECAT_SECRET_API_KEY` / `REVENUECAT_PROJECT_ID` / `REVENUECAT_PREMIUM_ENTITLEMENT_ID`) が無い環境では全ユーザーを無料プランとして扱う (無料枠だけを強制する fail-closed)。回数の判定と加算は月次シングルトンの Durable Object (`src/usage_counter.ts`。日次カウンターと同じクラスの別インスタンス) で直列化する
 
 ### GET /analyses/quota
 
-今月のスキャン (解析) 回数と無料枠の上限を返す: `200 {"monthlyScanCount": 3, "monthlyFreeScanLimit": 10}`。クライアントは残量チップの表示 (`monthlyFreeScanLimit - monthlyScanCount`) と、残量 0 でのペイウォール表示判定に使う。プレミアムかどうかはクライアントが RevenueCat SDK (`CustomerInfo`) から直接得るため含めない。
+今月のスキャン (解析) 回数と無料枠の上限を返す: `200 {"monthlyScanCount": 3, "monthlyFreeScanLimit": 50}`。クライアントは残量チップの表示 (`monthlyFreeScanLimit - monthlyScanCount`) と、残量 0 でのペイウォール表示判定に使う。プレミアムかどうかはクライアントが RevenueCat SDK (`CustomerInfo`) から直接得るため含めない。
+
+## スキャン原価 (実測)
+
+1 スキャンあたりの LLM 原価の実測 (issue #50。2026-08-22、合成テスト画像 4 枚: 紙レシート2・明細スクショ2、円換算 150円/USD)。
+単価の出典は https://ai.google.dev/gemini-api/docs/pricing (thinking トークンは output 単価で課金)。
+
+| 構成 | 平均原価/スキャン | 抽出精度 (店名・金額・日付・カテゴリ・件数) |
+| --- | --- | --- |
+| gemini-3.7-flash (旧採用・既定設定) | 約 ¥0.38 | 全問一致 |
+| gemini-3.7-flash + thinkingLevel low | 約 ¥0.27 | 全問一致 |
+| **gemini-3.1-flash-lite (採用・既定設定)** | **約 ¥0.09** | **全問一致 (劣化画像セットでも全問一致)** |
+| gemini-3.1-flash-lite + mediaResolution low (単独) | 約 ¥0.06 | 全問一致 (不採用: 下記) |
+
+- 採用: モデルを `gemini-3.1-flash-lite` へ切替 (原価 約1/4)。thinking は既定で発生しない。カテゴリ判定の揺れ (EC の家電・ガジェットが dailyGoods になる) はプロンプトのカテゴリ定義の明確化 (`src/analysis.ts`) で解消を確認済み
+- 不採用: `mediaResolution` の引き下げ (単独実測で入力 1,396→598 トークン・原価 約34% 減 (¥0.089→¥0.059) と削減は大きいが、画像のトークン割当が約1/4 になるため、実レシートの細かい印字の読み取り低下リスクを合成画像だけでは否定できず見送り。実レシートでの精度検証とセットで再検討する。既定は画像1枚 約1,120トークンの固定割当)。thinkingLevel low の付与 (3.1-flash-lite は既定 thinking なしのため、付与すると逆に thinking が発生して原価増)。クライアント縮小の強化 (画像のトークン数は mediaResolution 固定割当のため長辺 1600→1024 でも入力トークン不変)。同一画像の再解析キャッシュ (再試行頻度が未知で効果を見積もれないため見送り)
+- 月額原価の目安: 無料ユーザー上限 = 月50スキャン × ¥0.09 ≒ ¥4.5/ユーザー。プレミアム上限 = 月1000スキャン × ¥0.09 ≒ ¥90/ユーザー (< 月額 ¥480)
+- 再実測の手順 (workers/image で。API キーは `.dev.vars` の `GEMINI_API_KEY`)。フィクスチャ生成に Pillow を使うため、初回のみ `scripts/requirements.txt` で導入する (実測時のバージョンで結果が再現するようピン留めしている):
+
+```sh
+python3 -m pip install -r scripts/requirements.txt   # 初回のみ
+python3 scripts/generate-analysis-fixtures.py
+node --experimental-strip-types scripts/measure-analysis-cost.mjs            # 全構成
+node --experimental-strip-types scripts/measure-analysis-cost.mjs 3.1-flash-lite-baseline   # 構成指定
+FIXTURES_DIR=tmp/analysis-fixtures-degraded node --experimental-strip-types scripts/measure-analysis-cost.mjs 3.1-flash-lite-baseline   # 劣化セット
+```
+
+- 本番のトークン数は `src/analysis.ts` が解析ごとに `{"event":"gemini_usage",...}` の構造化ログで記録する (Workers のログで集計できる)
+- **実レシートベンチマーク**: Wikimedia Commons の再配布可能な実レシート 8 枚 (`benchmark/`) で、モデル・プロンプト変更時の品質回帰を検証する。基準値 (採用構成で全項目一致 8/8・約 ¥0.070/スキャン)・出典・実行手順は `benchmark/README.md` を参照。実レシートでも mediaResolution low は全項目一致 (約 ¥0.040) だったため、上記の不採用判断はサンプル数を増やした上で再検討の余地がある
 
 ## 開発
 

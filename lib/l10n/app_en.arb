@@ -275,9 +275,9 @@
       }
     }
   },
-  "scanQuotaUnlimited": "Unlimited scans",
+  "scanQuotaUnlimited": "Scan freely",
   "scanQuotaExhausted": "You've used all free scans this month",
-  "paywallTitle": "Go unlimited with Premium",
+  "paywallTitle": "Scan freely with Premium",
   "paywallSubtitle": "No account linking. Just snap, and Premium reads every receipt and statement for you.",
   "paywallFreeQuota": "Free scans this month {used}/{limit}",
   "@paywallFreeQuota": {
@@ -290,7 +290,7 @@
       }
     }
   },
-  "paywallBenefitUnlimitedScans": "Unlimited scans",
+  "paywallBenefitUnlimitedScans": "Scan freely",
   "paywallBenefitFullHistory": "Full history, every month",
   "paywallBenefitFutureFeatures": "Upcoming features",
   "paywallMonthlyPlan": "Monthly",
@@ -317,10 +317,11 @@
   "paywallRestore": "Restore purchases",
   "paywallRestored": "Purchases restored. Premium is active.",
   "paywallRestoreNotFound": "No purchases to restore",
-  "paywallPurchased": "Premium is active. Scan as much as you like!",
+  "paywallPurchased": "Premium is active. Scan freely!",
   "paywallPremiumActive": "Premium is active",
-  "paywallPremiumActiveDescription": "You have unlimited scans and full history.",
+  "paywallPremiumActiveDescription": "You can scan freely and browse your full history.",
   "paywallOfferingUnavailable": "Plans are unavailable right now",
+  "paywallFairUseNote": "Scanning is subject to a monthly fair-use limit that typical use won't reach.",
   "paywallSubscriptionNote": "Payment is charged to your store account at confirmation. The subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel it in your store account settings.",
   "settingsPlan": "Plan",
   "planFree": "Free",

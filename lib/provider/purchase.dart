@@ -49,7 +49,7 @@ final customerInfoProvider = StreamProvider<CustomerInfo?>((ref) {
   return customerInfoStreamController.stream;
 });
 
-/// プレミアム (スキャン無制限 + 全履歴) が有効かどうか。取得前・SDK 未初期化・取得失敗は false。
+/// プレミアム (スキャンし放題 + 全履歴) が有効かどうか。取得前・SDK 未初期化・取得失敗は false。
 ///
 /// サーバー側の判定は Worker が RevenueCat に直接問い合わせるため (workers/image/src/entitlement.ts)、
 /// この値は UI の表示 (残量チップ・ペイウォールの出し分け) にだけ使う。

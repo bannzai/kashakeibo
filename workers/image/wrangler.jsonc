@@ -55,8 +55,9 @@
         "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
         // App Check の JWKS キャッシュの KV キー名 (同じ KV namespace 内で PUBLIC_JWK_CACHE_KEY と別キーにする)
         "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache",
-        // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
-        "GEMINI_MODEL": "gemini-3.7-flash",
+        // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)。
+        // gemini-3.7-flash から切替 (issue #50)。実測で抽出精度は同等のまま原価が約1/4 (README の「スキャン原価」)
+        "GEMINI_MODEL": "gemini-3.1-flash-lite",
         // スキャン無料枠超過時のプレミアム判定に使う RevenueCat の project (Kashakeibo-dev) と、プレミアム entitlement の ID。
         // secret API key は wrangler secret REVENUECAT_SECRET_API_KEY (README のデプロイ手順)。
         // secret が未登録の間は Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)
@@ -108,8 +109,9 @@
         "PUBLIC_JWK_CACHE_KEY": "firebase-public-jwk-cache",
         // App Check の JWKS キャッシュの KV キー名 (同じ KV namespace 内で PUBLIC_JWK_CACHE_KEY と別キーにする)
         "APP_CHECK_JWKS_CACHE_KEY": "firebase-app-check-jwks-cache",
-        // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)
-        "GEMINI_MODEL": "gemini-3.7-flash",
+        // 明細抽出 (POST /analyses) に使う Gemini のモデル ID。API キーは secret GEMINI_API_KEY (README のデプロイ手順)。
+        // gemini-3.7-flash から切替 (issue #50)。実測で抽出精度は同等のまま原価が約1/4 (README の「スキャン原価」)
+        "GEMINI_MODEL": "gemini-3.1-flash-lite",
         // スキャン無料枠超過時のプレミアム判定に使う RevenueCat の project (Kashakeibo) と、プレミアム entitlement の ID。
         // secret API key は wrangler secret REVENUECAT_SECRET_API_KEY (README のデプロイ手順)。
         // secret が未登録の間は Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)

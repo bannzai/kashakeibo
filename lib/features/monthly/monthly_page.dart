@@ -281,7 +281,7 @@ class MonthlyPage extends HookConsumerWidget {
 /// 明細リストのセクション行「とった記録」と、右端のスキャン残量チップ
 /// (design_handoff_kashakeibo/README.md のホーム「セクション行」)。
 ///
-/// チップは無料プランなら「スキャン残り n 回」、プレミアムなら「スキャン無制限」。
+/// チップは無料プランなら「スキャン残り n 回」、プレミアムなら「スキャンし放題」。
 /// タップでペイウォールを開く。残量が未取得 (Worker 未接続等) の無料プランでは表示しない。
 class _CapturesSectionRow extends StatelessWidget {
   /// プレミアムかどうか。

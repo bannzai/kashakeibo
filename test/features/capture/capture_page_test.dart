@@ -546,10 +546,10 @@ void main() {
         analyzeCallCount++;
         if (analyzeCallCount == 1) {
           throw const ScanQuotaExceededException(
-            message: '今月の無料スキャン (10回) を使い切りました',
+            message: '今月の無料スキャン (50回) を使い切りました',
             scanQuota: ScanQuota(
-              monthlyScanCount: 10,
-              monthlyFreeScanLimit: 10,
+              monthlyScanCount: 50,
+              monthlyFreeScanLimit: 50,
             ),
           );
         }
@@ -581,7 +581,7 @@ void main() {
         firebaseUserChangesProvider.overrideWith((ref) => Stream.value(null)),
         fetchScanQuotaProvider.overrideWithValue(
           () async =>
-              const ScanQuota(monthlyScanCount: 10, monthlyFreeScanLimit: 10),
+              const ScanQuota(monthlyScanCount: 50, monthlyFreeScanLimit: 50),
         ),
         isPremiumProvider.overrideWithValue(false),
         premiumOfferingProvider.overrideWith(
@@ -620,8 +620,8 @@ void main() {
     useTallViewport(tester);
     final captureFakes = CaptureFakes(
       analyze: () async => throw const ScanQuotaExceededException(
-        message: '今月の無料スキャン (10回) を使い切りました',
-        scanQuota: ScanQuota(monthlyScanCount: 10, monthlyFreeScanLimit: 10),
+        message: '今月の無料スキャン (50回) を使い切りました',
+        scanQuota: ScanQuota(monthlyScanCount: 50, monthlyFreeScanLimit: 50),
       ),
     );
 
@@ -634,7 +634,7 @@ void main() {
         firebaseUserChangesProvider.overrideWith((ref) => Stream.value(null)),
         fetchScanQuotaProvider.overrideWithValue(
           () async =>
-              const ScanQuota(monthlyScanCount: 10, monthlyFreeScanLimit: 10),
+              const ScanQuota(monthlyScanCount: 50, monthlyFreeScanLimit: 50),
         ),
         isPremiumProvider.overrideWithValue(false),
         premiumOfferingProvider.overrideWith((ref) async => null),
@@ -656,7 +656,7 @@ void main() {
       findsOneWidget,
     );
     // Worker のエラー文をそのまま表示する
-    expect(find.text('今月の無料スキャン (10回) を使い切りました'), findsOneWidget);
+    expect(find.text('今月の無料スキャン (50回) を使い切りました'), findsOneWidget);
     expect(
       find.text(AppLocalizationsEn().captureManualFallback),
       findsOneWidget,

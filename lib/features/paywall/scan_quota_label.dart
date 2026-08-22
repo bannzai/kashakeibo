@@ -3,7 +3,7 @@ import 'package:kashakeibo/l10n/app_localizations.dart';
 
 /// 今月のスキャン残量の表示文言 (残量チップ・「記録する」シートの下部で共用)。
 ///
-/// プレミアムなら「スキャン無制限」、無料プランなら残り回数 (0 未満にはしない)。
+/// プレミアムなら「スキャンし放題」、無料プランなら残り回数 (0 未満にはしない)。
 /// [scanQuota] が未取得 (null) で無料プランの場合は表示するものが無いため空文字。
 String scanQuotaLabel({
   required AppLocalizations l10n,

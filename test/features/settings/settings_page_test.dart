@@ -51,7 +51,7 @@ Widget buildSettingsApp({
     // プラン行から開くペイウォール用。Offering 無し (SDK 未設定相当) で表示だけ確認する
     fetchScanQuotaProvider.overrideWithValue(
       () async =>
-          const ScanQuota(monthlyScanCount: 2, monthlyFreeScanLimit: 10),
+          const ScanQuota(monthlyScanCount: 2, monthlyFreeScanLimit: 50),
     ),
     premiumOfferingProvider.overrideWith((ref) async => null),
     purchasePremiumPackageProvider.overrideWithValue(

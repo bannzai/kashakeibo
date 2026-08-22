@@ -20,7 +20,7 @@
 ・口座連携型の家計簿アプリで、連携切れにうんざりした人
 
 ■ プレミアムプラン
-無料でも毎月一定回数のAIスキャンが使えます。プレミアムプランではスキャン無制限・全履歴の閲覧が可能です。
+無料でも毎月一定回数のAIスキャンが使えます。プレミアムプランではスキャンし放題・全履歴の閲覧が可能です。
 
 利用規約: https://bannzai.github.io/kashakeibo/Terms
 プライバシーポリシー: https://bannzai.github.io/kashakeibo/PrivacyPolicy
