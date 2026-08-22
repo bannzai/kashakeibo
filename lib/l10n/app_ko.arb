@@ -120,5 +120,6 @@
   "paywallAnnualPlan": "연간",
   "paywallRecommended": "최고 혜택",
   "paywallAnnualSavings": "{percent}% 할인",
-  "paywallPerMonthEquivalent": "{price}/월"
+  "paywallPerMonthEquivalent": "{price}/월",
+  "paywallStartPremium": "프리미엄 이용 시작"
 }

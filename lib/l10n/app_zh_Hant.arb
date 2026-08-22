@@ -120,5 +120,6 @@
   "paywallAnnualPlan": "年付",
   "paywallRecommended": "最划算",
   "paywallAnnualSavings": "節省 {percent}%",
-  "paywallPerMonthEquivalent": "{price}/月"
+  "paywallPerMonthEquivalent": "{price}/月",
+  "paywallStartPremium": "開通進階版"
 }
