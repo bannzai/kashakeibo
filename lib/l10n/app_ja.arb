@@ -32,8 +32,8 @@
   "accountBackupTitle": "バックアップ",
   "accountBackupNotSet": "未設定",
   "accountBackupConfigured": "設定済み",
-  "accountBackupDescription": "アカウントをリンクすると、機種変更してもデータが引き継げます。",
-  "accountBackupConfiguredDescription": "別の端末で同じアカウントを選ぶと、保存済みのデータを引き継げます。",
+  "accountBackupDescription": "アカウントをリンクすると、機種変更してもデータが引き継げます",
+  "accountBackupConfiguredDescription": "別の端末で同じアカウントを選ぶと、保存済みのデータを引き継げます",
   "linkOrSignInWithApple": "Appleでリンク",
   "linkOrSignInWithGoogle": "Googleでリンク",
   "accountLinked": "アカウントをリンクしました",
@@ -89,7 +89,7 @@
   "captureConfirmTitle": "読み取り確認",
   "captureSourceImageNote": "読み取りに使った元画像は、明細からいつでも見返せます",
   "captureRegister": "登録する",
-  "captureCandidatesNote": "{count}件の明細を読み取りました。登録する明細を選んでください",
+  "captureCandidatesNote": "読み取った{count}件から登録する明細を選んでください",
   "@captureCandidatesNote": {
     "placeholders": {
       "count": {
@@ -140,7 +140,9 @@
   "scanQuotaUnlimited": "スキャンし放題",
   "scanQuotaExhausted": "今月の無料スキャンを使い切りました",
   "paywallTitle": "スキャンし放題に",
-  "paywallSubtitle": "連携しないから壊れない。撮るだけで、レシートも明細も AI が読み取ります。",
+  "paywallSubtitle": "連携しないから壊れない。撮るだけでレシートも明細も AI が読み取ります",
+  "paywallSavingsClaim": "家計簿で支出が減った人の約半数が、月5,000〜10,000円の節約を実感*",
+  "paywallSavingsSource": "* 東証マネ部!「お金に関するアンケート」2022年10月・全国20〜40代の会社員1,111名",
   "paywallFreeQuota": "今月の無料スキャン {used}/{limit}",
   "@paywallFreeQuota": {
     "placeholders": {
@@ -177,13 +179,13 @@
   "paywallStartPremium": "プレミアムを始める",
   "paywallCancelAnytime": "いつでも解約できます",
   "paywallRestore": "購入の復元",
-  "paywallRestored": "購入を復元しました。プレミアムが有効です",
+  "paywallRestored": "プレミアムを復元しました",
   "paywallRestoreNotFound": "復元できる購入がありません",
-  "paywallPurchased": "プレミアムを開始しました。スキャンし放題です!",
+  "paywallPurchased": "スキャンし放題のプレミアムを開始しました!",
   "paywallPremiumActive": "プレミアム利用中",
-  "paywallPremiumActiveDescription": "スキャンし放題と全期間の履歴が使えます。",
+  "paywallPremiumActiveDescription": "スキャンし放題と全期間の履歴が使えます",
   "paywallOfferingUnavailable": "料金プランを取得できませんでした",
-  "paywallFairUseNote": "スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。",
+  "paywallFairUseNote": "スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます",
   "paywallSubscriptionNote": "購入の確認時にストアのアカウントに課金されます。期間終了の24時間前までに解約しない限り自動更新されます。解約・管理はストアのアカウント設定から行えます。",
   "settingsPlan": "プラン",
   "planFree": "無料",

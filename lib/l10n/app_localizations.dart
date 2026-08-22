@@ -776,6 +776,18 @@ abstract class AppLocalizations {
   /// **'No account linking. Just snap, and Premium reads every receipt and statement for you.'**
   String get paywallSubtitle;
 
+  /// ペイウォールの節約効果訴求。出典: 東証マネ部!「お金に関するアンケート」(2022年10月、n=1,111) https://money-bu-jpx.com/news/article042167/ — 家計簿で支出が減った人 (34.1%) のうち 48.6% が月5,000円〜1万円未満の節約と回答。数字は原典と一致させること
+  ///
+  /// In en, this message translates to:
+  /// **'About half of people who cut spending with a household budget saved ¥5,000–10,000 a month*'**
+  String get paywallSavingsClaim;
+
+  /// 節約効果訴求の出典注記 (調査主体・時期・N数)
+  ///
+  /// In en, this message translates to:
+  /// **'* Survey by JPX\'s Money-bu! (Oct 2022, 1,111 office workers in Japan)'**
+  String get paywallSavingsSource;
+
   /// No description provided for @paywallFreeQuota.
   ///
   /// In en, this message translates to:

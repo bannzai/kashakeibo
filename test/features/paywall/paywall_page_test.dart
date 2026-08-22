@@ -124,6 +124,14 @@ Future<void> pumpPaywall(
   await tester.pumpAndSettle();
 }
 
+/// 購入 CTA まで ListView をスクロールしてタップする (テストの画面高では CTA が画面外のため)。
+Future<void> tapStartPremium(WidgetTester tester) async {
+  await tester.ensureVisible(find.text('プレミアムを始める'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('プレミアムを始める'));
+  await tester.pumpAndSettle();
+}
+
 /// ペイウォール下部の「購入の復元」まで ListView をスクロールする (テストの画面高では下部が画面外のため)。
 Future<void> scrollToRestoreLink(WidgetTester tester) =>
     tester.scrollUntilVisible(
@@ -154,6 +162,12 @@ void main() {
       );
 
       expect(find.text('スキャンし放題に'), findsOneWidget);
+      // 節約効果の訴求と出典注記 (東証マネ部!「お金に関するアンケート」2022年10月・n=1,111)
+      expect(find.text('家計簿で支出が減った人の約半数が、月5,000〜10,000円の節約を実感*'), findsOneWidget);
+      expect(
+        find.text('* 東証マネ部!「お金に関するアンケート」2022年10月・全国20〜40代の会社員1,111名'),
+        findsOneWidget,
+      );
       expect(find.text('今月の無料スキャン 7/50'), findsOneWidget);
       expect(find.text('スキャンし放題'), findsOneWidget);
       expect(find.text('全期間の履歴'), findsOneWidget);
@@ -166,7 +180,7 @@ void main() {
       expect(find.text('購入の復元'), findsOneWidget);
       // 「スキャンし放題」と月次上限を両立させるフェアユースの注記 (workers/image の monthlyPremiumScanLimit)
       expect(
-        find.text('スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。'),
+        find.text('スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます'),
         findsOneWidget,
       );
 
@@ -174,7 +188,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(purchasedPackage, annualPackage);
       expect(paywallResult, isTrue);
-      expect(find.text('スキャンし放題に'), findsNothing);
+      expect(find.byType(PaywallPage), findsNothing);
     },
   );
 
@@ -195,10 +209,11 @@ void main() {
       onPaywallClosed: (_) {},
     );
 
+    await tester.ensureVisible(find.text('¥480'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('¥480'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('プレミアムを始める'));
-    await tester.pumpAndSettle();
+    await tapStartPremium(tester);
     expect(purchasedPackage, monthlyPackage);
   });
 
@@ -221,10 +236,10 @@ void main() {
       onPaywallClosed: (result) => paywallResult = result,
     );
 
-    await tester.tap(find.text('プレミアムを始める'));
-    await tester.pumpAndSettle();
+    await tapStartPremium(tester);
     expect(find.byType(SnackBar), findsNothing);
-    expect(find.text('スキャンし放題に'), findsOneWidget);
+    // 見出しは CTA までスクロールすると画面外になるため、ページ自体が残っているかで判定する
+    expect(find.byType(PaywallPage), findsOneWidget);
     expect(paywallResult, isFalse);
   });
 
@@ -246,8 +261,7 @@ void main() {
       onPaywallClosed: (_) {},
     );
 
-    await tester.tap(find.text('プレミアムを始める'));
-    await tester.pumpAndSettle();
+    await tapStartPremium(tester);
     expect(
       find.textContaining('There was a problem with the store.'),
       findsOneWidget,
@@ -303,6 +317,8 @@ void main() {
     expect(find.text('プレミアムを始める'), findsNothing);
     expect(find.text('¥3,800'), findsNothing);
     expect(find.textContaining('今月の無料スキャン'), findsNothing);
+    // 節約効果の訴求は購入前の判断材料なので、プレミアム利用中は出さない
+    expect(find.textContaining('節約を実感'), findsNothing);
   });
 
   testWidgets('Offering が取得できない (SDK 未設定) 場合は料金プランを取得できない旨を表示する', (
