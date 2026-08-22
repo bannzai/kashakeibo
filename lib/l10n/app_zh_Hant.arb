@@ -103,5 +103,6 @@
   "transactionDetailExcludeFromAggregation": "不計入總額",
   "transactionDetailExcludeFromAggregationDescription": "開啟後，將不計入總額和分類明細",
   "transactionProvenanceAutomatic": "自動匯入",
-  "transactionProvenanceAdjusted": "已調整"
+  "transactionProvenanceAdjusted": "已調整",
+  "capturesSection": "截圖記錄"
 }
