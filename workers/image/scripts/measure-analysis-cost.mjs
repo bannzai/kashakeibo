@@ -103,6 +103,11 @@ async function measureSingleAnalysis({ geminiApiKey, model, costTuningConfig, im
   };
 }
 
+/** タイトル一致判定用の正規化 (空白除去・小文字化)。 */
+function normalizeTitle(title) {
+  return (title ?? "").replace(/\s+/g, "").toLowerCase();
+}
+
 /** 抽出結果を正解データと突き合わせ、正解明細ごとの一致状況を返す。金額で突き合わせる (同一画像内で金額は一意)。 */
 function scoreAgainstGroundTruth({ expectedTransactions, analysisResult }) {
   return {
@@ -115,6 +120,13 @@ function scoreAgainstGroundTruth({ expectedTransactions, analysisResult }) {
       return {
         expectedTitle: expectedTransaction.title,
         amountMatched: extractedTransaction !== undefined,
+        // 抽出側は「Amazon.co.jp ワイヤレスイヤホン…」のようにサイト名等の前置きが付くことがあるため、
+        // 正規化後の包含 (どちらか一方が他方を含む) を一致とみなす。誤読・空文字は不一致になる
+        titleMatched:
+          extractedTransaction !== undefined &&
+          normalizeTitle(extractedTransaction.title) !== "" &&
+          (normalizeTitle(extractedTransaction.title).includes(normalizeTitle(expectedTransaction.title)) ||
+            normalizeTitle(expectedTransaction.title).includes(normalizeTitle(extractedTransaction.title))),
         dateMatched: extractedTransaction?.transactionDate === expectedTransaction.transactionDate,
         typeMatched: extractedTransaction?.type === expectedTransaction.type,
         categoryMatched: extractedTransaction?.category === expectedTransaction.category,
@@ -150,7 +162,7 @@ for (const configKey of configKeysToRun) {
       analysisResult: measurement.analysisResult,
     });
     const fieldMatchCount = score.matches.filter(
-      (match) => match.amountMatched && match.dateMatched && match.typeMatched && match.categoryMatched,
+      (match) => match.amountMatched && match.titleMatched && match.dateMatched && match.typeMatched && match.categoryMatched,
     ).length;
     console.log(
       `${imageFileName}: in=${measurement.promptTokenCount} think=${measurement.thoughtsTokenCount} out=${measurement.candidatesTokenCount}` +
@@ -158,7 +170,7 @@ for (const configKey of configKeysToRun) {
         ` 明細 ${score.extractedCount}/${score.expectedCount}件 全項目一致 ${fieldMatchCount}/${score.expectedCount}件`,
     );
     for (const match of score.matches) {
-      if (!(match.amountMatched && match.dateMatched && match.typeMatched && match.categoryMatched)) {
+      if (!(match.amountMatched && match.titleMatched && match.dateMatched && match.typeMatched && match.categoryMatched)) {
         console.log(`  不一致: ${match.expectedTitle} -> ${JSON.stringify(match)}`);
       }
     }

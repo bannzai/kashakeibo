@@ -56,7 +56,7 @@ multipart/form-data の `file` フィールドで画像をアップロードす�
 1 スキャンあたりの LLM 原価の実測 (issue #50。2026-08-22、合成テスト画像 4 枚: 紙レシート2・明細スクショ2、円換算 150円/USD)。
 単価の出典は https://ai.google.dev/gemini-api/docs/pricing (thinking トークンは output 単価で課金)。
 
-| 構成 | 平均原価/スキャン | 抽出精度 (金額・日付・件数) |
+| 構成 | 平均原価/スキャン | 抽出精度 (店名・金額・日付・カテゴリ・件数) |
 | --- | --- | --- |
 | gemini-3.7-flash (旧採用・既定設定) | 約 ¥0.38 | 全問一致 |
 | gemini-3.7-flash + thinkingLevel low | 約 ¥0.27 | 全問一致 |
