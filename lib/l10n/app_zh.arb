@@ -39,5 +39,6 @@
   "cancel": "取消",
   "delete": "删除",
   "categoryFood": "食品",
-  "categoryEatingOut": "外出就餐"
+  "categoryEatingOut": "外出就餐",
+  "categoryDailyGoods": "日用品"
 }

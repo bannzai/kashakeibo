@@ -39,5 +39,6 @@
   "cancel": "취소",
   "delete": "삭제",
   "categoryFood": "식비",
-  "categoryEatingOut": "외식"
+  "categoryEatingOut": "외식",
+  "categoryDailyGoods": "생활용품"
 }
