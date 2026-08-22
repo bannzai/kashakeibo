@@ -49,5 +49,6 @@
   "manualEntryTitle": "手動輸入",
   "manualEntryAmount": "金額",
   "manualEntryAmountRequired": "請輸入至少 1 日圓的金額",
-  "manualEntryStore": "商店或備註"
+  "manualEntryStore": "商店或備註",
+  "manualEntryDefaultTitle": "現金支出"
 }
