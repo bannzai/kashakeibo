@@ -77,5 +77,6 @@
   "captureAnalysisNoTransactions": "無法從圖片中讀取交易紀錄",
   "captureRetry": "再試一次",
   "captureManualFallback": "手動輸入",
-  "captureRetake": "重新拍攝"
+  "captureRetake": "重新拍攝",
+  "captureConfirmTitle": "檢視明細"
 }
