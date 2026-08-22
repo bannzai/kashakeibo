@@ -106,5 +106,6 @@
   "transactionProvenanceAdjusted": "已调整",
   "capturesSection": "截图记录",
   "scanQuotaRemaining": "剩余 {count} 次扫描",
-  "scanQuotaUnlimited": "无限扫描"
+  "scanQuotaUnlimited": "无限扫描",
+  "scanQuotaExhausted": "本月免费扫描次数已用完"
 }

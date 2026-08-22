@@ -106,5 +106,6 @@
   "transactionProvenanceAdjusted": "已調整",
   "capturesSection": "截圖記錄",
   "scanQuotaRemaining": "剩餘 {count} 次掃描",
-  "scanQuotaUnlimited": "無限掃描"
+  "scanQuotaUnlimited": "無限掃描",
+  "scanQuotaExhausted": "本月免費掃描次數已用完"
 }
