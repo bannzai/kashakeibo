@@ -91,5 +91,6 @@
   "transactionDetailNoImage": "暂无原图",
   "transactionDetailZoom": "缩放",
   "transactionDetailDeleteImage": "仅删除图片",
-  "transactionDetailDeleteImageConfirmationTitle": "要删除原始图片吗？"
+  "transactionDetailDeleteImageConfirmationTitle": "要删除原始图片吗？",
+  "transactionDetailDeleteImageConfirmationMessage": "交易记录会保留，仅删除图片。此操作无法撤销。"
 }
