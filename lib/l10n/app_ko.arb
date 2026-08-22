@@ -6,5 +6,6 @@
   "monthlyBalance": "잔액",
   "categoryBreakdown": "카테고리",
   "monthlyTransactionsEmpty": "이번 달 거래 내역이 없습니다",
-  "excludedFromAggregation": "제외됨"
+  "excludedFromAggregation": "제외됨",
+  "duplicateCandidateReviewHint": "탭하여 검토"
 }
