@@ -14,5 +14,6 @@
   "duplicateCandidateKeep": "保留這筆交易",
   "mergeDuplicateCandidate": "合併為一筆",
   "keepBothDuplicateCandidates": "分別保留為支出",
-  "previousMonth": "上個月"
+  "previousMonth": "上個月",
+  "nextMonth": "下個月"
 }
