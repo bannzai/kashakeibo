@@ -363,7 +363,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get paywallSubtitle => '連携しないから壊れない。撮るだけでレシートも明細も AI が読み取ります';
 
   @override
-  String get paywallSavingsClaim => '家計簿で支出が減った人の約半数が、月5,000〜10,000円の節約を実感*';
+  String get paywallSavingsClaim => '家計簿で支出が減った人の約半数が、月5,000円〜1万円未満の節約を実感*';
 
   @override
   String get paywallSavingsSource =>

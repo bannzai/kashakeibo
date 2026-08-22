@@ -126,7 +126,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteAccountConfirmationTitle => '要删除您的账户吗？';
 
   @override
-  String get deleteAccountConfirmationMessage => '您的帳戶和已儲存的交易記錄將永久刪除，且無法復原。';
+  String get deleteAccountConfirmationMessage => '您的账户和已保存的交易记录将永久删除，且无法恢复。';
 
   @override
   String get cancel => '取消';
@@ -376,7 +376,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get paywallSubtitle => '无需关联账户。拍照即可，高级版会为您读取每张收据和每份账单。';
 
   @override
-  String get paywallSavingsClaim => '通过记账减少支出的人中，约一半每月节省了¥5,000–10,000*';
+  String get paywallSavingsClaim => '通过记账减少支出的人中，约一半每月节省 ¥5,000 至不足 ¥10,000*';
 
   @override
   String get paywallSavingsSource =>
@@ -437,7 +437,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get paywallPremiumActive => '高级版已启用';
 
   @override
-  String get paywallPremiumActiveDescription => '您可以不限次數掃描並查看完整記錄。';
+  String get paywallPremiumActiveDescription => '您可以不限次数扫描并查看完整记录。';
 
   @override
   String get paywallOfferingUnavailable => '目前暂时无法获取套餐';
@@ -831,7 +831,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get paywallSubtitle => '无需关联账户。拍照即可，高级版会为您读取每张收据和每份账单。';
 
   @override
-  String get paywallSavingsClaim => '通过记账减少支出的人中，约一半每月节省了¥5,000–10,000*';
+  String get paywallSavingsClaim => '通过记账减少支出的人中，约一半每月节省 ¥5,000 至不足 ¥10,000*';
 
   @override
   String get paywallSavingsSource =>
@@ -1285,7 +1285,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get paywallSubtitle => '無需連結帳戶。拍照即可，進階版會為您讀取每張收據和每份帳單。';
 
   @override
-  String get paywallSavingsClaim => '透過記帳減少支出的人中，約一半每月省下¥5,000–10,000*';
+  String get paywallSavingsClaim => '透過記帳減少支出的人中，約一半每月省下 ¥5,000 至不足 ¥10,000*';
 
   @override
   String get paywallSavingsSource =>

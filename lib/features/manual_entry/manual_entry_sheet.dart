@@ -14,15 +14,24 @@ import 'package:kashakeibo/style/tokens.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
 
 /// 手動明細入力シートを表示し、登録完了時は true を返す。
+///
+/// キャンセルの記録は dismiss 経路 (閉じるボタン・背景タップ・スワイプ) によらず、
+/// ここで一度だけ行う。
 Future<bool?> showManualEntrySheet({
   required BuildContext context,
   required LogAnalyticsEvent logAnalyticsEvent,
-}) => showModalBottomSheet<bool>(
-  context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  builder: (context) => ManualEntrySheet(logAnalyticsEvent: logAnalyticsEvent),
-);
+}) async {
+  final registered = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (context) => ManualEntrySheet(logAnalyticsEvent: logAnalyticsEvent),
+  );
+  if (registered != true) {
+    unawaited(logAnalyticsEvent(name: 'manual_entry_cancel'));
+  }
+  return registered;
+}
 
 /// 金額・日付・店名・カテゴリ・収支種別を入力して明細を登録するシート。
 class ManualEntrySheet extends HookConsumerWidget {
@@ -90,12 +99,7 @@ class ManualEntrySheet extends HookConsumerWidget {
                     ).closeButtonTooltip,
                     onPressed: submitting.value
                         ? null
-                        : () {
-                            unawaited(
-                              logAnalyticsEvent(name: 'manual_entry_cancel'),
-                            );
-                            Navigator.of(context).pop(false);
-                          },
+                        : () => Navigator.of(context).pop(false),
                     icon: const Icon(Icons.close),
                   ),
                 ],

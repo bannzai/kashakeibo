@@ -787,28 +787,30 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
             onPressed: isSubmitting.value
                 ? null
                 : () {
+                    // 下側の候補を選択した場合は残す側・削除する側が入れ替わるため、
+                    // 実際にマージへ渡す明細を先に決めてから Analytics に記録する。
+                    final keepPrimary =
+                        selectedTransactionID.value ==
+                        candidate.primaryTransaction.id;
+                    final primaryTransaction = keepPrimary
+                        ? candidate.primaryTransaction
+                        : candidate.duplicateTransaction;
+                    final duplicateTransaction = keepPrimary
+                        ? candidate.duplicateTransaction
+                        : candidate.primaryTransaction;
                     unawaited(
                       logAnalyticsEvent(
                         name: 'duplicate_merge',
                         parameters: {
-                          'primaryTransactionID':
-                              candidate.primaryTransaction.id,
-                          'duplicateTransactionID':
-                              candidate.duplicateTransaction.id,
+                          'primaryTransactionID': primaryTransaction.id,
+                          'duplicateTransactionID': duplicateTransaction.id,
                         },
                       ),
                     );
-                    final keepPrimary =
-                        selectedTransactionID.value ==
-                        candidate.primaryTransaction.id;
                     resolve(
                       operation: () => mergeDuplicateTransactions.call(
-                        primaryTransaction: keepPrimary
-                            ? candidate.primaryTransaction
-                            : candidate.duplicateTransaction,
-                        duplicateTransaction: keepPrimary
-                            ? candidate.duplicateTransaction
-                            : candidate.primaryTransaction,
+                        primaryTransaction: primaryTransaction,
+                        duplicateTransaction: duplicateTransaction,
                       ),
                     );
                   },

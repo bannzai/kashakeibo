@@ -141,7 +141,7 @@
   "scanQuotaExhausted": "今月の無料スキャンを使い切りました",
   "paywallTitle": "スキャンし放題に",
   "paywallSubtitle": "連携しないから壊れない。撮るだけでレシートも明細も AI が読み取ります",
-  "paywallSavingsClaim": "家計簿で支出が減った人の約半数が、月5,000〜10,000円の節約を実感*",
+  "paywallSavingsClaim": "家計簿で支出が減った人の約半数が、月5,000円〜1万円未満の節約を実感*",
   "paywallSavingsSource": "* 東証マネ部!「お金に関するアンケート」2022年10月・全国20〜40代の会社員1,111名",
   "paywallFreeQuota": "今月の無料スキャン {used}/{limit}",
   "@paywallFreeQuota": {

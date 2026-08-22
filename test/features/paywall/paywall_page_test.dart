@@ -163,7 +163,10 @@ void main() {
 
       expect(find.text('スキャンし放題に'), findsOneWidget);
       // 節約効果の訴求と出典注記 (東証マネ部!「お金に関するアンケート」2022年10月・n=1,111)
-      expect(find.text('家計簿で支出が減った人の約半数が、月5,000〜10,000円の節約を実感*'), findsOneWidget);
+      expect(
+        find.text('家計簿で支出が減った人の約半数が、月5,000円〜1万円未満の節約を実感*'),
+        findsOneWidget,
+      );
       expect(
         find.text('* 東証マネ部!「お金に関するアンケート」2022年10月・全国20〜40代の会社員1,111名'),
         findsOneWidget,

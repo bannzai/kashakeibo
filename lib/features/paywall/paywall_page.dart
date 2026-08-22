@@ -421,10 +421,12 @@ class PaywallPage extends HookConsumerWidget {
                       label: l10n.privacyPolicy,
                       document: 'privacy_policy',
                       uri: legalDocumentUri(
+                        // プライバシーポリシーは日本語版と英語版の 2 種類のみ用意しているため、
+                        // 日本語ロケール以外 (en / ko / zh 等) は英語版へフォールバックする。
                         path:
-                            Localizations.localeOf(context).languageCode == 'en'
-                            ? 'PrivacyPolicy-en'
-                            : 'PrivacyPolicy',
+                            Localizations.localeOf(context).languageCode == 'ja'
+                            ? 'PrivacyPolicy'
+                            : 'PrivacyPolicy-en',
                       ),
                       openExternalUri: openExternalUri,
                       logAnalyticsEvent: logAnalyticsEvent,
@@ -485,7 +487,7 @@ String _perMonthPriceString({required Package annualPackage}) =>
 /// (調査時期 2022年10月・全国20〜40代の会社員・有効回答 1,111 件)
 /// https://money-bu-jpx.com/news/article042167/ 。
 /// 家計簿をつけている人のうち「支出が減った」が 34.1%、その支出が減った人のうち
-/// 月「5,000円〜1万円未満」の節約が 48.6% (最多) で、文言の「約半数」「月5,000〜10,000円」は
+/// 月「5,000円〜1万円未満」の節約が 48.6% (最多) で、文言の「約半数」「月5,000円〜1万円未満」は
 /// この 48.6% と価格帯に対応する。文言の数字は原典と一致させる。
 class _SavingsResearchCard extends StatelessWidget {
   const _SavingsResearchCard();

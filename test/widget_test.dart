@@ -476,6 +476,59 @@ void main() {
     expect(result, true);
   });
 
+  testWidgets('手動入力: 閉じるボタン・背景タップのどちらでも manual_entry_cancel を1回だけ記録する', (
+    tester,
+  ) async {
+    final analyticsEvents = <String>[];
+    Future<void> pumpAndOpenSheet() async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            addTransactionProvider.overrideWithValue(
+              _RecordingAddTransaction(),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: TextButton(
+                  onPressed: () async {
+                    await showManualEntrySheet(
+                      context: context,
+                      logAnalyticsEvent: ({required name, parameters}) async {
+                        analyticsEvents.add(name);
+                      },
+                    );
+                  },
+                  child: const Text('Open manual entry'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open manual entry'));
+      await tester.pumpAndSettle();
+    }
+
+    await pumpAndOpenSheet();
+    await tester.tap(
+      find.byTooltip(
+        const DefaultMaterialLocalizations().closeButtonTooltip,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(analyticsEvents, ['manual_entry_cancel']);
+
+    // 背景タップ (barrier) の dismiss でも同じく1回だけ記録されることを確認する。
+    await pumpAndOpenSheet();
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(analyticsEvents, ['manual_entry_cancel', 'manual_entry_cancel']);
+  });
+
   testWidgets('設定画面: 3つの法務ドキュメントを開ける', (tester) async {
     final openedUris = <Uri>[];
     final analyticsEvents = <({String name, String document})>[];
@@ -624,6 +677,87 @@ void main() {
     expect(analyticsEvents.last.parameters, {
       'primaryTransactionID': 'receipt-transaction',
       'duplicateTransactionID': 'card-transaction',
+    });
+  });
+
+  testWidgets('月次一覧: 下側の候補を選んでマージすると残す側・削除する側が入れ替わる', (tester) async {
+    final mergeDuplicateTransactions = _RecordingMergeDuplicateTransactions();
+    final analyticsEvents = <({String name, Map<String, Object>? parameters})>[];
+    final transactions = [
+      buildTransaction(
+        id: 'receipt-transaction',
+        type: TransactionType.expense,
+        amount: 4230,
+        category: TransactionCategory.eatingOut,
+        title: '鳥貴族 三軒茶屋店',
+        excludedFromAggregation: false,
+      ),
+      buildTransaction(
+        id: 'card-transaction',
+        type: TransactionType.expense,
+        amount: 4230,
+        category: TransactionCategory.eatingOut,
+        title: '鳥貴族　三軒茶屋店',
+        excludedFromAggregation: false,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(transactions)),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith(
+            (ref) => duplicateCandidates(transactions: transactions),
+          ),
+          mergeDuplicateTransactionsProvider.overrideWithValue(
+            mergeDuplicateTransactions,
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(
+            logAnalyticsEvent: ({required name, parameters}) async {
+              analyticsEvents.add((name: name, parameters: parameters));
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.text(AppLocalizationsEn().duplicateCandidateReviewHint),
+    );
+    await tester.pumpAndSettle();
+
+    // 明細リストにも同じ店名が並ぶため、確認シート内のカードに絞ってタップする。
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('鳥貴族　三軒茶屋店'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppLocalizationsEn().mergeDuplicateCandidate));
+    await tester.pumpAndSettle();
+
+    expect(
+      mergeDuplicateTransactions.primaryTransaction?.id,
+      'card-transaction',
+    );
+    expect(
+      mergeDuplicateTransactions.duplicateTransaction?.id,
+      'receipt-transaction',
+    );
+    expect(analyticsEvents.last.name, 'duplicate_merge');
+    expect(analyticsEvents.last.parameters, {
+      'primaryTransactionID': 'card-transaction',
+      'duplicateTransactionID': 'receipt-transaction',
     });
   });
 

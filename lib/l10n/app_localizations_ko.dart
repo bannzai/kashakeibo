@@ -382,7 +382,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get paywallSavingsClaim =>
-      '가계부로 지출을 줄인 사람 중 약 절반이 매월 ¥5,000~10,000을 절약했습니다*';
+      '가계부로 지출을 줄인 사람 중 약 절반이 매월 ¥5,000 이상 ¥10,000 미만을 절약했습니다*';
 
   @override
   String get paywallSavingsSource =>

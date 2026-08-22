@@ -393,7 +393,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallSavingsClaim =>
-      'About half of people who cut spending with a household budget saved ¥5,000–10,000 a month*';
+      'About half of people who cut spending with a household budget saved ¥5,000 to under ¥10,000 a month*';
 
   @override
   String get paywallSavingsSource =>
