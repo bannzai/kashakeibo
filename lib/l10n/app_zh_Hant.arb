@@ -47,5 +47,6 @@
   "categoryOther": "其他",
   "manualEntryOpen": "手動輸入",
   "manualEntryTitle": "手動輸入",
-  "manualEntryAmount": "金額"
+  "manualEntryAmount": "金額",
+  "manualEntryAmountRequired": "請輸入至少 1 日圓的金額"
 }
