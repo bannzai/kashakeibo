@@ -21,5 +21,6 @@
   "termsOfService": "이용 약관",
   "privacyPolicy": "개인정보 처리방침",
   "specifiedCommercialTransactionAct": "상거래 공개",
-  "accountBackupTitle": "백업"
+  "accountBackupTitle": "백업",
+  "accountBackupNotSet": "미설정"
 }
