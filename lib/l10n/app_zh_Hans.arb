@@ -53,5 +53,6 @@
   "manualEntryDefaultTitle": "现金支出",
   "manualEntryStoreRequired": "请输入商店或备注",
   "manualEntryType": "交易类型",
-  "manualEntryCategory": "分类"
+  "manualEntryCategory": "分类",
+  "manualEntryCategoryRequired": "选择分类"
 }

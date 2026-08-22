@@ -53,5 +53,6 @@
   "manualEntryDefaultTitle": "現金支出",
   "manualEntryStoreRequired": "請輸入商店或備註",
   "manualEntryType": "交易類型",
-  "manualEntryCategory": "類別"
+  "manualEntryCategory": "類別",
+  "manualEntryCategoryRequired": "選擇分類"
 }
