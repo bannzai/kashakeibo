@@ -118,5 +118,6 @@
   "paywallBenefitFutureFeatures": "即將推出的功能",
   "paywallMonthlyPlan": "每月",
   "paywallAnnualPlan": "年付",
-  "paywallRecommended": "最划算"
+  "paywallRecommended": "最划算",
+  "paywallAnnualSavings": "節省 {percent}%"
 }
