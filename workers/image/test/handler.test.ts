@@ -15,6 +15,7 @@ import {
   maxDailyUploadCountPerUser,
   maxDailyUploadCountTotal,
   monthlyFreeScanLimit,
+  monthlyPremiumScanLimit,
 } from "../src/handler";
 import { dailyCounterPurgeDelayMilliseconds } from "../src/usage_counter";
 
@@ -1054,6 +1055,33 @@ describe("スキャン無料枠 (月次) とプレミアム判定", () => {
     expect(capturedAuthorizationHeader).toBe(`Bearer ${env.REVENUECAT_SECRET_API_KEY}`);
     expect(await (await requestScanQuota(uid)).json()).toEqual({
       monthlyScanCount: monthlyFreeScanLimit + 1,
+      monthlyFreeScanLimit,
+    });
+  });
+
+  it("プレミアムでも月次上限 (monthlyPremiumScanLimit) に達したら 429 を返し、Gemini を呼ばず、回数を消費しない", async () => {
+    const uid = "uid-quota-premium-cap";
+    const imageObjectKey = await uploadImageWithUploadId(uid, "eeeeeeee-0000-4000-8000-000000000007");
+    await seedMonthlyScanCount(uid, monthlyPremiumScanLimit);
+    fetchMock
+      .get(revenueCatApiOrigin)
+      .intercept({ path: revenueCatActiveEntitlementsPath(uid), method: "GET" })
+      .reply(200, () =>
+        JSON.stringify({
+          object: "list",
+          items: [
+            { object: "customer.active_entitlement", entitlement_id: env.REVENUECAT_PREMIUM_ENTITLEMENT_ID, expires_at: 4102444800000 },
+          ],
+          next_page: null,
+          url: revenueCatActiveEntitlementsPath(uid),
+        }),
+      );
+
+    const response = await requestAnalysis(uid, imageObjectKey);
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({ error: `今月のスキャン回数の上限 (${monthlyPremiumScanLimit}回) に達しました` });
+    expect(await (await requestScanQuota(uid)).json()).toEqual({
+      monthlyScanCount: monthlyPremiumScanLimit,
       monthlyFreeScanLimit,
     });
   });

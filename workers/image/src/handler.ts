@@ -66,7 +66,7 @@ const imageContentTypeExtensions: Record<string, string> = {
 // 余裕を持たせつつ R2 への無制限アップロードを防ぐ値にしている
 const maxImageBytes = 20 * 1024 * 1024;
 
-// uid あたり1日のアップロード回数上限。正規の利用は無料枠が月10スキャン (documents/PROJECT.md の課金設計)、
+// uid あたり1日のアップロード回数上限。正規の利用は無料枠が月50スキャン (documents/PROJECT.md の課金設計)、
 // プレミアムでも1日数十枚が現実的な上限のため、正規ユーザーに影響せず
 // 匿名 token を使った大量アップロードによるストレージ費用の増大を抑止できる値にしている
 export const maxDailyUploadCountPerUser = 100;
@@ -78,24 +78,32 @@ export const maxDailyUploadCountPerIpAddress = 300;
 
 // サービス全体の1日のアップロード回数上限。IP を分散させる攻撃への最後の砦として、
 // 最悪ケースのストレージ増加を 5000回 × 20MB = 100GB/日 に固定する。
-// MVP のユーザー規模 (無料枠 月10スキャン × リリース直後のユーザー数) では正規利用が到達しない値。
+// MVP のユーザー規模 (無料枠 月50スキャン × リリース直後のユーザー数) では正規利用が到達しない値。
 // 攻撃で上限に達すると正規ユーザーも 429 になるトレードオフは、機微画像ストレージの
 // 費用暴走防止を可用性より優先して受け入れる (恒久対策は App Check 検証 issue #24)
 export const maxDailyUploadCountTotal = 5000;
 
 // 解析 1 回あたりの Gemini 呼び出し (LLM 原価) を、匿名 token の乱用から守る日次上限。
-// 正規の利用は無料枠が月10スキャン (documents/PROJECT.md の課金設計) で、プレミアムでも 1 日数十回が現実的な上限のため、
+// 正規の利用は無料枠が月50スキャン (documents/PROJECT.md の課金設計) で、プレミアムでも 1 日数十回が現実的な上限のため、
 // アップロードと同じ 3 層 (uid 別・接続元 IP 別・全体) の値をそのまま使う。月次の無料枠と entitlement の判定
 // (monthlyFreeScanLimit) とは独立した費用暴走の歯止め
 export const maxDailyAnalysisCountPerUser = maxDailyUploadCountPerUser;
 export const maxDailyAnalysisCountPerIpAddress = maxDailyUploadCountPerIpAddress;
 export const maxDailyAnalysisCountTotal = maxDailyUploadCountTotal;
 
-// 無料プランの月あたりスキャン (解析) 回数の上限 (documents/PROJECT.md の課金設計「無料 = 月10スキャンまで」)。
+// 無料プランの月あたりスキャン (解析) 回数の上限 (documents/PROJECT.md の課金設計「無料 = 月50スキャンまで」)。
+// 月10ではアプリの価値 (撮るだけで家計簿になる体験) を感じる前に枠が尽きるため、原価削減とセットで月50へ引き上げた
+// (issue #50。実測 約¥0.09/スキャン × 月50 = 約¥4.5/ユーザー。実測は workers/image/README.md の「スキャン原価」)。
 // 月の区切りは UTC の暦月で、uid ごとに数える。上限に達した後の解析は、RevenueCat のプレミアム entitlement を
 // 持つユーザーだけに許可する (持たない場合は 402 で、クライアントはペイウォールを表示する)。
 // 手動入力は解析を呼ばないため消費しない
-export const monthlyFreeScanLimit = 10;
+export const monthlyFreeScanLimit = 50;
+
+// プレミアムの月あたりスキャン (解析) 回数の上限 (documents/PROJECT.md の課金設計)。プレミアムでも LLM 原価の
+// 上限は固定する (issue #50/#51。実測 約¥0.09/スキャン × 月1000 = 約¥90/ユーザーで月額 ¥480 を下回る)。
+// 毎日33回スキャンし続ける水準のため実利用では到達せず、乱用・暴走時だけ効く原価キャップ。
+// 到達時は 429 を返す (プレミアム購入済みのためペイウォール誘導の 402 は使わない)
+export const monthlyPremiumScanLimit = 1000;
 
 // Gemini にインラインで渡せるリクエスト全体の上限は 20MB で、base64 化で 4/3 倍になるため、
 // 元画像はその範囲に収まるサイズまでしか解析しない (クライアントは撮影時に長辺を縮小してから送る)
@@ -341,14 +349,27 @@ function monthlyScanCounterKey(verifiedFirebaseUser: VerifiedFirebaseUser): stri
   return `scan:uid:${verifiedFirebaseUser.uid}`;
 }
 
+/** 今月のスキャン回数の消費判定の結果。 */
+type MonthlyScanQuotaResult =
+  /** 消費できた (解析へ進む)。 */
+  | "consumed"
+  /** 無料枠を使い切っていてプレミアムでもない (呼び出し側は 402 でペイウォールへ誘導する)。 */
+  | "freeQuotaExceeded"
+  /** プレミアムの月次上限 (monthlyPremiumScanLimit) に達した (呼び出し側は 429 を返す)。 */
+  | "premiumLimitExceeded";
+
 /**
- * 今月のスキャン回数を無料枠の範囲で 1 つ消費する。無料枠内なら加算して true。
- * 無料枠を使い切っていれば RevenueCat のプレミアム entitlement を確認し、プレミアムなら加算 (利用回数の記録) して true、
- * プレミアムでなければ加算せず false を返す (呼び出し側は 402 を返す)。
- * 判定と加算は月次の Durable Object で直列化され、並行リクエストでも無料枠を超えて消費されない。
+ * 今月のスキャン回数を枠の範囲で 1 つ消費する。無料枠 (monthlyFreeScanLimit) 内なら加算して consumed。
+ * 無料枠を使い切っていれば RevenueCat のプレミアム entitlement を確認し、プレミアムなら
+ * プレミアム上限 (monthlyPremiumScanLimit) の範囲で加算して consumed (上限到達時は premiumLimitExceeded)、
+ * プレミアムでなければ加算せず freeQuotaExceeded を返す。
+ * 判定と加算は月次の Durable Object で直列化され、並行リクエストでも枠を超えて消費されない。
  * RevenueCat の判定に失敗した場合は EntitlementVerificationError を投げる。
  */
-async function consumeMonthlyScanQuota(env: ImageWorkerEnv, verifiedFirebaseUser: VerifiedFirebaseUser): Promise<boolean> {
+async function consumeMonthlyScanQuota(
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<MonthlyScanQuotaResult> {
   const monthlyCounter = monthlyUsageCounter(env);
   const counterKey = monthlyScanCounterKey(verifiedFirebaseUser);
   if (
@@ -357,17 +378,18 @@ async function consumeMonthlyScanQuota(env: ImageWorkerEnv, verifiedFirebaseUser
       monthlyCounterPurgeDelayMilliseconds,
     )
   ) {
-    return true;
+    return "consumed";
   }
   // 無料枠を使い切ったユーザーだけ RevenueCat に問い合わせる (無料枠内の解析では課金 API を呼ばない)
   if (!(await hasPremiumEntitlement({ appUserId: verifiedFirebaseUser.uid, env }))) {
-    return false;
+    return "freeQuotaExceeded";
   }
-  await monthlyCounter.incrementIfWithinLimits(
-    [{ counterKey, maxCount: Number.MAX_SAFE_INTEGER }],
+  return (await monthlyCounter.incrementIfWithinLimits(
+    [{ counterKey, maxCount: monthlyPremiumScanLimit }],
     monthlyCounterPurgeDelayMilliseconds,
-  );
-  return true;
+  ))
+    ? "consumed"
+    : "premiumLimitExceeded";
 }
 
 /**
@@ -485,11 +507,12 @@ async function handleImageAnalysis(
     return jsonResponse(429, { error: "1日の解析回数の上限に達しました" });
   }
 
-  // 月次の無料枠 (monthlyFreeScanLimit) と、超過時のプレミアム entitlement を判定する。
+  // 月次の無料枠 (monthlyFreeScanLimit)・プレミアム上限 (monthlyPremiumScanLimit) と、
+  // 無料枠超過時のプレミアム entitlement を判定する。
   // 日次上限の後に置くことで、429 (混雑・乱用) で弾かれるリクエストが無料枠を消費しない
-  let withinMonthlyScanQuota: boolean;
+  let monthlyScanQuotaResult: MonthlyScanQuotaResult;
   try {
-    withinMonthlyScanQuota = await consumeMonthlyScanQuota(env, verifiedFirebaseUser);
+    monthlyScanQuotaResult = await consumeMonthlyScanQuota(env, verifiedFirebaseUser);
   } catch (error) {
     if (!(error instanceof EntitlementVerificationError)) {
       throw error;
@@ -498,12 +521,16 @@ async function handleImageAnalysis(
     console.warn("RevenueCat の entitlement 判定に失敗", error);
     return jsonResponse(503, { error: error.message });
   }
-  if (!withinMonthlyScanQuota) {
+  if (monthlyScanQuotaResult === "freeQuotaExceeded") {
     return jsonResponse(402, {
       error: `今月の無料スキャン (${monthlyFreeScanLimit}回) を使い切りました`,
       monthlyScanCount: await monthlyUsageCounter(env).getCount(monthlyScanCounterKey(verifiedFirebaseUser)),
       monthlyFreeScanLimit,
     });
+  }
+  if (monthlyScanQuotaResult === "premiumLimitExceeded") {
+    // プレミアム購入済みのためペイウォール誘導 (402) ではなく、上限到達として 429 を返す
+    return jsonResponse(429, { error: `今月のスキャン回数の上限 (${monthlyPremiumScanLimit}回) に達しました` });
   }
 
   const imageObject = await env.IMAGE_BUCKET.get(resolvedKey.imageObjectKey);
