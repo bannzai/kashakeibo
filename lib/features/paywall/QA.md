@@ -1,8 +1,8 @@
 ---
 feature: paywall
 verification: mobile-mcp
-last_verified_commit: e96c5039020dca136e530239b7f90cf449422339
-last_verified_at: 2026-08-20
+last_verified_commit: 295f8562ba99538f683d232c78459f0c01be0dec
+last_verified_at: 2026-08-22
 ---
 
 # paywall QA
@@ -79,8 +79,8 @@ last_verified_at: 2026-08-20
 
 ローカル Simulator (kashakeibo-issue-50-51-iOS26.5)、debug ビルド (kashakeibo-dev。RevenueCat Test Store キー未注入のため料金カードは「料金プランを取得できませんでした」表示)。無料プランで設定画面の「プラン / 無料」行をタップするとペイウォールが開いた。文言変更 (issue #50/#51) の表示確認も兼ねる: 見出し「スキャン、し放題に。」/ 特典「スキャンし放題」/ フェアユースの注記「スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。」が日本語・英語 (Scan freely with Premium / Scan freely / Scanning is subject to a monthly fair-use limit that typical use won't reach.) の両方で表示され、レイアウト崩れなし。料金カードの表示・購入系の項目は今回未検証。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/9a89d1f2-a2bf-440d-88d6-775d2a2e7e50.png" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/a1aac18d-0707-49ea-968a-6c100e1f6682.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/9a89d1f2-a2bf-440d-88d6-775d2a2e7e50.png" width="320" alt="日本語のペイウォール。見出しと特典にスキャンし放題、下部にフェアユース注記を表示">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/a1aac18d-0707-49ea-968a-6c100e1f6682.png" width="320" alt="English paywall showing Scan freely and the monthly fair-use note">
 
 **確認日: 2026-08-20**
 

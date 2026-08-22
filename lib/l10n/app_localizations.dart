@@ -863,7 +863,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallPurchased.
   ///
   /// In en, this message translates to:
-  /// **'Premium is active. Scan as much as you like!'**
+  /// **'Premium is active. Scan freely!'**
   String get paywallPurchased;
 
   /// No description provided for @paywallPremiumActive.

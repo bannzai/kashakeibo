@@ -1079,7 +1079,11 @@ describe("スキャン無料枠 (月次) とプレミアム判定", () => {
 
     const response = await requestAnalysis(uid, imageObjectKey);
     expect(response.status).toBe(429);
-    expect(await response.json()).toEqual({ error: `今月のスキャン回数の上限 (${monthlyPremiumScanLimit}回) に達しました` });
+    expect(await response.json()).toEqual({
+      error: `今月のスキャン回数の上限 (${monthlyPremiumScanLimit}回) に達しました`,
+      reason: "premiumMonthlyScanLimitExceeded",
+      monthlyPremiumScanLimit,
+    });
     expect(await (await requestScanQuota(uid)).json()).toEqual({
       monthlyScanCount: monthlyPremiumScanLimit,
       monthlyFreeScanLimit,

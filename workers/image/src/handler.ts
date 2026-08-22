@@ -530,7 +530,12 @@ async function handleImageAnalysis(
   }
   if (monthlyScanQuotaResult === "premiumLimitExceeded") {
     // プレミアム購入済みのためペイウォール誘導 (402) ではなく、上限到達として 429 を返す
-    return jsonResponse(429, { error: `今月のスキャン回数の上限 (${monthlyPremiumScanLimit}回) に達しました` });
+    // reason はクライアントが日次の 429 と区別してローカライズ表示へ分岐するための機械可読フィールド
+    return jsonResponse(429, {
+      error: `今月のスキャン回数の上限 (${monthlyPremiumScanLimit}回) に達しました`,
+      reason: "premiumMonthlyScanLimitExceeded",
+      monthlyPremiumScanLimit,
+    });
   }
 
   const imageObject = await env.IMAGE_BUCKET.get(resolvedKey.imageObjectKey);

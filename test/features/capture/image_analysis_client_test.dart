@@ -185,9 +185,9 @@ void main() {
           httpClient: MockClient(
             (request) async => http.Response(
               jsonEncode({
-                'error': '今月の無料スキャン (10回) を使い切りました',
-                'monthlyScanCount': 10,
-                'monthlyFreeScanLimit': 10,
+                'error': '今月の無料スキャン (50回) を使い切りました',
+                'monthlyScanCount': 50,
+                'monthlyFreeScanLimit': 50,
               }),
               402,
               headers: {'content-type': 'application/json; charset=utf-8'},
@@ -200,12 +200,12 @@ void main() {
               .having(
                 (exception) => exception.toString(),
                 'toString',
-                '今月の無料スキャン (10回) を使い切りました',
+                '今月の無料スキャン (50回) を使い切りました',
               )
               .having(
                 (exception) => exception.scanQuota,
                 'scanQuota',
-                const ScanQuota(monthlyScanCount: 10, monthlyFreeScanLimit: 10),
+                const ScanQuota(monthlyScanCount: 50, monthlyFreeScanLimit: 50),
               ),
         ),
       );
@@ -221,7 +221,7 @@ void main() {
         httpClient: MockClient((request) async {
           capturedRequest = request;
           return http.Response(
-            jsonEncode({'monthlyScanCount': 3, 'monthlyFreeScanLimit': 10}),
+            jsonEncode({'monthlyScanCount': 3, 'monthlyFreeScanLimit': 50}),
             200,
             headers: {'content-type': 'application/json; charset=utf-8'},
           );
@@ -237,7 +237,7 @@ void main() {
       );
       expect(
         scanQuota,
-        const ScanQuota(monthlyScanCount: 3, monthlyFreeScanLimit: 10),
+        const ScanQuota(monthlyScanCount: 3, monthlyFreeScanLimit: 50),
       );
     });
 

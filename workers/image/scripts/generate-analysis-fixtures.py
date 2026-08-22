@@ -214,8 +214,9 @@ def write_variant_sets(ground_truth: dict) -> None:
         # 劣化版: 撮影距離が遠い (縮小 70%) + 手ブレ (ブラー) + センサーノイズ
         degraded = original.resize((int(original.width * 0.7), int(original.height * 0.7)), Image.LANCZOS)
         degraded = degraded.filter(ImageFilter.GaussianBlur(1.1))
-        noise_overlay = Image.effect_noise(degraded.size, 18).convert("L")
-        degraded = Image.composite(degraded, Image.new("RGB", degraded.size, (128, 128, 128)), noise_overlay.point(lambda v: 235))
+        # センサーノイズ: 画素ごとに変動するガウシアンノイズ (mean 128 / sigma 18) を 12% ブレンドして粒状ノイズを加える
+        noise_rgb = Image.merge("RGB", [Image.effect_noise(degraded.size, 18).convert("L")] * 3)
+        degraded = Image.blend(degraded, noise_rgb, 0.12)
         degraded.save(os.path.join(degraded_directory, fixture_name), "JPEG", quality=70)
         # 縮小版: 長辺 1024 (クライアント縮小を 1600 -> 1024 に強化した場合の入力)
         resize_scale = 1024 / max(original.size)

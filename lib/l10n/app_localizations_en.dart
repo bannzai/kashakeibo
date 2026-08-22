@@ -440,7 +440,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallRestoreNotFound => 'No purchases to restore';
 
   @override
-  String get paywallPurchased => 'Premium is active. Scan as much as you like!';
+  String get paywallPurchased => 'Premium is active. Scan freely!';
 
   @override
   String get paywallPremiumActive => 'Premium is active';

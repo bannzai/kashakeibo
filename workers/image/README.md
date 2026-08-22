@@ -66,9 +66,10 @@ multipart/form-data の `file` フィールドで画像をアップロードす�
 - 採用: モデルを `gemini-3.1-flash-lite` へ切替 (原価 約1/4)。thinking は既定で発生しない。カテゴリ判定の揺れ (EC の家電・ガジェットが dailyGoods になる) はプロンプトのカテゴリ定義の明確化 (`src/analysis.ts`) で解消を確認済み
 - 不採用: `mediaResolution` の引き下げ (削減幅 約8%に対し、細かい印字の読み取り低下リスクを取らない。既定は画像1枚 約1,120トークンの固定割当)。thinkingLevel low の付与 (3.1-flash-lite は既定 thinking なしのため、付与すると逆に thinking が発生して原価増)。クライアント縮小の強化 (画像のトークン数は mediaResolution 固定割当のため長辺 1600→1024 でも入力トークン不変)。同一画像の再解析キャッシュ (再試行頻度が未知で効果を見積もれないため見送り)
 - 月額原価の目安: 無料ユーザー上限 = 月50スキャン × ¥0.09 ≒ ¥4.5/ユーザー。プレミアム上限 = 月1000スキャン × ¥0.09 ≒ ¥90/ユーザー (< 月額 ¥480)
-- 再実測の手順 (workers/image で。API キーは `.dev.vars` の `GEMINI_API_KEY`):
+- 再実測の手順 (workers/image で。API キーは `.dev.vars` の `GEMINI_API_KEY`)。フィクスチャ生成に Pillow を使うため、初回のみ `scripts/requirements.txt` で導入する (実測時のバージョンで結果が再現するようピン留めしている):
 
 ```sh
+python3 -m pip install -r scripts/requirements.txt   # 初回のみ
 python3 scripts/generate-analysis-fixtures.py
 node --experimental-strip-types scripts/measure-analysis-cost.mjs            # 全構成
 node --experimental-strip-types scripts/measure-analysis-cost.mjs 3.1-flash-lite-baseline   # 構成指定

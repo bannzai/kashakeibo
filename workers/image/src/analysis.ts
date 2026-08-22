@@ -208,14 +208,15 @@ export async function analyzeImageWithGemini({
   };
   // 1 スキャンあたりの原価を継続的に実測できるよう、トークン数を構造化ログに残す
   // (Workers のログで集計する。issue #50 の受け入れ条件「原価が実測値で記録されている」)
+  // usageMetadata が欠落した応答は「実測 0 トークン」と区別するため null で記録する
   console.log(
     JSON.stringify({
       event: "gemini_usage",
       model: geminiModel,
-      promptTokenCount: geminiResponseBody.usageMetadata?.promptTokenCount ?? 0,
-      thoughtsTokenCount: geminiResponseBody.usageMetadata?.thoughtsTokenCount ?? 0,
-      candidatesTokenCount: geminiResponseBody.usageMetadata?.candidatesTokenCount ?? 0,
-      totalTokenCount: geminiResponseBody.usageMetadata?.totalTokenCount ?? 0,
+      promptTokenCount: geminiResponseBody.usageMetadata?.promptTokenCount ?? null,
+      thoughtsTokenCount: geminiResponseBody.usageMetadata?.thoughtsTokenCount ?? null,
+      candidatesTokenCount: geminiResponseBody.usageMetadata?.candidatesTokenCount ?? null,
+      totalTokenCount: geminiResponseBody.usageMetadata?.totalTokenCount ?? null,
     }),
   );
   // thinking 対応モデルは thought パートを含み得るため、本文パートだけを結合する

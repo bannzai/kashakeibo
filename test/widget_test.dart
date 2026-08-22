@@ -94,7 +94,7 @@ List<Override> anonymousUserOverrides() {
 List<Override> freePlanOverrides({required int monthlyScanCount}) => [
   fetchScanQuotaProvider.overrideWithValue(
     () async =>
-        ScanQuota(monthlyScanCount: monthlyScanCount, monthlyFreeScanLimit: 10),
+        ScanQuota(monthlyScanCount: monthlyScanCount, monthlyFreeScanLimit: 50),
   ),
   isPremiumProvider.overrideWithValue(false),
   premiumOfferingProvider.overrideWith((ref) async => null),
@@ -116,7 +116,7 @@ void main() {
             yearMonth: yearMonthFrom(dateTime: DateTime.now()),
           ).overrideWith((ref) => const []),
           ...anonymousUserOverrides(),
-          ...freePlanOverrides(monthlyScanCount: 3),
+          ...freePlanOverrides(monthlyScanCount: 43),
         ],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -154,7 +154,7 @@ void main() {
             return null;
           }),
           ...anonymousUserOverrides(),
-          ...freePlanOverrides(monthlyScanCount: 10),
+          ...freePlanOverrides(monthlyScanCount: 50),
         ],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
