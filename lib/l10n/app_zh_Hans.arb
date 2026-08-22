@@ -116,5 +116,6 @@
   "paywallBenefitUnlimitedScans": "自由扫描",
   "paywallBenefitFullHistory": "每月查看完整记录",
   "paywallBenefitFutureFeatures": "即将推出的功能",
-  "paywallMonthlyPlan": "每月"
+  "paywallMonthlyPlan": "每月",
+  "paywallAnnualPlan": "年付"
 }

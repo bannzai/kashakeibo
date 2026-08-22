@@ -116,5 +116,6 @@
   "paywallBenefitUnlimitedScans": "자유로운 스캔",
   "paywallBenefitFullHistory": "매월 전체 내역",
   "paywallBenefitFutureFeatures": "추가 예정 기능",
-  "paywallMonthlyPlan": "월간"
+  "paywallMonthlyPlan": "월간",
+  "paywallAnnualPlan": "연간"
 }
