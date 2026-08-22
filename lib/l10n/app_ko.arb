@@ -79,5 +79,6 @@
   "captureManualFallback": "수동 입력",
   "captureRetake": "재촬영",
   "captureConfirmTitle": "상세 내역 검토",
-  "captureSourceImageNote": "거래 내역에서 원본 이미지를 언제든지 다시 확인할 수 있습니다."
+  "captureSourceImageNote": "거래 내역에서 원본 이미지를 언제든지 다시 확인할 수 있습니다.",
+  "captureRegister": "등록"
 }

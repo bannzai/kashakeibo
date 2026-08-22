@@ -79,5 +79,6 @@
   "captureManualFallback": "手動輸入",
   "captureRetake": "重新拍攝",
   "captureConfirmTitle": "檢視明細",
-  "captureSourceImageNote": "您可以隨時從明細中查看原始圖片"
+  "captureSourceImageNote": "您可以隨時從明細中查看原始圖片",
+  "captureRegister": "記錄"
 }
