@@ -16,5 +16,6 @@
   "keepBothDuplicateCandidates": "分別保留為支出",
   "previousMonth": "上個月",
   "nextMonth": "下個月",
-  "openSettings": "開啟設定"
+  "openSettings": "開啟設定",
+  "settings": "設定"
 }
