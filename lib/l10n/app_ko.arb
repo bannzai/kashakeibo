@@ -62,5 +62,6 @@
   "transactionSourceScreenshot": "스크린샷",
   "transactionSourceManual": "수동",
   "transactionSourceUnknown": "출처 불명",
-  "addRecordOpen": "기록 추가"
+  "addRecordOpen": "기록 추가",
+  "addRecordTitle": "기록 추가"
 }
