@@ -357,7 +357,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get scanQuotaExhausted => '今月の無料スキャンを使い切りました';
 
   @override
-  String get paywallTitle => 'スキャン、し放題に。';
+  String get paywallTitle => 'スキャンし放題に';
 
   @override
   String get paywallSubtitle => '連携しないから壊れない。撮るだけで、レシートも明細も AI が読み取ります。';

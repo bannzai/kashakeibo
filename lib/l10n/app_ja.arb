@@ -139,7 +139,7 @@
   },
   "scanQuotaUnlimited": "スキャンし放題",
   "scanQuotaExhausted": "今月の無料スキャンを使い切りました",
-  "paywallTitle": "スキャン、し放題に。",
+  "paywallTitle": "スキャンし放題に",
   "paywallSubtitle": "連携しないから壊れない。撮るだけで、レシートも明細も AI が読み取ります。",
   "paywallFreeQuota": "今月の無料スキャン {used}/{limit}",
   "@paywallFreeQuota": {

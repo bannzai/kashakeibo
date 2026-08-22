@@ -153,7 +153,7 @@ void main() {
         onPaywallClosed: (result) => paywallResult = result,
       );
 
-      expect(find.text('スキャン、し放題に。'), findsOneWidget);
+      expect(find.text('スキャンし放題に'), findsOneWidget);
       expect(find.text('今月の無料スキャン 7/10'), findsOneWidget);
       expect(find.text('スキャンし放題'), findsOneWidget);
       expect(find.text('全期間の履歴'), findsOneWidget);
@@ -174,7 +174,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(purchasedPackage, annualPackage);
       expect(paywallResult, isTrue);
-      expect(find.text('スキャン、し放題に。'), findsNothing);
+      expect(find.text('スキャンし放題に'), findsNothing);
     },
   );
 
@@ -224,7 +224,7 @@ void main() {
     await tester.tap(find.text('プレミアムを始める'));
     await tester.pumpAndSettle();
     expect(find.byType(SnackBar), findsNothing);
-    expect(find.text('スキャン、し放題に。'), findsOneWidget);
+    expect(find.text('スキャンし放題に'), findsOneWidget);
     expect(paywallResult, isFalse);
   });
 
