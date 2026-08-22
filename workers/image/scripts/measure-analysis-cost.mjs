@@ -42,6 +42,7 @@ const measurementConfigs = {
   },
   "3.5-flash-lite-think-low": { model: "gemini-3.5-flash-lite", costTuningConfig: { thinkingLevel: "low" } },
   "3.1-flash-lite-baseline": { model: "gemini-3.1-flash-lite", costTuningConfig: {} },
+  "3.1-flash-lite-media-low": { model: "gemini-3.1-flash-lite", costTuningConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW" } },
   "3.1-flash-lite-think-low": { model: "gemini-3.1-flash-lite", costTuningConfig: { thinkingLevel: "low" } },
   "3.1-flash-lite-think-low-media-low": {
     model: "gemini-3.1-flash-lite",
@@ -117,16 +118,22 @@ function scoreAgainstGroundTruth({ expectedTransactions, analysisResult }) {
       const extractedTransaction = analysisResult.transactions.find(
         (transaction) => transaction.amount === expectedTransaction.amount,
       );
+      // 抽出側は「Amazon.co.jp ワイヤレスイヤホン…」のようにサイト名等の前置きが付くことがあるため包含を一致とみなすが、
+      // 1〜2文字の偶然の部分一致を合格させないよう、包含された側が4文字以上かつ期待タイトルの半分以上の長さであることを要求する
+      const normalizedExpectedTitle = normalizeTitle(expectedTransaction.title);
+      const normalizedExtractedTitle = normalizeTitle(extractedTransaction?.title);
+      const containedTitle = normalizedExtractedTitle.includes(normalizedExpectedTitle)
+        ? normalizedExpectedTitle
+        : normalizedExpectedTitle.includes(normalizedExtractedTitle)
+          ? normalizedExtractedTitle
+          : "";
       return {
         expectedTitle: expectedTransaction.title,
         amountMatched: extractedTransaction !== undefined,
-        // 抽出側は「Amazon.co.jp ワイヤレスイヤホン…」のようにサイト名等の前置きが付くことがあるため、
-        // 正規化後の包含 (どちらか一方が他方を含む) を一致とみなす。誤読・空文字は不一致になる
         titleMatched:
           extractedTransaction !== undefined &&
-          normalizeTitle(extractedTransaction.title) !== "" &&
-          (normalizeTitle(extractedTransaction.title).includes(normalizeTitle(expectedTransaction.title)) ||
-            normalizeTitle(expectedTransaction.title).includes(normalizeTitle(extractedTransaction.title))),
+          containedTitle.length >= 4 &&
+          containedTitle.length * 2 >= normalizedExpectedTitle.length,
         dateMatched: extractedTransaction?.transactionDate === expectedTransaction.transactionDate,
         typeMatched: extractedTransaction?.type === expectedTransaction.type,
         categoryMatched: extractedTransaction?.category === expectedTransaction.category,

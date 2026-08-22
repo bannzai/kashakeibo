@@ -61,10 +61,10 @@ multipart/form-data の `file` フィールドで画像をアップロードす�
 | gemini-3.7-flash (旧採用・既定設定) | 約 ¥0.38 | 全問一致 |
 | gemini-3.7-flash + thinkingLevel low | 約 ¥0.27 | 全問一致 |
 | **gemini-3.1-flash-lite (採用・既定設定)** | **約 ¥0.09** | **全問一致 (劣化画像セットでも全問一致)** |
-| gemini-3.1-flash-lite + mediaResolution low | 約 ¥0.08 | 全問一致 (不採用: 下記) |
+| gemini-3.1-flash-lite + mediaResolution low (単独) | 約 ¥0.06 | 全問一致 (不採用: 下記) |
 
 - 採用: モデルを `gemini-3.1-flash-lite` へ切替 (原価 約1/4)。thinking は既定で発生しない。カテゴリ判定の揺れ (EC の家電・ガジェットが dailyGoods になる) はプロンプトのカテゴリ定義の明確化 (`src/analysis.ts`) で解消を確認済み
-- 不採用: `mediaResolution` の引き下げ (削減幅 約8%に対し、細かい印字の読み取り低下リスクを取らない。既定は画像1枚 約1,120トークンの固定割当)。thinkingLevel low の付与 (3.1-flash-lite は既定 thinking なしのため、付与すると逆に thinking が発生して原価増)。クライアント縮小の強化 (画像のトークン数は mediaResolution 固定割当のため長辺 1600→1024 でも入力トークン不変)。同一画像の再解析キャッシュ (再試行頻度が未知で効果を見積もれないため見送り)
+- 不採用: `mediaResolution` の引き下げ (単独実測で入力 1,396→598 トークン・原価 約34% 減 (¥0.089→¥0.059) と削減は大きいが、画像のトークン割当が約1/4 になるため、実レシートの細かい印字の読み取り低下リスクを合成画像だけでは否定できず見送り。実レシートでの精度検証とセットで再検討する。既定は画像1枚 約1,120トークンの固定割当)。thinkingLevel low の付与 (3.1-flash-lite は既定 thinking なしのため、付与すると逆に thinking が発生して原価増)。クライアント縮小の強化 (画像のトークン数は mediaResolution 固定割当のため長辺 1600→1024 でも入力トークン不変)。同一画像の再解析キャッシュ (再試行頻度が未知で効果を見積もれないため見送り)
 - 月額原価の目安: 無料ユーザー上限 = 月50スキャン × ¥0.09 ≒ ¥4.5/ユーザー。プレミアム上限 = 月1000スキャン × ¥0.09 ≒ ¥90/ユーザー (< 月額 ¥480)
 - 再実測の手順 (workers/image で。API キーは `.dev.vars` の `GEMINI_API_KEY`)。フィクスチャ生成に Pillow を使うため、初回のみ `scripts/requirements.txt` で導入する (実測時のバージョンで結果が再現するようピン留めしている):
 
@@ -73,6 +73,7 @@ python3 -m pip install -r scripts/requirements.txt   # 初回のみ
 python3 scripts/generate-analysis-fixtures.py
 node --experimental-strip-types scripts/measure-analysis-cost.mjs            # 全構成
 node --experimental-strip-types scripts/measure-analysis-cost.mjs 3.1-flash-lite-baseline   # 構成指定
+FIXTURES_DIR=tmp/analysis-fixtures-degraded node --experimental-strip-types scripts/measure-analysis-cost.mjs 3.1-flash-lite-baseline   # 劣化セット
 ```
 
 - 本番のトークン数は `src/analysis.ts` が解析ごとに `{"event":"gemini_usage",...}` の構造化ログで記録する (Workers のログで集計できる)
