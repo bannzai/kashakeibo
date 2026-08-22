@@ -109,5 +109,6 @@
   "scanQuotaUnlimited": "无限扫描",
   "scanQuotaExhausted": "本月免费扫描次数已用完",
   "paywallTitle": "使用高级版，尽情扫描",
-  "paywallSubtitle": "无需关联账户。拍照即可，高级版会为您读取每张收据和每份账单。"
+  "paywallSubtitle": "无需关联账户。拍照即可，高级版会为您读取每张收据和每份账单。",
+  "paywallSavingsClaim": "通过记账减少支出的人中，约一半每月节省了¥5,000–10,000*"
 }
