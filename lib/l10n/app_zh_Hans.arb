@@ -48,5 +48,6 @@
   "manualEntryOpen": "手动输入",
   "manualEntryTitle": "手动输入",
   "manualEntryAmount": "金额",
-  "manualEntryAmountRequired": "请输入至少 1 日元的金额"
+  "manualEntryAmountRequired": "请输入至少 1 日元的金额",
+  "manualEntryStore": "商店或备注"
 }

@@ -48,5 +48,6 @@
   "manualEntryOpen": "수동 입력",
   "manualEntryTitle": "수동 입력",
   "manualEntryAmount": "금액",
-  "manualEntryAmountRequired": "1엔 이상의 금액을 입력하십시오"
+  "manualEntryAmountRequired": "1엔 이상의 금액을 입력하십시오",
+  "manualEntryStore": "매장 또는 메모"
 }
