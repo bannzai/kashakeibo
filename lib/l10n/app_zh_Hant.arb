@@ -4,5 +4,6 @@
   "monthlyIncome": "收入",
   "monthlyExpense": "支出",
   "monthlyBalance": "結餘",
-  "categoryBreakdown": "分類"
+  "categoryBreakdown": "分類",
+  "monthlyTransactionsEmpty": "本月尚無交易紀錄"
 }
