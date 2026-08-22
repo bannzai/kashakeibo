@@ -1,7 +1,7 @@
 ---
 feature: paywall
 verification: mobile-mcp
-last_verified_commit: 295f8562ba99538f683d232c78459f0c01be0dec
+last_verified_commit: f492e1566dfd2fae08cfc3a15b79e1cc469e1e1e
 last_verified_at: 2026-08-22
 ---
 
@@ -34,7 +34,7 @@ last_verified_at: 2026-08-22
 - [x] **古い月への月送りでペイウォールを開く**: 無料プランで当月を含む直近 3 ヶ月までは月送りでき、それより古い月へ送ろうとするとペイウォールが開く
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [ ] **記録するシートの残量 0 導線**: 無料枠を使い切った状態で「記録する」シートの「カメラで撮影」をタップするとペイウォールが開く
-  - 自動化: todo (無料枠 10 回を使い切る状態の作り込み手段が未整備。実際に Gemini 解析を 10 回呼ぶと原価がかかるため、debug 開発者メニューでの状態作り込みを検討する)
+  - 自動化: todo (無料枠 50 回 (issue #50 で月10→月50) を使い切る状態の作り込み手段が未整備。スキャン回数の保存先は Cloudflare Durable Object (`workers/image/src/usage_counter.ts` の `UsageCounter`。月次インスタンス名 = 年月、キー `scan:uid:{uid}`) で、firebase / gcloud CLI からも wrangler からも外部で書き換えられない。API 経由でカウンタだけを進める案も `iam.serviceAccounts.signJwt` 権限が無く custom token を署名できないため実行できない (詳細はルート QA.md の実行ナレッジ)。debug 開発者メニュー + Worker 側の DEBUG 用カウンタ設定経路での状態作り込みを検討する)
 - [ ] **解析 402 導線**: 無料枠超過で Worker の `POST /analyses` が 402 を返すと撮影フローからペイウォールが開き、購入後に同じ画像で解析をやり直す
   - 自動化: todo (上と同じく無料枠超過状態の作り込み手段が未整備)
 - [ ] **未設定ビルドの表示**: RevenueCat の public API key を注入しないビルドでは SDK を初期化せず、ペイウォールに「料金プランを取得できませんでした」が表示される
@@ -68,6 +68,14 @@ last_verified_at: 2026-08-22
 価格は RevenueCat Test Store の product に登録された価格 (月額 $3.00 / 年額 $24.00、USD) がそのまま表示されている。App Store の実価格 (¥480 / ¥3,800) と割引率 (34%) は Test Store では検証できない (Test Store は StoreKit を使わない mock のため)。表示経路 (`StoreProduct.priceString` をそのまま出す・割引率は月額 × 12 に対する比率で計算) が動いていることの確認として扱う。
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260820/7b7fb4a9-9223-4bb7-a086-3c4e3d8376c2.png" width="320">
+
+**確認日: 2026-08-22**
+
+無料枠の月10→月50 変更 (issue #50) と文言変更 (issue #51) の後に再確認した。ローカル Simulator (kashakeibo-無名-iOS26.5、日本語ロケール)、debug ビルド (kashakeibo-dev + dev Worker) に **RevenueCat の Test Store 鍵 (dev)** を `--dart-define=REVENUECAT_TEST_STORE_API_KEY` で注入して実行 (値は .envrc の `REVENUECAT_TESTSTORE_API_KEY_DEV` を direnv 経由で渡し、コマンドラインに露出させない)。App Store の public API key (`appl_`) は StoreKit を使うため simctl 起動の Simulator では商品を解決できず、購入系の項目は Test Store 鍵でしか確認できない。月次一覧の残量チップから開いたペイウォールに、月額 $3.00 / 年額 $24.00 (「33%お得」バッジ・「$2.00/月換算」・年額が初期選択のオレンジ枠) が Test Store の価格で表示され、「料金プランを取得できませんでした」にはならなかった。無料枠バーは「今月の無料スキャン 6/50」で月50の新しい上限を反映している。見出し「スキャンし放題に」・特典「スキャンし放題 / 全期間の履歴 / 今後の新機能」・フェアユース注記も表示された。
+
+無料トライアルの表示は無い。現在の Offering に導入期間 (intro price / free trial) を持つ商品が無いため (トライアルの要否は documents/PROJECT.md のとおり issue #51 で検討中)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/89620a62-31c1-4f36-bcdf-44f12f18861b.png" width="320" alt="ペイウォール。月額$3.00と年額$24.00の料金カード、無料スキャン6/50のバー">
 
 </details>
 
@@ -136,7 +144,7 @@ Simulator の当日は 2026-08-20。無料プランの新規 uid で 2026年8月
 
 - [x] **mock 購入の成功**: 「プレミアムを始める」で RevenueCat Test Store の購入モーダルが開き、「Test valid purchase」で購入が成立するとペイウォールが閉じて完了メッセージ「プレミアムを開始しました。スキャンし放題です!」が表示される
   - 自動化: manual (Test Store の mock 購入モーダルは Maestro で flaky の実績があるため agent のシミュレータ操作で確認する)
-- [ ] **購入後の残量チップ**: 購入直後に月次一覧の残量チップが「スキャンし放題」になる (2026-08-22 の文言変更「スキャン無制限」→「スキャンし放題」後は未検証。変更前の記録は下記)
+- [x] **購入後の残量チップ**: 購入直後に月次一覧の残量チップと記録するシート下部の残量表示が「スキャンし放題」になる
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **購入後の設定のプラン行**: 設定画面の「プラン」行の値が「プレミアム」になる
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
@@ -168,11 +176,25 @@ Simulator の当日は 2026-08-20。無料プランの新規 uid で 2026年8月
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260820/94611b98-07d8-4590-9e97-7dba36fadf3e.png" width="320">
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260820/90423793-57a4-4773-b06a-abcf386a755c.png" width="320">
 
+**確認日: 2026-08-22**
+
+文言変更 (issue #51) の後に、RevenueCat の Test Store 鍵 (dev) を注入したビルドで再確認した。年額 (初期選択) のまま「プレミアムを始める」をタップすると Test Store の購入モーダル (Product ID: kashakeibo_premium_annual_3800yen / Title: Premium / Price: $24.00 / SubscriptionPeriod: 1 year) が開き (左)、「Test valid purchase」でペイウォールが閉じて月次一覧に戻り、スナックバー「プレミアムを開始しました。スキャンし放題です!」が表示された (右)。スナックバーは数秒で消えるため、タップと撮影を 1 コマンドにまとめて撮影した。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/19493766-b830-4b2c-81d5-0dc0ccea101a.png" width="320" alt="Test Storeの購入モーダル">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/b689badd-b33a-488f-aaec-077b98dbd593.png" width="320" alt="購入完了のスナックバーと、スキャンし放題に変わった残量チップ">
+
 </details>
 
-### **購入後の残量チップ**: 購入直後に月次一覧の残量チップが「スキャン無制限」になる
+### **購入後の残量チップ**: 購入直後に月次一覧の残量チップと記録するシート下部の残量表示が「スキャンし放題」になる
 
 <details><summary>動作確認スクショ</summary>
+
+**確認日: 2026-08-22**
+
+文言変更後の表示を、RevenueCat の Test Store 鍵 (dev) を注入したビルドの mock 購入で確認した。購入直後の月次一覧で「とった記録」行のチップが「スキャン残り44回」から「スキャンし放題」に変わった (左)。記録するシート下部の残量表示も「スキャンし放題」になった (右)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/b689badd-b33a-488f-aaec-077b98dbd593.png" width="320" alt="月次一覧の残量チップがスキャンし放題">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/924a9fa4-7fe8-4d51-8251-1250c8b369e0.png" width="320" alt="記録するシート下部がスキャンし放題">
 
 **確認日: 2026-08-20**
 
