@@ -43,7 +43,13 @@ last_verified_at: 2026-08-19
 - **ローカル Simulator の debug ビルドは App Check の debug token 登録が無いと Worker が 401 になる**: 残量チップ (`GET /analyses/quota`) が表示されず、撮影も通らない。`xcrun simctl spawn <UDID> log show --last 2m --predicate 'process == "Runner"' | grep "App Check debug token"` で token を控え、workers/image/README.md「デバッグビルドでの動作確認」の手順で kashakeibo-dev にだけ登録してからアプリを再起動する。REST API で登録する時は `x-goog-user-project: kashakeibo-dev` ヘッダーが必要 (無いと quota project 未設定の 403)、displayName は 50 文字以内。`xcrun simctl erase` すると debug token が再生成されるため登録し直す (2026-08-20 の paywall QA で発生)
 - **Simulator の消去後は mobile-mcp の agent が消える**: `xcrun simctl erase` 後に `mobile_take_screenshot` が `agent is not installed` で失敗する。`mobilecli agent install --device <UDID>` (mobile-mcp が使う mobilecli。`~/.npm/_npx/*/node_modules/mobilecli/bin/` 配下) で再インストールする。その間に `flutter run` が走っていると attach が切れる (`Lost connection to device`) が、アプリ自体はインストール済みなので `xcrun simctl launch` で起動すればよい
 - **スナックバーの撮影は mobile-mcp だと間に合わない**: 購入失敗・復元結果などのスナックバーは数秒で消えるため、`mobile_click` → `mobile_save_screenshot` の 2 ツール呼び出しでは消えた後の画面が撮れる。タップと撮影を 1 つのシェルコマンドにまとめる (`mobilecli io tap "x,y" --device <UDID>; sleep 1.2; xcrun simctl io <UDID> screenshot <path>`)
-- **キーボードで隠れる要素**: 手動明細入力シートのように autofocus で数字キーボードが出る画面では、画面下部のボタン (登録ボタン等) がキーボードの裏に入り `elements` にも出ない。数字キーボードには改行キーが無いため、`textInputAction: done` を持つ別のテキスト欄 (店名欄) をタップしてから `keys` に改行だけを送ってキーボードを閉じる。キーボードの開閉で全要素の rect がずれるので、閉じた後に `elements` を取り直してから座標を決める
+- **キーボードで隠れる要素**: 手動明細入力シートのように autofocus で数字キーボードが出る画面では、画面下部のボタン (登録ボタン等) がキーボードの裏に入り `elements` にも出ない。数字キーボードには改行キーが無いため、`textInputAction: done` を持つ別のテキスト欄 (店名欄) をタップしてから `keys` に改行だけを送ってキーボードを閉じる。日本語キーボードには `done` ボタンが要素として出るのでそれをタップしてもよい。キーボードの開閉で全要素の rect がずれるので、閉じた後に `elements` を取り直してから座標を決める
+- **ローカル Simulator の debug ビルドは bundle ID が `com.bannzai.kashakeibo.dev`**: `xcrun simctl launch` / `terminate` / ログ取得はこの ID で行う (`com.bannzai.kashakeibo` ではない)。ビルドは `flutter build ios --simulator --debug` (CI の simulator-session.yml と同じ。dart-define なし) で、`build/ios/iphonesimulator/Runner.app` を `xcrun simctl install` する。ビルドには 15 分程度かかる
+- **ローカル Simulator のロケール切替**: `xcrun simctl spawn <UDID> defaults write "Apple Global Domain" AppleLanguages -array ja` (英語は `-array en`) の後にアプリを再起動すると、l10n の表示言語が切り替わる。Simulator 全体の再起動は不要。ホスト macOS が日本語なら Simulator も既定で日本語ロケールになるため、日本語文言で判定する項目はローカルで行う (simtunnel のリモート Simulator は英語ロケール固定)
+- **ローカル Simulator は JST**: リモートと違い当日がホストマシンと一致する。デートピッカーの当日セルはアクセシビリティラベルが「22, 2026年8月22日土曜日, 今日」のように「今日」で終わるので、これで初期値が当日かを判定できる
+- **フォトライブラリへの画像投入**: `xcrun simctl addmedia <UDID> <画像パス>` で Simulator の写真に追加できる。「記録する」→「写真・スクショから選ぶ」で取り込むと、スクショ取込の明細 (出所チップが「スクショ」「自動取込」) と元画像付きの明細詳細を作れる。解析は Worker の無料スキャンを 1 回消費する (残量チップの数字が 1 減ることで確認できる)
+- **スキャン残量 0 の状態は現状どこからも作れない**: 今月のスキャン回数は Cloudflare の Durable Object (`workers/image/src/usage_counter.ts` の `UsageCounter`。インスタンス名 = 年月、キー `scan:uid:{uid}`) に持つ。Firestore ではないため firebase / gcloud CLI では触れず、wrangler にも DO storage を外部から書き換えるコマンドが無い。開発者メニュー (lib/features/debug/debug_sheet.dart) にも残量を操作する項目が無い。API 経由でカウンタだけを進める案 (アプリの uid の ID token で `POST /analyses` を極小画像で 50 回呼ぶ。Worker はカウンタ加算を Gemini 呼び出しの前に行うため原価はほぼゼロ) も、custom token の署名に必要な `iam.serviceAccounts.signJwt` 権限が無く実行できない (kashakeibo-dev では `roles/iam.serviceAccountTokenCreator` が firebase-adminsdk サービスアカウント自身にしか付いておらず、開発者アカウントは `roles/owner` のみ。owner に signJwt は含まれない)。そのため残量 0 前提の項目 (capture の「残量 0 のペイウォール」「無料枠超過 (402) からの購入・再解析」、paywall の「記録するシートの残量 0 導線」「解析 402 導線」) は確認できない。恒久策は開発者メニュー + Worker 側の DEBUG 用カウンタ設定経路の追加
+- **並走レーンの Simulator を掴まない**: `xcrun simctl list devices booted` には他の worktree・他プロジェクトの Simulator も並ぶ。プロジェクトルートで `sim-boot` を実行して出た `DEVICE_UDID` を全操作 (`mobilecli --device`・`xcrun simctl`) に必ず渡す
 
 ## 横断確認項目
 
@@ -129,6 +135,7 @@ manual_entry の QA で 4 件の明細を登録した状態からアプリを終
 - [paywall (プレミアムのペイウォール・課金)](lib/features/paywall/QA.md)
 - [capture (撮影・スクショ取込)](lib/features/capture/QA.md)
 - [share_import (共有 Extension からの取り込み)](lib/features/share_import/QA.md)
+- [transaction_detail (明細詳細)](lib/features/transaction_detail/QA.md)
 
 ## QA 対象外
 
