@@ -27,12 +27,14 @@ appId: com.bannzai.kashakeibo.dev
     direction: DOWN
 - tapOn:
     text: "(?s).*(Add transaction|登録する).*"
+# 支出サマリー・カテゴリ内訳にも同じ金額文字列が現れるため、支出行に固有の
+# マイナス付き表記 (-¥N,NNN) で明細行だけを一意に指定する
 - extendedWaitUntil:
     visible:
-      text: ${'(?s).*' + output.amountDisplay + '.*'}
+      text: ${'(?s).*-¥' + output.amountDisplay + '.*'}
     timeout: 15000
 - tapOn:
-    text: ${'(?s).*' + output.amountDisplay + '.*'}
+    text: ${'(?s).*-¥' + output.amountDisplay + '.*'}
 - extendedWaitUntil:
     visible:
       text: "(?s).*(Exclude from totals|計算対象から除外).*"

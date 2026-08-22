@@ -368,7 +368,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get scanQuotaUnlimited => '무제한 스캔';
+  String get scanQuotaUnlimited => '마음껏 스캔';
 
   @override
   String get scanQuotaExhausted => '이번 달 무료 스캔을 모두 사용했습니다.';
@@ -443,8 +443,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get paywallPremiumActive => '프리미엄이 활성화되어 있습니다';
 
   @override
-  String get paywallPremiumActiveDescription =>
-      '스캔을 무제한으로 이용하고 전체 기록을 확인할 수 있습니다.';
+  String get paywallPremiumActiveDescription => '마음껏 스캔하고 전체 기록을 확인할 수 있습니다.';
 
   @override
   String get paywallOfferingUnavailable => '현재 요금제를 이용할 수 없습니다';

@@ -364,7 +364,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get scanQuotaUnlimited => '无限扫描';
+  String get scanQuotaUnlimited => '尽情扫描';
 
   @override
   String get scanQuotaExhausted => '本月免费扫描次数已用完';
@@ -437,7 +437,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get paywallPremiumActive => '高级版已启用';
 
   @override
-  String get paywallPremiumActiveDescription => '您可以不限次数扫描并查看完整记录。';
+  String get paywallPremiumActiveDescription => '您可以尽情扫描并查看完整记录。';
 
   @override
   String get paywallOfferingUnavailable => '目前暂时无法获取套餐';
@@ -819,7 +819,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
-  String get scanQuotaUnlimited => '无限扫描';
+  String get scanQuotaUnlimited => '尽情扫描';
 
   @override
   String get scanQuotaExhausted => '本月免费扫描次数已用完';
@@ -892,7 +892,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get paywallPremiumActive => '高级版已启用';
 
   @override
-  String get paywallPremiumActiveDescription => '您可以不限次数扫描并查看完整记录。';
+  String get paywallPremiumActiveDescription => '您可以尽情扫描并查看完整记录。';
 
   @override
   String get paywallOfferingUnavailable => '目前暂时无法获取套餐';
@@ -1273,7 +1273,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get scanQuotaUnlimited => '無限掃描';
+  String get scanQuotaUnlimited => '盡情掃描';
 
   @override
   String get scanQuotaExhausted => '本月免費掃描次數已用完';
@@ -1346,7 +1346,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get paywallPremiumActive => '進階版已啟用';
 
   @override
-  String get paywallPremiumActiveDescription => '您可以不限次數掃描並查看完整記錄。';
+  String get paywallPremiumActiveDescription => '您可以盡情掃描並查看完整記錄。';
 
   @override
   String get paywallOfferingUnavailable => '目前暫時無法取得方案';
