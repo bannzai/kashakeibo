@@ -28,5 +28,6 @@
   "accountBackupConfiguredDescription": "在其他设备上选择同一账号，即可访问已保存的数据。",
   "linkOrSignInWithApple": "关联 Apple",
   "linkOrSignInWithGoogle": "使用 Google 关联",
-  "accountLinked": "账号已关联"
+  "accountLinked": "账号已关联",
+  "existingAccountSignedIn": "已切换到您已有的账户"
 }
