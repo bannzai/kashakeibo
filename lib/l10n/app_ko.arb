@@ -55,5 +55,6 @@
   "manualEntryType": "거래 유형",
   "manualEntryCategory": "카테고리",
   "manualEntryCategoryRequired": "카테고리 선택",
-  "manualEntryDate": "날짜"
+  "manualEntryDate": "날짜",
+  "manualEntryRegister": "거래 추가"
 }

@@ -55,5 +55,6 @@
   "manualEntryType": "交易类型",
   "manualEntryCategory": "分类",
   "manualEntryCategoryRequired": "选择分类",
-  "manualEntryDate": "日期"
+  "manualEntryDate": "日期",
+  "manualEntryRegister": "添加账目"
 }
