@@ -123,5 +123,6 @@
   "paywallPerMonthEquivalent": "{price}/月",
   "paywallStartPremium": "开通高级版",
   "paywallCancelAnytime": "随时取消",
-  "paywallRestore": "恢复购买"
+  "paywallRestore": "恢复购买",
+  "paywallRestored": "已恢复购买。高级版已启用。"
 }
