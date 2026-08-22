@@ -1,5 +1,10 @@
 [
   {
+    "category": "NAME",
+    "purposes": ["APP_FUNCTIONALITY"],
+    "data_protections": ["DATA_LINKED_TO_YOU"]
+  },
+  {
     "category": "EMAIL_ADDRESS",
     "purposes": ["APP_FUNCTIONALITY"],
     "data_protections": ["DATA_LINKED_TO_YOU"]
@@ -17,6 +22,16 @@
   {
     "category": "PURCHASE_HISTORY",
     "purposes": ["ANALYTICS", "APP_FUNCTIONALITY"],
+    "data_protections": ["DATA_LINKED_TO_YOU"]
+  },
+  {
+    "category": "OTHER_FINANCIAL_INFO",
+    "purposes": ["APP_FUNCTIONALITY"],
+    "data_protections": ["DATA_LINKED_TO_YOU"]
+  },
+  {
+    "category": "COARSE_LOCATION",
+    "purposes": ["ANALYTICS"],
     "data_protections": ["DATA_LINKED_TO_YOU"]
   },
   {
