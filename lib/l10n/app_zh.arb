@@ -119,5 +119,6 @@
   "paywallMonthlyPlan": "每月",
   "paywallAnnualPlan": "年付",
   "paywallRecommended": "最划算",
-  "paywallAnnualSavings": "节省 {percent}%"
+  "paywallAnnualSavings": "节省 {percent}%",
+  "paywallPerMonthEquivalent": "{price}/月"
 }

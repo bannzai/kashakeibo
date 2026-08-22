@@ -119,5 +119,6 @@
   "paywallMonthlyPlan": "월간",
   "paywallAnnualPlan": "연간",
   "paywallRecommended": "최고 혜택",
-  "paywallAnnualSavings": "{percent}% 할인"
+  "paywallAnnualSavings": "{percent}% 할인",
+  "paywallPerMonthEquivalent": "{price}/월"
 }
