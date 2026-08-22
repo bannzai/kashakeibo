@@ -112,5 +112,6 @@
   "paywallSubtitle": "계정 연동이 필요 없습니다. 촬영만 하면 프리미엄이 모든 영수증과 명세서를 읽어드립니다.",
   "paywallSavingsClaim": "가계부로 지출을 줄인 사람 중 약 절반이 매월 ¥5,000~10,000을 절약했습니다*",
   "paywallSavingsSource": "* JPX's Money-bu! 조사 (2022년 10월, 일본 직장인 1,111명)",
-  "paywallFreeQuota": "이번 달 무료 스캔 {used}/{limit}"
+  "paywallFreeQuota": "이번 달 무료 스캔 {used}/{limit}",
+  "paywallBenefitUnlimitedScans": "자유로운 스캔"
 }

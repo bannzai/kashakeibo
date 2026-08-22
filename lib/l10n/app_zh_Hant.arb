@@ -112,5 +112,6 @@
   "paywallSubtitle": "無需連結帳戶。拍照即可，進階版會為您讀取每張收據和每份帳單。",
   "paywallSavingsClaim": "透過記帳減少支出的人中，約一半每月省下¥5,000–10,000*",
   "paywallSavingsSource": "* 調查：JPX's Money-bu!（2022 年 10 月，日本 1,111 名上班族）",
-  "paywallFreeQuota": "本月免費掃描 {used}/{limit}"
+  "paywallFreeQuota": "本月免費掃描 {used}/{limit}",
+  "paywallBenefitUnlimitedScans": "自由掃描"
 }
