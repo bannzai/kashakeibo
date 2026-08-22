@@ -28,7 +28,7 @@ last_verified_at: 2026-08-19
 
 - シミュレータ管理: /ios-simulator skill を起点にする (リモート simtunnel を優先。ローカルで行う場合は /sim-manager)
 - UI 操作・スクリーンショット: /verify-ui-mobile-mcp (mobile-mcp)
-- E2E: Maestro は未導入 (https://github.com/bannzai/kashakeibo/issues/19 で整備予定)。導入までは全項目 agent のシミュレータ操作で確認する
+- E2E: Maestro を導入済み (issue #19)。主要フローは maestro/flows/ (手動入力 / レシート撮影→登録 / 計算対象からの除外 / 課金導線) にあり、/flutter-maestro skill で実行する。ローカル Simulator は iOS 18.x ランタイム推奨 (26.x は WDA 不安定)。撮影フローは App Check debug token の登録 (workers/image/README.md) が前提。maestro フローが無い項目は agent のシミュレータ操作で確認する
 
 ### 再現が難しい操作の手順
 
@@ -44,6 +44,7 @@ last_verified_at: 2026-08-19
 - **Simulator の消去後は mobile-mcp の agent が消える**: `xcrun simctl erase` 後に `mobile_take_screenshot` が `agent is not installed` で失敗する。`mobilecli agent install --device <UDID>` (mobile-mcp が使う mobilecli。`~/.npm/_npx/*/node_modules/mobilecli/bin/` 配下) で再インストールする。その間に `flutter run` が走っていると attach が切れる (`Lost connection to device`) が、アプリ自体はインストール済みなので `xcrun simctl launch` で起動すればよい
 - **スナックバーの撮影は mobile-mcp だと間に合わない**: 購入失敗・復元結果などのスナックバーは数秒で消えるため、`mobile_click` → `mobile_save_screenshot` の 2 ツール呼び出しでは消えた後の画面が撮れる。タップと撮影を 1 つのシェルコマンドにまとめる (`mobilecli io tap "x,y" --device <UDID>; sleep 1.2; xcrun simctl io <UDID> screenshot <path>`)
 - **キーボードで隠れる要素**: 手動明細入力シートのように autofocus で数字キーボードが出る画面では、画面下部のボタン (登録ボタン等) がキーボードの裏に入り `elements` にも出ない。数字キーボードには改行キーが無いため、`textInputAction: done` を持つ別のテキスト欄 (店名欄) をタップしてから `keys` に改行だけを送ってキーボードを閉じる。キーボードの開閉で全要素の rect がずれるので、閉じた後に `elements` を取り直してから座標を決める
+- **追加ロケール (ko / zh / zh_Hans / zh_Hant) の表示は未検証**: 2026-08-22 の多言語展開 (issue #16 / PR #64) で追加。検査は translate-app-arb の check (キー欠落・プレースホルダー・用語集の機械検査) と訳文の抜き取り目視のみで、シミュレータでの画面表示 (レイアウト崩れ・文字化け・法務リンクの言語) は未検証。各言語ロケールでの run-qa 実施時に確認する
 
 ## 横断確認項目
 

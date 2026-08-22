@@ -130,7 +130,10 @@ class MonthlyPage extends HookConsumerWidget {
               );
             case AddRecordOption.manual:
               unawaited(logAnalyticsEvent(name: 'manual_entry_open'));
-              final registered = await showManualEntrySheet(context: context);
+              final registered = await showManualEntrySheet(
+                context: context,
+                logAnalyticsEvent: logAnalyticsEvent,
+              );
               if (!context.mounted || registered != true) {
                 return;
               }
@@ -205,12 +208,18 @@ class MonthlyPage extends HookConsumerWidget {
                         _DuplicateCandidateBanner(
                           candidateCount: duplicateCandidateList.length,
                           onTap: () {
+                            unawaited(
+                              logAnalyticsEvent(
+                                name: 'duplicate_candidate_open',
+                              ),
+                            );
                             showModalBottomSheet<void>(
                               context: context,
                               useSafeArea: true,
                               isScrollControlled: true,
                               builder: (context) => _DuplicateCandidateSheet(
                                 candidate: duplicateCandidateList.first,
+                                logAnalyticsEvent: logAnalyticsEvent,
                               ),
                             );
                           },
@@ -660,7 +669,13 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
   /// 確認する重複候補。
   final DuplicateCandidate candidate;
 
-  const _DuplicateCandidateSheet({required this.candidate});
+  /// Analyticsイベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
+  const _DuplicateCandidateSheet({
+    required this.candidate,
+    required this.logAnalyticsEvent,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -772,17 +787,30 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
             onPressed: isSubmitting.value
                 ? null
                 : () {
+                    // 下側の候補を選択した場合は残す側・削除する側が入れ替わるため、
+                    // 実際にマージへ渡す明細を先に決めてから Analytics に記録する。
                     final keepPrimary =
                         selectedTransactionID.value ==
                         candidate.primaryTransaction.id;
+                    final primaryTransaction = keepPrimary
+                        ? candidate.primaryTransaction
+                        : candidate.duplicateTransaction;
+                    final duplicateTransaction = keepPrimary
+                        ? candidate.duplicateTransaction
+                        : candidate.primaryTransaction;
+                    unawaited(
+                      logAnalyticsEvent(
+                        name: 'duplicate_merge',
+                        parameters: {
+                          'primaryTransactionID': primaryTransaction.id,
+                          'duplicateTransactionID': duplicateTransaction.id,
+                        },
+                      ),
+                    );
                     resolve(
                       operation: () => mergeDuplicateTransactions.call(
-                        primaryTransaction: keepPrimary
-                            ? candidate.primaryTransaction
-                            : candidate.duplicateTransaction,
-                        duplicateTransaction: keepPrimary
-                            ? candidate.duplicateTransaction
-                            : candidate.primaryTransaction,
+                        primaryTransaction: primaryTransaction,
+                        duplicateTransaction: duplicateTransaction,
                       ),
                     );
                   },
@@ -801,6 +829,17 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
             onPressed: isSubmitting.value
                 ? null
                 : () {
+                    unawaited(
+                      logAnalyticsEvent(
+                        name: 'duplicate_keep_both',
+                        parameters: {
+                          'primaryTransactionID':
+                              candidate.primaryTransaction.id,
+                          'duplicateTransactionID':
+                              candidate.duplicateTransaction.id,
+                        },
+                      ),
+                    );
                     resolve(
                       operation: () => keepBothTransactions.call(
                         firstTransaction: candidate.primaryTransaction,
