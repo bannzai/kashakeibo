@@ -126,5 +126,6 @@
   "paywallRestore": "回復購買",
   "paywallRestored": "已恢復購買。進階版已啟用。",
   "paywallRestoreNotFound": "沒有可還原的購買項目",
-  "paywallPurchased": "進階版已啟用。盡情掃描吧！"
+  "paywallPurchased": "進階版已啟用。盡情掃描吧！",
+  "paywallPremiumActive": "進階版已啟用"
 }
