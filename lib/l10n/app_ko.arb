@@ -34,5 +34,6 @@
   "accountSwitchWarningMessage": "선택한 계정이 다른 기기에서 이미 사용 중인 경우, 이 기기에서 익명으로 저장된 데이터에 더 이상 접근할 수 없습니다. 계속하기 전에 필요한 거래 내역을 확인하시기 바랍니다.",
   "continueAccountLink": "계속",
   "deleteAccount": "계정 삭제",
-  "deleteAccountConfirmationTitle": "계정을 삭제하시겠습니까?"
+  "deleteAccountConfirmationTitle": "계정을 삭제하시겠습니까?",
+  "deleteAccountConfirmationMessage": "계정과 저장된 거래 내역이 영구적으로 삭제되며, 복구할 수 없습니다."
 }

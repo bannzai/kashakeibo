@@ -34,5 +34,6 @@
   "accountSwitchWarningMessage": "如果您选择的账户已在其他设备上使用，此设备上的匿名数据将无法再访问。继续前请查看需要保留的交易记录。",
   "continueAccountLink": "继续",
   "deleteAccount": "删除账户",
-  "deleteAccountConfirmationTitle": "要删除您的账户吗？"
+  "deleteAccountConfirmationTitle": "要删除您的账户吗？",
+  "deleteAccountConfirmationMessage": "您的帳戶和已儲存的交易記錄將永久刪除，且無法復原。"
 }
