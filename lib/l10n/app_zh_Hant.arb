@@ -52,5 +52,6 @@
   "manualEntryStore": "商店或備註",
   "manualEntryDefaultTitle": "現金支出",
   "manualEntryStoreRequired": "請輸入商店或備註",
-  "manualEntryType": "交易類型"
+  "manualEntryType": "交易類型",
+  "manualEntryCategory": "類別"
 }

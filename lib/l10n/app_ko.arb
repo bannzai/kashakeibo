@@ -52,5 +52,6 @@
   "manualEntryStore": "매장 또는 메모",
   "manualEntryDefaultTitle": "현금 지출",
   "manualEntryStoreRequired": "가게 또는 메모 입력",
-  "manualEntryType": "거래 유형"
+  "manualEntryType": "거래 유형",
+  "manualEntryCategory": "카테고리"
 }
