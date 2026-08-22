@@ -35,5 +35,6 @@
   "continueAccountLink": "繼續",
   "deleteAccount": "刪除帳戶",
   "deleteAccountConfirmationTitle": "要刪除您的帳戶嗎？",
-  "deleteAccountConfirmationMessage": "您的帳戶和已儲存的交易記錄將永久刪除，且無法復原。"
+  "deleteAccountConfirmationMessage": "您的帳戶和已儲存的交易記錄將永久刪除，且無法復原。",
+  "cancel": "取消"
 }
