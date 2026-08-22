@@ -51,5 +51,6 @@
   "manualEntryAmountRequired": "请输入至少 1 日元的金额",
   "manualEntryStore": "商店或备注",
   "manualEntryDefaultTitle": "现金支出",
-  "manualEntryStoreRequired": "请输入商店或备注"
+  "manualEntryStoreRequired": "请输入商店或备注",
+  "manualEntryType": "交易类型"
 }
