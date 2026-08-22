@@ -75,5 +75,6 @@
   "captureAnalyzingStepCategory": "正在推測類別",
   "captureAnalysisFailedTitle": "無法讀取圖片",
   "captureAnalysisNoTransactions": "無法從圖片中讀取交易紀錄",
-  "captureRetry": "再試一次"
+  "captureRetry": "再試一次",
+  "captureManualFallback": "手動輸入"
 }
