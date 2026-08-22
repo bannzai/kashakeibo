@@ -84,5 +84,6 @@
   "captureCandidateEdit": "편집",
   "captureCandidateApplyEdit": "변경 사항 적용",
   "captureRegistered": "기록되었습니다 ✓",
-  "transactionDetailTitle": "거래 내역"
+  "transactionDetailTitle": "거래 내역",
+  "transactionDetailSourceImage": "원본 이미지"
 }
