@@ -81,5 +81,6 @@
   "captureConfirmTitle": "查看明细",
   "captureSourceImageNote": "您可以随时从明细中查看原始图片",
   "captureRegister": "记录",
-  "captureCandidateEdit": "编辑"
+  "captureCandidateEdit": "编辑",
+  "captureCandidateApplyEdit": "应用更改"
 }

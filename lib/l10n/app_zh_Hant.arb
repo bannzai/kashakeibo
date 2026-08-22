@@ -81,5 +81,6 @@
   "captureConfirmTitle": "檢視明細",
   "captureSourceImageNote": "您可以隨時從明細中查看原始圖片",
   "captureRegister": "記錄",
-  "captureCandidateEdit": "編輯"
+  "captureCandidateEdit": "編輯",
+  "captureCandidateApplyEdit": "套用變更"
 }
