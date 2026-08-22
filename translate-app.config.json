@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/bannzai/castle/main/home/.agents/skills/_shared/translate-app.config.schema.json",
+  "format": "arb",
+  "path": "lib/l10n",
+  "source_language": "en",
+  "target_languages": [
+    "ja",
+    "zh",
+    "zh_Hans",
+    "zh_Hant",
+    "ko"
+  ],
+  "source_dirs": [
+    "lib"
+  ],
+  "context": "スクショ・写真を撮ったら記録される家計簿 iOS/Android アプリ「カシャケイボ (Kashakeibo)」。紙レシートの撮影、クレカ明細・EC 購入履歴のスクショ取込を AI (Gemini vision) が解析して明細化する。手動入力・重複明細の検知とマージ・月次集計 (収入・支出・カテゴリ内訳)・元画像の見返し・計算対象からの除外・匿名認証からのアカウントリンク・プレミアム課金 (paywall) がある。対象ユーザーは口座連携型家計簿の連携切れに疲れた一般ユーザー。UI 文言は簡潔で親しみやすい文体に訳す。アプリ名「Kashakeibo」は翻訳せずそのまま使う。",
+  "glossary": {
+    "Kashakeibo": {
+      "ja": "カシャケイボ",
+      "zh": "Kashakeibo",
+      "zh_Hans": "Kashakeibo",
+      "zh_Hant": "Kashakeibo",
+      "ko": "Kashakeibo"
+    },
+    "Premium": {
+      "ja": "プレミアム",
+      "zh": "高级版",
+      "zh_Hans": "高级版",
+      "zh_Hant": "進階版",
+      "ko": "프리미엄"
+    }
+  },
+  "style": {
+    "ko": "해요体ではなく합니다体の丁寧な文体で統一する。ボタン・ラベルは名詞形で簡潔にする。",
+    "zh_Hans": "简体中文。UI ボタン・ラベルは簡潔な動詞句にする。",
+    "zh_Hant": "繁體中文 (台湾向け)。UI ボタン・ラベルは簡潔な動詞句にする。",
+    "zh": "简体中文 (zh_Hans のフォールバック基底)。zh_Hans と同じ文体にする。"
+  }
+}
