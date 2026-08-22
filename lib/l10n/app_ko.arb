@@ -105,5 +105,6 @@
   "transactionProvenanceAutomatic": "자동 가져오기",
   "transactionProvenanceAdjusted": "조정됨",
   "capturesSection": "캡처 기록",
-  "scanQuotaRemaining": "스캔 {count}회 남음"
+  "scanQuotaRemaining": "스캔 {count}회 남음",
+  "scanQuotaUnlimited": "무제한 스캔"
 }

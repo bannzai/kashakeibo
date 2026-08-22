@@ -105,5 +105,6 @@
   "transactionProvenanceAutomatic": "自动导入",
   "transactionProvenanceAdjusted": "已调整",
   "capturesSection": "截图记录",
-  "scanQuotaRemaining": "剩余 {count} 次扫描"
+  "scanQuotaRemaining": "剩余 {count} 次扫描",
+  "scanQuotaUnlimited": "无限扫描"
 }
