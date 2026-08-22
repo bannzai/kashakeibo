@@ -22,5 +22,6 @@
   "privacyPolicy": "隐私政策",
   "specifiedCommercialTransactionAct": "商业交易披露",
   "accountBackupTitle": "备份",
-  "accountBackupNotSet": "未设置"
+  "accountBackupNotSet": "未设置",
+  "accountBackupConfigured": "已设置"
 }
