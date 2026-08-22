@@ -103,5 +103,70 @@
         "eatingOut"
       ]
     }
+  ],
+  "igami_stamps.jpg": [
+    {
+      "title": "伊神切手社",
+      "titleAliases": [
+        "伊神切手社 大須店"
+      ],
+      "amount": 520,
+      "transactionDate": "2022-03-03",
+      "type": "expense",
+      "category": "other"
+    }
+  ],
+  "okinawa_family_restaurant.jpg": [
+    {
+      "title": "ケンミン食堂",
+      "titleAliases": [
+        "沖縄家庭料理の店ケンミン食堂"
+      ],
+      "amount": 4130,
+      "transactionDate": "2025-01-07",
+      "type": "expense",
+      "category": "eatingOut"
+    }
+  ],
+  "okinawa_bbq_restaurant.jpg": [
+    {
+      "title": "琉球の牛",
+      "titleAliases": [
+        "RYUKYU NO USHI",
+        "焼肉 琉球の牛"
+      ],
+      "amount": 16126,
+      "transactionDate": "2025-01-07",
+      "type": "expense",
+      "category": "eatingOut"
+    }
+  ],
+  "viedefrance_bakery.jpg": [
+    {
+      "title": "ヴィドフランス",
+      "titleAliases": [
+        "Vie de France",
+        "VDF甲府エクラン店"
+      ],
+      "amount": 147,
+      "transactionDate": "2007-09-27",
+      "type": "expense",
+      "category": "food",
+      "categoryAliases": [
+        "eatingOut"
+      ]
+    }
+  ],
+  "jreast_ticket_machine.jpg": [
+    {
+      "title": "JR東日本",
+      "titleAliases": [
+        "新木場駅"
+      ],
+      "amount": 160,
+      "transactionDate": "2017-01-31",
+      "type": "expense",
+      "category": "transportation"
+    }
   ]
 }

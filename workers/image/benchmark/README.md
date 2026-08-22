@@ -15,11 +15,11 @@ FIXTURES_DIR=benchmark node --experimental-strip-types scripts/measure-analysis-
 
 | 構成 | 全項目一致 | 平均原価/スキャン |
 | --- | --- | --- |
-| gemini-3.1-flash-lite (採用) | **8/8** | 約 ¥0.070 |
-| gemini-3.1-flash-lite + mediaResolution low | 8/8 | 約 ¥0.040 |
+| gemini-3.1-flash-lite (採用) | **13/13** | 約 ¥0.070 |
+| gemini-3.1-flash-lite + mediaResolution low | 8/8 (8枚時点) | 約 ¥0.040 |
 | gemini-3.7-flash (旧採用) | 8/8 (7枚時点) | 約 ¥0.271 |
 
-判定は店名 (titleAliases 許容)・金額・取引日・収支・カテゴリ (categoryAliases 許容)・件数の全一致 (`scripts/measure-analysis-cost.mjs`)。「合計 vs お釣り・お預り」(maxvalu: 合計¥246 に対しお釣り¥254、mcdonalds: お預り¥1,000)、支払方法行「交通系 ¥357」(cascade)、伝票形式 (ohsho)、交通系領収証 (monorail) などの取り違えやすいケースを含む。
+判定は店名 (titleAliases 許容)・金額・取引日・収支・カテゴリ (categoryAliases 許容)・件数の全一致 (`scripts/measure-analysis-cost.mjs`)。「合計 vs お釣り・お預り」(maxvalu: 合計¥246 に対しお釣り¥254、mcdonalds: お預り¥1,000、okinawa_family: お預り¥10,000)、支払方法行「交通系 ¥357」(cascade)、伝票形式 (ohsho)、交通系領収証 (monorail / jreast)、金券ショップで飲食店の商品券を買うケース (igami: 品目に「吉野家」が出るが店は切手社 → other)、手持ち斜め撮影・高額 (okinawa_bbq: ¥16,126)、2007年の古い印字 (viedefrance) などの取り違えやすいケースを含む。
 
 ## 正解データ (ground-truth.json)
 
@@ -42,6 +42,11 @@ FIXTURES_DIR=benchmark node --experimental-strip-types scripts/measure-analysis-
 | ohsho_restaurant.jpg | 餃子の王将 (伝票形式) ¥2,033 | https://commons.wikimedia.org/wiki/File:JP_%E6%97%A5%E6%9C%AC_Japan_%E4%BA%AC%E9%83%BD%E5%B8%82Kyoto_%E4%B8%AD%E5%8D%8E%E6%96%99%E7%90%86%E5%BA%97_%E9%A4%83%E5%AD%90%E3%81%AE%E7%8E%8B%E5%B0%86_Gyoza_no_Ohsho_Japanese_Chinese_restaurant_chain_Receipt_in_June_2026_N13P_01.jpg | TKdows 2026 | CC0 |
 | monorail_transport.jpg | ゆいレール領収証 (交通) ¥230 | https://commons.wikimedia.org/wiki/File:Okinawa_Monorail_receipt_issuing_from_Omoromachi_Station_65313_20191111.jpg | Solomon203 | CC BY-SA 4.0 |
 | cascade_bakery.jpg | Cascade (ベーカリー) ¥357 | https://commons.wikimedia.org/wiki/File:A-Receipt-Cascade-bakery.jpg | HQA02330 | CC BY-SA 4.0 |
+| igami_stamps.jpg | 伊神切手社 (金券ショップ) ¥520 | https://commons.wikimedia.org/wiki/File:Igami-Kitte-sha-Osu-Receipt.jpg | HQA02330 | CC BY-SA 4.0 |
+| okinawa_family_restaurant.jpg | ケンミン食堂 (食堂) ¥4,130 | https://commons.wikimedia.org/wiki/File:JP_%E6%97%A5%E6%9C%AC_Japan_%E6%B2%96%E7%B9%A9_OKINAWA_Family_Cuisine_Restaurant_January_2025_R12S_01.jpg | Naha Mama Pavilionz | CC0 |
+| okinawa_bbq_restaurant.jpg | 焼肉 琉球の牛 (焼肉) ¥16,126 | https://commons.wikimedia.org/wiki/File:JP_%E6%97%A5%E6%9C%AC_Japan_%E6%B2%96%E7%B9%A9_OKINAWA_%E7%87%92%E8%82%89%E7%90%89%E7%90%83%E4%B9%8B%E7%89%9B_Beef_BBQ_Restaurant_January_2025_R12S_01.jpg | Naha Mama Pavilionz | CC0 |
+| viedefrance_bakery.jpg | ヴィドフランス (ベーカリー・2007年) ¥147 | https://commons.wikimedia.org/wiki/File:Kofu_-_Vie_de_France_L%27adition_(1471241442).jpg | Charlotte Marillet | CC BY-SA 2.0 |
+| jreast_ticket_machine.jpg | JR東日本 券売機領収証 (交通) ¥160 | https://commons.wikimedia.org/wiki/File:Receipt_issued_by_JR_East_from_a_ticket_machine_in_Shinkiba_Station.jpg | 不明 (Public domain) | Public domain |
 
 - CC BY-SA の画像はそれぞれ上記ライセンスのまま再配布する (本リポジトリのコードのライセンスとは独立)。改変内容は上記の縮小のみ
 - 個人情報は含まない (店舗情報のみ。camelmart は出典時点で住所・電話番号の一部が黒塗り済み)
