@@ -56,5 +56,6 @@
   "manualEntryCategory": "類別",
   "manualEntryCategoryRequired": "選擇分類",
   "manualEntryDate": "日期",
-  "manualEntryRegister": "新增帳目"
+  "manualEntryRegister": "新增帳目",
+  "manualEntryRegistered": "已新增交易紀錄"
 }
