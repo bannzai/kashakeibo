@@ -160,5 +160,6 @@
   "transactionSearchAmount": "金额",
   "transactionSearchMinimumAmount": "最低",
   "transactionSearchMaximumAmount": "最高",
-  "transactionSearchTitleKeyword": "店家"
+  "transactionSearchTitleKeyword": "店家",
+  "transactionSearchSubmit": "搜索"
 }
