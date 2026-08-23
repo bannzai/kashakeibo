@@ -159,5 +159,6 @@
   "transactionSearchDateUnset": "전체",
   "transactionSearchAmount": "금액",
   "transactionSearchMinimumAmount": "최소",
-  "transactionSearchMaximumAmount": "최대"
+  "transactionSearchMaximumAmount": "최대",
+  "transactionSearchTitleKeyword": "상호"
 }
