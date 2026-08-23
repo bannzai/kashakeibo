@@ -1,8 +1,8 @@
 ---
 feature: settings
 verification: mobile-mcp
-last_verified_commit: 5486f0c583aa80f5a0cc0f6f9183f7be68672054
-last_verified_at: 2026-08-19
+last_verified_commit: 290350f79dfaf68d1ebf1ecce2d1a18df72e6103
+last_verified_at: 2026-08-23
 ---
 
 # settings QA
@@ -200,6 +200,8 @@ $ curl -s https://bannzai.github.io/kashakeibo/PrivacyPolicy-en | grep -o '<h1[^
 
 アカウント連携の QA 項目は PR #68 (ブランチ qa-run-20260822) で「## 2. アカウント (バックアップ・プラン・削除)」として整備中。ここでは issue #66 で修正した Google リンクの項目だけを先に記録する (マージ時は PR #68 側のアカウント節へ統合する)。
 
+フロントマターの `last_verified_commit` / `last_verified_at` は本項目を実行した時点のもの。「## 1. 設定画面」「## 2. 配信」の各項目は 2026-08-19 (5486f0c) の実行記録のままで、今回は再実行していない (各項目の「確認日」を参照)。
+
 - [x] **Google サインイン UI の表示**: 設定画面の「Googleでリンク」をタップすると Google のサインイン UI が表示される (実アカウントの入力・リンク完了までは行わない)
   - 自動化: manual (シート表示までを agent のシミュレータ操作で確認する。リンク完了は実アカウントが必要なため対象外)
   - 機械検査: `ios/RunnerTests/GoogleSignInURLSchemeTests.swift` がビルド済み Runner.app の Info.plist に REVERSED_CLIENT_ID の URL スキーム・GIDClientID・共有 Extension のスキームが揃っているかを検証する
@@ -212,16 +214,16 @@ $ curl -s https://bannzai.github.io/kashakeibo/PrivacyPolicy-en | grep -o '<h1[^
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-23**
+**確認日: 2026-08-23** (JST)
 
 ローカル Simulator (kashakeibo-issue-66-iOS26.5 / iPhone 16 Pro、日本語ロケール) の debug ビルド (bundle ID `com.bannzai.kashakeibo.dev`)。
 
-2026-08-22 の実行では `PlatformException(google_sign_in, Your app is missing support for the following URL schemes: ...)` のスナックバーが出て失敗していた (PR #68 の ❌ 記録)。issue #66 の修正後に再実行し、解消を確認した。
+2026-08-22 の実行では `PlatformException(google_sign_in, Your app is missing support for the following URL schemes: ...)` のスナックバーが出て失敗していた (PR #68 の ❌ 記録)。issue #66 の修正後に再実行し、解消を確認した。下のスクショはレビュー指摘 (空値の拒否) を反映した後の再実行分。
 
 左: 「Googleでリンク」をタップすると iOS の確認「"kashakeibo" がサインインのために "accounts.google.com" を使用しようとしています。」が出る (google_sign_in が URL スキームの検査を通過して認証セッションを開始できている)。右: 「続ける」で Google のログイン画面 (accounts.google.com /「project-750726705707」に移動 = kashakeibo-dev のプロジェクト番号) が表示された。エラーのスナックバーは出ない。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/e8783104-c3c9-4c36-b7ae-85f5b9cd683a.png" width="320" />
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/51e5a6ac-2e2f-49b5-a1e1-aa962832ec20.png" width="320" />
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/1477dd2e-2d66-4dad-9540-7e139d1b0723.png" width="320" />
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/69d38aae-3136-4e31-947e-778c13412d8c.png" width="320" />
 
 </details>
 
