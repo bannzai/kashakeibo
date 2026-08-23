@@ -96,10 +96,20 @@ function hasPngSignature(imageBytesView: DataView): boolean {
   );
 }
 
+// PNG の IHDR チャンクの内容の長さ。PNG 仕様で 13 バイト固定 (幅4 + 高さ4 + 深度1 + カラータイプ1 +
+// 圧縮1 + フィルタ1 + インターレース1)。宣言長がこれ以外の IHDR は壊れたファイルとして扱う
+const pngIhdrContentByteLength = 13;
+
 /** PNG の IHDR チャンクから実寸とカラータイプを読む。 */
 function readPngDimensions(imageBytesView: DataView): ImageDimensions | null {
-  // IHDR は PNG 仕様で必ず最初のチャンク (署名8バイト + 長さ4バイト + タイプ4バイトの直後が内容)
-  if (imageBytesView.byteLength < 26 || readAsciiText(imageBytesView, 12, 4) !== "IHDR") {
+  // IHDR は PNG 仕様で必ず最初のチャンク (署名8バイト + 長さ4バイト + タイプ4バイトの直後が内容)。
+  // 署名8 + 長さ4 + タイプ4 + 内容13 + CRC4 = 33 バイトがチャンク全体としてバッファ内に収まり、
+  // 宣言長も仕様どおりであることを検証する (宣言上チャンク外のバイトを寸法として読まないため)
+  if (
+    imageBytesView.byteLength < 33 ||
+    imageBytesView.getUint32(8) !== pngIhdrContentByteLength ||
+    readAsciiText(imageBytesView, 12, 4) !== "IHDR"
+  ) {
     return null;
   }
   return {
@@ -183,8 +193,19 @@ function isJpegStartOfFrameMarker(jpegMarkerCode: number): boolean {
  * VP8 (非可逆) は YUV 4:2:0 の 8bit、VP8L (可逆) は 8bit RGBA のため、いずれも RGB 256階調を満たす。
  */
 function readWebpDimensions(imageBytesView: DataView): ImageDimensions | null {
-  // チャンクヘッダー (種別4バイト + 長さ4バイト) の後ろ、オフセット 20 からがチャンクの内容
+  // RIFF ヘッダーが宣言するファイル長 (自身の 8 バイトを含まない) に届かないバッファは途中で切れている。
+  // どの分岐でも、宣言と実体が食い違うファイルの所定位置を寸法として読まないよう先に検証する
+  if (imageBytesView.byteLength < 20 || imageBytesView.getUint32(4, true) + 8 > imageBytesView.byteLength) {
+    return null;
+  }
+  // 先頭チャンク (種別4バイト + 長さ4バイト) の内容はオフセット 20 から。宣言長がその内容の長さ
+  const firstChunkDeclaredByteLength = imageBytesView.getUint32(16, true);
+  // チャンクの宣言長が最低限の内容 (VP8: フレームタグ3 + sync code 3 + 寸法4、VP8L: シグネチャ1 + 寸法4) を含み、
+  // 宣言どおりの末尾がバッファ内に収まることも各分岐で検証する
   if (readAsciiText(imageBytesView, 12, 4) === "VP8 " && imageBytesView.byteLength >= 30) {
+    if (firstChunkDeclaredByteLength < 10 || 20 + firstChunkDeclaredByteLength > imageBytesView.byteLength) {
+      return null;
+    }
     // 3バイトのフレームタグに続く sync code (0x9D 0x01 0x2A) の後ろに、14bit 幅・14bit 高さが並ぶ
     if (
       imageBytesView.getUint8(23) !== 0x9d ||
@@ -200,6 +221,9 @@ function readWebpDimensions(imageBytesView: DataView): ImageDimensions | null {
     };
   }
   if (readAsciiText(imageBytesView, 12, 4) === "VP8L" && imageBytesView.byteLength >= 25) {
+    if (firstChunkDeclaredByteLength < 5 || 20 + firstChunkDeclaredByteLength > imageBytesView.byteLength) {
+      return null;
+    }
     if (imageBytesView.getUint8(20) !== 0x2f) {
       return null;
     }

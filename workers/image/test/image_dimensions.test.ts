@@ -46,6 +46,45 @@ describe("画像ヘッダーからの実寸・色の読み取り", () => {
     ).toEqual({ imageWidth: 3024, imageHeight: 4032, hasFullColorDepth: true });
   });
 
+  it("IHDR の宣言長が仕様の 13 バイトでない PNG は解析できなかった扱いにする", () => {
+    const brokenPngBytes = buildPngHeaderBytes({ imageWidth: 100, imageHeight: 100, bitDepth: 8, colorType: 2 });
+    new DataView(brokenPngBytes.buffer).setUint32(8, 0);
+    expect(readImageDimensions(brokenPngBytes.buffer as ArrayBuffer)).toBeNull();
+  });
+
+  it("IHDR のチャンク全体 (CRC まで) が収まらない切れた PNG は解析できなかった扱いにする", () => {
+    const truncatedPngBytes = buildPngHeaderBytes({
+      imageWidth: 100,
+      imageHeight: 100,
+      bitDepth: 8,
+      colorType: 2,
+    }).slice(0, 26);
+    expect(readImageDimensions(truncatedPngBytes.buffer as ArrayBuffer)).toBeNull();
+  });
+
+  it("RIFF・チャンクの宣言長が壊れた WebP (VP8 / VP8L) は解析できなかった扱いにする", () => {
+    for (const [caseName, webpBytes, mutate] of [
+      [
+        "VP8: RIFF の宣言長がバッファ超過",
+        Uint8Array.from(onePixelVp8WebpBytes),
+        (view: DataView) => view.setUint32(4, 0xffff, true),
+      ],
+      [
+        "VP8: チャンクの宣言長 0",
+        Uint8Array.from(onePixelVp8WebpBytes),
+        (view: DataView) => view.setUint32(16, 0, true),
+      ],
+      [
+        "VP8L: チャンクの宣言長 0",
+        Uint8Array.from(onePixelVp8lWebpBytes),
+        (view: DataView) => view.setUint32(16, 0, true),
+      ],
+    ] as [string, Uint8Array, (view: DataView) => void][]) {
+      mutate(new DataView(webpBytes.buffer));
+      expect(readImageDimensions(webpBytes.buffer as ArrayBuffer), caseName).toBeNull();
+    }
+  });
+
   it("PNG のグレースケール・パレットは RGB 256階調を満たさないと判定する", () => {
     for (const [colorTypeName, colorType, bitDepth] of [
       ["グレースケール", 0, 8],
