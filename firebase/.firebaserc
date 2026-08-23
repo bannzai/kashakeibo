@@ -8,7 +8,12 @@
   "etags": {
     "kashakeibo-dev": {
       "extensionInstances": {
-        "firestore-bigquery-export": "c77cedef2188d4e82b70f3032c56cc738e49f7d3aa9d0a8114992e6306e103b9"
+        "firestore-bigquery-export": "a951298a4c45a35b87fb7fab1855084a25470c951eefff2f98ef03894fedaac0"
+      }
+    },
+    "kashakeibo-prod": {
+      "extensionInstances": {
+        "firestore-bigquery-export": "174c4a954b269840df9a176e3fe9f58aa5ef0ef9b435c8136410e0defe0a7749"
       }
     }
   }
