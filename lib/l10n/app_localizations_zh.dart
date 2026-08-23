@@ -552,17 +552,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String transactionSearchFreePlanHistoryLimit(int monthCount) {
-    return 'The free plan searches only the last $monthCount months';
+    return '免费版仅搜索最近 $monthCount 个月的记录';
   }
 
   @override
   String auditLogFreePlanHistoryLimit(int monthCount) {
-    return 'The free plan shows only the last $monthCount months of operations';
+    return '免费方案仅显示最近 $monthCount 个月的操作记录';
   }
 
   @override
-  String get freePlanHistoryLimitUpgrade =>
-      'See your full history with Premium';
+  String get freePlanHistoryLimitUpgrade => '使用高级版查看完整记录';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1110,6 +1109,19 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String transactionSearchResultCount(int count) {
     return '$count 笔';
   }
+
+  @override
+  String transactionSearchFreePlanHistoryLimit(int monthCount) {
+    return '免费版仅搜索最近 $monthCount 个月的记录';
+  }
+
+  @override
+  String auditLogFreePlanHistoryLimit(int monthCount) {
+    return '免费方案仅显示最近 $monthCount 个月的操作记录';
+  }
+
+  @override
+  String get freePlanHistoryLimitUpgrade => '使用高级版查看完整记录';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1656,4 +1668,17 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String transactionSearchResultCount(int count) {
     return '$count 筆';
   }
+
+  @override
+  String transactionSearchFreePlanHistoryLimit(int monthCount) {
+    return '免費版僅搜尋最近 $monthCount 個月的紀錄';
+  }
+
+  @override
+  String auditLogFreePlanHistoryLimit(int monthCount) {
+    return '免費方案僅顯示最近 $monthCount 個月的操作記錄';
+  }
+
+  @override
+  String get freePlanHistoryLimitUpgrade => '使用進階版查看完整記錄';
 }

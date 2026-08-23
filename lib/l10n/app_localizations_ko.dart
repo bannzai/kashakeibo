@@ -559,15 +559,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String transactionSearchFreePlanHistoryLimit(int monthCount) {
-    return 'The free plan searches only the last $monthCount months';
+    return '무료 플랜에서는 최근 $monthCount개월만 검색합니다';
   }
 
   @override
   String auditLogFreePlanHistoryLimit(int monthCount) {
-    return 'The free plan shows only the last $monthCount months of operations';
+    return '무료 플랜에서는 최근 $monthCount개월의 작업 기록만 표시됩니다';
   }
 
   @override
-  String get freePlanHistoryLimitUpgrade =>
-      'See your full history with Premium';
+  String get freePlanHistoryLimitUpgrade => '프리미엄으로 전체 내역 보기';
 }
