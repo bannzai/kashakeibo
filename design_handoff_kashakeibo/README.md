@@ -28,7 +28,8 @@
 
 ### Typography
 - 書体は **Figtree 一本** (和文は Noto Sans JP 等の丸みのないゴシック)。装飾書体 (Caprasimo) は検討の末**不採用**
-- 金額: **w800 + tabular figures** (`font-feature-settings:'tnum'`)、¥記号は本体より小さく `neutral-600`。例: サマリー 21px/¥は10px上付き相当、明細詳細 34px、行金額 14px w700
+- 金額: **w800 + tabular figures** (`font-feature-settings:'tnum'`)、¥記号は本体より小さく `neutral-600`。例: サマリー 21px/¥は15px (数字との字間 2px)、明細詳細 34px、行金額 14px w700
+  - ¥ は本体の 0.7 倍程度を下限にし、数字側の詰め (負の letter-spacing) を継承させない。当初の「21px に対し ¥ 10px 上付き相当」は実機で記号として読めず数字と密着したため改めた ([issue #72](https://github.com/bannzai/kashakeibo/issues/72))
 - 見出し: w800 (画面タイトル19px、セクション15-16px)。本文 13-13.5px w600、補助 10-11px `neutral-600`
 - 最小サイズ: 補助9.5px相当を下限。タップ領域は44px以上
 

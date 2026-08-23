@@ -306,6 +306,64 @@ void main() {
     );
   });
 
+  testWidgets('月次一覧: サマリーの ¥ 記号は金額に対して読める大きさで、数字と間隔を空ける', (tester) async {
+    final transactions = [
+      buildTransaction(
+        id: 'expense-1',
+        type: TransactionType.expense,
+        amount: 1200,
+        category: TransactionCategory.food,
+        title: 'スーパーマーケット',
+        excludedFromAggregation: false,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(transactions)),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => const []),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(logAnalyticsEvent: discardAnalyticsEvent),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 支出の主表示は ¥ と数字を別 TextSpan で組む Text.rich。
+    final summary = tester.widget<Text>(
+      find.byWidgetPredicate((widget) {
+        if (widget is! Text) {
+          return false;
+        }
+        final textSpan = widget.textSpan;
+        return textSpan is TextSpan &&
+            textSpan.children?.first is TextSpan &&
+            (textSpan.children!.first as TextSpan).text == '¥';
+      }),
+    );
+    final currencyStyle =
+        ((summary.textSpan! as TextSpan).children!.first as TextSpan).style!;
+
+    // ¥ が数字に対して極端に小さいと読めない (issue #72)。
+    expect(
+      currencyStyle.fontSize! / AppTextStyles.amountSummary.fontSize!,
+      greaterThanOrEqualTo(0.65),
+    );
+    // 金額側の詰めを打ち消して数字との間隔を確保する。
+    expect(
+      currencyStyle.letterSpacing,
+      greaterThan(AppTextStyles.amountSummary.letterSpacing!),
+    );
+  });
+
   testWidgets('月次一覧: 明細が無い月は空メッセージを表示する', (tester) async {
     final analyticsEvents = <String>[];
     tester.view.physicalSize = const Size(320, 568);
