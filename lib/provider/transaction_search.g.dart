@@ -7,7 +7,7 @@ part of 'transaction_search.dart';
 // **************************************************************************
 
 String _$searchedTransactionsHash() =>
-    r'21f5ff772e2f76dcc33baf7eaa39c256af878523';
+    r'ca0e07bb65b207c0f4881c6523bbc9cb6daf9a97';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -32,9 +32,10 @@ class _SystemHash {
 
 /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
 ///
-/// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
-/// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
-/// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
+/// 無料プランの下限 ([oldestSearchableTransactionDate]) は、課金状態と現在時刻の両方で
+/// 変わる値のため、この Provider の中では計算せず family の引数として画面から受け取る
+/// (Provider 内で計算すると、初回に作られた family インスタンスが古い下限を保持し続け、
+/// 月をまたいだ・課金状態が変わった時に再検索されない)。
 /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
 ///
 /// Copied from [searchedTransactions].
@@ -43,18 +44,20 @@ const searchedTransactionsProvider = SearchedTransactionsFamily();
 
 /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
 ///
-/// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
-/// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
-/// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
+/// 無料プランの下限 ([oldestSearchableTransactionDate]) は、課金状態と現在時刻の両方で
+/// 変わる値のため、この Provider の中では計算せず family の引数として画面から受け取る
+/// (Provider 内で計算すると、初回に作られた family インスタンスが古い下限を保持し続け、
+/// 月をまたいだ・課金状態が変わった時に再検索されない)。
 /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
 ///
 /// Copied from [searchedTransactions].
 class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
   /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
   ///
-  /// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
-  /// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
-  /// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
+  /// 無料プランの下限 ([oldestSearchableTransactionDate]) は、課金状態と現在時刻の両方で
+  /// 変わる値のため、この Provider の中では計算せず family の引数として画面から受け取る
+  /// (Provider 内で計算すると、初回に作られた family インスタンスが古い下限を保持し続け、
+  /// 月をまたいだ・課金状態が変わった時に再検索されない)。
   /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
   ///
   /// Copied from [searchedTransactions].
@@ -62,9 +65,10 @@ class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
 
   /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
   ///
-  /// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
-  /// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
-  /// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
+  /// 無料プランの下限 ([oldestSearchableTransactionDate]) は、課金状態と現在時刻の両方で
+  /// 変わる値のため、この Provider の中では計算せず family の引数として画面から受け取る
+  /// (Provider 内で計算すると、初回に作られた family インスタンスが古い下限を保持し続け、
+  /// 月をまたいだ・課金状態が変わった時に再検索されない)。
   /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
   ///
   /// Copied from [searchedTransactions].
@@ -74,6 +78,7 @@ class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
     required int? minimumAmount,
     required int? maximumAmount,
     required String? titleKeyword,
+    required DateTime? oldestSearchableTransactionDate,
   }) {
     return SearchedTransactionsProvider(
       transactionDateFrom: transactionDateFrom,
@@ -81,6 +86,7 @@ class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
       minimumAmount: minimumAmount,
       maximumAmount: maximumAmount,
       titleKeyword: titleKeyword,
+      oldestSearchableTransactionDate: oldestSearchableTransactionDate,
     );
   }
 
@@ -94,6 +100,7 @@ class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
       minimumAmount: provider.minimumAmount,
       maximumAmount: provider.maximumAmount,
       titleKeyword: provider.titleKeyword,
+      oldestSearchableTransactionDate: provider.oldestSearchableTransactionDate,
     );
   }
 
@@ -114,9 +121,10 @@ class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
 
 /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
 ///
-/// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
-/// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
-/// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
+/// 無料プランの下限 ([oldestSearchableTransactionDate]) は、課金状態と現在時刻の両方で
+/// 変わる値のため、この Provider の中では計算せず family の引数として画面から受け取る
+/// (Provider 内で計算すると、初回に作られた family インスタンスが古い下限を保持し続け、
+/// 月をまたいだ・課金状態が変わった時に再検索されない)。
 /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
 ///
 /// Copied from [searchedTransactions].
@@ -124,9 +132,10 @@ class SearchedTransactionsProvider
     extends AutoDisposeStreamProvider<List<Transaction>> {
   /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
   ///
-  /// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
-  /// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
-  /// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
+  /// 無料プランの下限 ([oldestSearchableTransactionDate]) は、課金状態と現在時刻の両方で
+  /// 変わる値のため、この Provider の中では計算せず family の引数として画面から受け取る
+  /// (Provider 内で計算すると、初回に作られた family インスタンスが古い下限を保持し続け、
+  /// 月をまたいだ・課金状態が変わった時に再検索されない)。
   /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
   ///
   /// Copied from [searchedTransactions].
@@ -136,6 +145,7 @@ class SearchedTransactionsProvider
     required int? minimumAmount,
     required int? maximumAmount,
     required String? titleKeyword,
+    required DateTime? oldestSearchableTransactionDate,
   }) : this._internal(
          (ref) => searchedTransactions(
            ref as SearchedTransactionsRef,
@@ -144,6 +154,7 @@ class SearchedTransactionsProvider
            minimumAmount: minimumAmount,
            maximumAmount: maximumAmount,
            titleKeyword: titleKeyword,
+           oldestSearchableTransactionDate: oldestSearchableTransactionDate,
          ),
          from: searchedTransactionsProvider,
          name: r'searchedTransactionsProvider',
@@ -158,6 +169,7 @@ class SearchedTransactionsProvider
          minimumAmount: minimumAmount,
          maximumAmount: maximumAmount,
          titleKeyword: titleKeyword,
+         oldestSearchableTransactionDate: oldestSearchableTransactionDate,
        );
 
   SearchedTransactionsProvider._internal(
@@ -172,6 +184,7 @@ class SearchedTransactionsProvider
     required this.minimumAmount,
     required this.maximumAmount,
     required this.titleKeyword,
+    required this.oldestSearchableTransactionDate,
   }) : super.internal();
 
   final DateTime? transactionDateFrom;
@@ -179,6 +192,7 @@ class SearchedTransactionsProvider
   final int? minimumAmount;
   final int? maximumAmount;
   final String? titleKeyword;
+  final DateTime? oldestSearchableTransactionDate;
 
   @override
   Override overrideWith(
@@ -198,6 +212,7 @@ class SearchedTransactionsProvider
         minimumAmount: minimumAmount,
         maximumAmount: maximumAmount,
         titleKeyword: titleKeyword,
+        oldestSearchableTransactionDate: oldestSearchableTransactionDate,
       ),
     );
   }
@@ -214,7 +229,9 @@ class SearchedTransactionsProvider
         other.transactionDateTo == transactionDateTo &&
         other.minimumAmount == minimumAmount &&
         other.maximumAmount == maximumAmount &&
-        other.titleKeyword == titleKeyword;
+        other.titleKeyword == titleKeyword &&
+        other.oldestSearchableTransactionDate ==
+            oldestSearchableTransactionDate;
   }
 
   @override
@@ -225,6 +242,7 @@ class SearchedTransactionsProvider
     hash = _SystemHash.combine(hash, minimumAmount.hashCode);
     hash = _SystemHash.combine(hash, maximumAmount.hashCode);
     hash = _SystemHash.combine(hash, titleKeyword.hashCode);
+    hash = _SystemHash.combine(hash, oldestSearchableTransactionDate.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -248,6 +266,9 @@ mixin SearchedTransactionsRef
 
   /// The parameter `titleKeyword` of this provider.
   String? get titleKeyword;
+
+  /// The parameter `oldestSearchableTransactionDate` of this provider.
+  DateTime? get oldestSearchableTransactionDate;
 }
 
 class _SearchedTransactionsProviderElement
@@ -270,6 +291,9 @@ class _SearchedTransactionsProviderElement
   @override
   String? get titleKeyword =>
       (origin as SearchedTransactionsProvider).titleKeyword;
+  @override
+  DateTime? get oldestSearchableTransactionDate =>
+      (origin as SearchedTransactionsProvider).oldestSearchableTransactionDate;
 }
 
 // ignore_for_file: type=lint

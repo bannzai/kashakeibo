@@ -59,9 +59,14 @@ export function judgeScannerColor(imageDimensions: ImageDimensions | null): Scan
   return imageDimensions.hasFullColorDepth ? "true" : "false";
 }
 
+// PNG 仕様が定める先頭 8 バイトの固定シグネチャ。転送経路での改変を検出するための値がそのまま並ぶ
+// (0x89 + "PNG" + CRLF + EOF + LF)。
+// 出典: https://www.w3.org/TR/png/#5PNG-file-signature
+const pngSignatureBytes = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
 /** 先頭のシグネチャで形式を判別し、形式ごとのヘッダー解析へ振り分ける。 */
 function readImageDimensionsBySignature(imageBytesView: DataView): ImageDimensions | null {
-  if (imageBytesView.byteLength >= 8 && readAsciiText(imageBytesView, 1, 3) === "PNG") {
+  if (hasPngSignature(imageBytesView)) {
     return readPngDimensions(imageBytesView);
   }
   if (imageBytesView.byteLength >= 4 && imageBytesView.getUint16(0) === 0xffd8) {
@@ -79,6 +84,16 @@ function readImageDimensionsBySignature(imageBytesView: DataView): ImageDimensio
     return readHeicDimensions(imageBytesView);
   }
   return null;
+}
+
+/** 先頭が PNG の固定シグネチャで始まるか。 */
+function hasPngSignature(imageBytesView: DataView): boolean {
+  return (
+    imageBytesView.byteLength >= pngSignatureBytes.length &&
+    pngSignatureBytes.every(
+      (signatureByte, signatureByteIndex) => imageBytesView.getUint8(signatureByteIndex) === signatureByte,
+    )
+  );
 }
 
 /** PNG の IHDR チャンクから実寸とカラータイプを読む。 */
@@ -124,6 +139,15 @@ function readJpegDimensions(imageBytesView: DataView): ImageDimensions | null {
     }
     if (isJpegStartOfFrameMarker(imageBytesView.getUint8(markerOffset + 1))) {
       if (markerOffset + 10 > imageBytesView.byteLength) {
+        return null;
+      }
+      // SOF は固定部 (長さ2 + 精度1 + 高さ2 + 幅2 + コンポーネント数1 = 8 バイト) の後ろに、
+      // 宣言したコンポーネント数ぶんの情報を 3 バイトずつ持つ。それに満たない長さや、
+      // バッファからはみ出す末尾を持つセグメントは壊れており、読めた幅・高さも信用できない
+      if (
+        imageBytesView.getUint16(markerOffset + 2) < 8 + imageBytesView.getUint8(markerOffset + 9) * 3 ||
+        markerOffset + 2 + imageBytesView.getUint16(markerOffset + 2) > imageBytesView.byteLength
+      ) {
         return null;
       }
       return {

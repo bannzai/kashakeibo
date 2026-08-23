@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
 import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
 import 'package:kashakeibo/features/paywall/free_plan_history_notice.dart';
@@ -67,6 +68,7 @@ class TransactionSearchPage extends HookConsumerWidget {
     final titleKeywordController = useTextEditingController();
     final searchCondition = useState(_emptySearchCondition);
     final validationMessage = useState<String?>(null);
+    final isPremium = ref.watch(isPremiumProvider);
     final searchedTransactionsAsync = ref.watch(
       searchedTransactionsProvider(
         transactionDateFrom: searchCondition.value.transactionDateFrom,
@@ -74,9 +76,14 @@ class TransactionSearchPage extends HookConsumerWidget {
         minimumAmount: searchCondition.value.minimumAmount,
         maximumAmount: searchCondition.value.maximumAmount,
         titleKeyword: searchCondition.value.titleKeyword,
+        // 下限は月初の粒度のため、build のたびに DateTime.now() から計算し直しても同じ月の
+        // あいだは同じ値になり、family のインスタンスが使い回される。月をまたいだ時・
+        // 課金状態が変わった時だけ引数が変わり、そのタイミングで検索し直される。
+        oldestSearchableTransactionDate: isPremium
+            ? null
+            : oldestFreePlanHistoryDateTime(now: DateTime.now()),
       ),
     );
-    final isPremium = ref.watch(isPremiumProvider);
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
 
@@ -127,216 +134,226 @@ class TransactionSearchPage extends HookConsumerWidget {
       submitSearch();
     }
 
+    /// 検索結果の先頭に置く見出し (取得中・エラー・案内文・件数表示)。
+    Widget buildSearchResultHeader() => searchedTransactionsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      // エラーメッセージは加工せずそのまま表示する
+      // (`.claude/rules/coding-conventions.md`)。
+      error: (error, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Text(error.toString()),
+        ),
+      ),
+      data: (transactions) {
+        if (searchCondition.value == _emptySearchCondition) {
+          return _SearchMessage(
+            message: l10n.transactionSearchConditionRequired,
+          );
+        }
+        if (transactions.isEmpty) {
+          return _SearchMessage(message: l10n.transactionSearchNoResults);
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: Text(
+            l10n.transactionSearchResultCount(transactions.length),
+            style: AppTextStyles.caption.copyWith(color: appColors.textMuted),
+          ),
+        );
+      },
+    );
+
+    // 画面全体を1つのスクロールに載せる (キーボードで Scaffold が縮んだ時に、
+    // 非スクロールのフォームが収まらず overflow するのを防ぐため)。
+    // 件数の上限が無い検索結果のため、画面付近の行だけを組み立てる。
+    // 先頭 (index 0) はフォームと検索結果の見出しで、それ以降が明細の行。
+    // 取得中・エラーの間は行を持たず、見出しの位置に状態を表示する。
+    final searchedTransactions = searchedTransactionsAsync.when(
+      loading: () => const <Transaction>[],
+      error: (error, _) => const <Transaction>[],
+      data: (transactions) => transactions,
+    );
     return Scaffold(
       appBar: AppBar(title: Text(l10n.transactionSearchTitle)),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                AppSpacing.md,
-                AppSpacing.xl,
-                0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    l10n.transactionSearchPeriod,
-                    style: AppTextStyles.sectionTitle,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DateField(
-                          label: l10n.transactionSearchDateFrom,
-                          selectedDate: transactionDateFrom.value,
-                          onDateSelected: (selectedDate) {
-                            transactionDateFrom.value = selectedDate;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: _DateField(
-                          label: l10n.transactionSearchDateTo,
-                          selectedDate: transactionDateTo.value,
-                          onDateSelected: (selectedDate) {
-                            transactionDateTo.value = selectedDate;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    l10n.transactionSearchAmount,
-                    style: AppTextStyles.sectionTitle,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _AmountField(
-                          label: l10n.transactionSearchMinimumAmount,
-                          controller: minimumAmountController,
-                          onSubmitted: logAndSubmitSearch,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: _AmountField(
-                          label: l10n.transactionSearchMaximumAmount,
-                          controller: maximumAmountController,
-                          onSubmitted: logAndSubmitSearch,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: titleKeywordController,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      labelText: l10n.transactionSearchTitleKeyword,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    onSubmitted: (titleKeyword) => logAndSubmitSearch(),
-                  ),
-                  if (validationMessage.value != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.sm),
-                      child: Text(
-                        validationMessage.value!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: appColors.destructive,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: logAndSubmitSearch,
-                          child: Text(l10n.transactionSearchSubmit),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      TextButton(
-                        onPressed: () {
-                          unawaited(
-                            logAnalyticsEvent(name: 'transaction_search_clear'),
-                          );
-                          transactionDateFrom.value = null;
-                          transactionDateTo.value = null;
-                          minimumAmountController.clear();
-                          maximumAmountController.clear();
-                          titleKeywordController.clear();
-                          validationMessage.value = null;
-                          searchCondition.value = _emptySearchCondition;
-                        },
-                        child: Text(l10n.transactionSearchClear),
-                      ),
-                    ],
-                  ),
-                  // 無料プランで検索できるのは直近 freePlanHistoryMonthCount ヶ月だけのため、
-                  // 結果が古い明細を含まない理由をフォームの直後で伝える。
-                  if (!isPremium) ...[
-                    const SizedBox(height: 14),
-                    FreePlanHistoryNotice(
-                      message: l10n.transactionSearchFreePlanHistoryLimit(
-                        freePlanHistoryMonthCount,
-                      ),
-                      paywallTrigger: 'transaction_search_history_limit',
-                      openExternalUri: openExternalUri,
-                      logAnalyticsEvent: logAnalyticsEvent,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Expanded(
-              child: searchedTransactionsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                // エラーメッセージは加工せずそのまま表示する
-                // (`.claude/rules/coding-conventions.md`)。
-                error: (error, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Text(error.toString()),
-                  ),
+        child: ListView.builder(
+          padding: const EdgeInsets.only(bottom: 24),
+          itemCount: searchedTransactions.length + 1,
+          itemBuilder: (context, index) {
+            if (index > 0) {
+              final transaction = searchedTransactions[index - 1];
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  0,
+                  AppSpacing.xl,
+                  6,
                 ),
-                data: (transactions) {
-                  if (searchCondition.value == _emptySearchCondition) {
-                    return _SearchMessage(
-                      message: l10n.transactionSearchConditionRequired,
+                child: TransactionRow(
+                  transaction: transaction,
+                  onTap: () {
+                    unawaited(
+                      logAnalyticsEvent(
+                        name: 'transaction_detail_open',
+                        parameters: {'transactionID': transaction.id},
+                      ),
                     );
-                  }
-                  if (transactions.isEmpty) {
-                    return _SearchMessage(
-                      message: l10n.transactionSearchNoResults,
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => TransactionDetailPage(
+                          transactionID: transaction.id,
+                          logAnalyticsEvent: logAnalyticsEvent,
+                        ),
+                      ),
                     );
-                  }
-                  // 件数の上限が無い検索結果のため、画面付近の行だけを組み立てる。
-                  // 先頭 (index 0) は件数表示で、それ以降が明細の行。
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      0,
-                      AppSpacing.xl,
-                      24,
-                    ),
-                    itemCount: transactions.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: Text(
-                            l10n.transactionSearchResultCount(
-                              transactions.length,
-                            ),
-                            style: AppTextStyles.caption.copyWith(
-                              color: appColors.textMuted,
+                  },
+                ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    AppSpacing.md,
+                    AppSpacing.xl,
+                    0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.transactionSearchPeriod,
+                        style: AppTextStyles.sectionTitle,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _DateField(
+                              label: l10n.transactionSearchDateFrom,
+                              selectedDate: transactionDateFrom.value,
+                              onDateSelected: (selectedDate) {
+                                transactionDateFrom.value = selectedDate;
+                              },
                             ),
                           ),
-                        );
-                      }
-                      final transaction = transactions[index - 1];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: TransactionRow(
-                          transaction: transaction,
-                          onTap: () {
-                            unawaited(
-                              logAnalyticsEvent(
-                                name: 'transaction_detail_open',
-                                parameters: {'transactionID': transaction.id},
-                              ),
-                            );
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (context) => TransactionDetailPage(
-                                  transactionID: transaction.id,
-                                  logAnalyticsEvent: logAnalyticsEvent,
-                                ),
-                              ),
-                            );
-                          },
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: _DateField(
+                              label: l10n.transactionSearchDateTo,
+                              selectedDate: transactionDateTo.value,
+                              onDateSelected: (selectedDate) {
+                                transactionDateTo.value = selectedDate;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        l10n.transactionSearchAmount,
+                        style: AppTextStyles.sectionTitle,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _AmountField(
+                              label: l10n.transactionSearchMinimumAmount,
+                              controller: minimumAmountController,
+                              onSubmitted: logAndSubmitSearch,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: _AmountField(
+                              label: l10n.transactionSearchMaximumAmount,
+                              controller: maximumAmountController,
+                              onSubmitted: logAndSubmitSearch,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: titleKeywordController,
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
+                          labelText: l10n.transactionSearchTitleKeyword,
+                          border: const OutlineInputBorder(),
+                          isDense: true,
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
+                        onSubmitted: (titleKeyword) => logAndSubmitSearch(),
+                      ),
+                      if (validationMessage.value != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.sm),
+                          child: Text(
+                            validationMessage.value!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: appColors.destructive,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: logAndSubmitSearch,
+                              child: Text(l10n.transactionSearchSubmit),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          TextButton(
+                            onPressed: () {
+                              unawaited(
+                                logAnalyticsEvent(
+                                  name: 'transaction_search_clear',
+                                ),
+                              );
+                              transactionDateFrom.value = null;
+                              transactionDateTo.value = null;
+                              minimumAmountController.clear();
+                              maximumAmountController.clear();
+                              titleKeywordController.clear();
+                              validationMessage.value = null;
+                              searchCondition.value = _emptySearchCondition;
+                            },
+                            child: Text(l10n.transactionSearchClear),
+                          ),
+                        ],
+                      ),
+                      // 無料プランで検索できるのは直近 freePlanHistoryMonthCount ヶ月だけのため、
+                      // 結果が古い明細を含まない理由をフォームの直後で伝える。
+                      if (!isPremium) ...[
+                        const SizedBox(height: 14),
+                        FreePlanHistoryNotice(
+                          message: l10n.transactionSearchFreePlanHistoryLimit(
+                            freePlanHistoryMonthCount,
+                          ),
+                          paywallTrigger: 'transaction_search_history_limit',
+                          openExternalUri: openExternalUri,
+                          logAnalyticsEvent: logAnalyticsEvent,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                  ),
+                  child: buildSearchResultHeader(),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

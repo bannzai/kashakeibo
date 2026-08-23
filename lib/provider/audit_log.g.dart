@@ -6,7 +6,7 @@ part of 'audit_log.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$auditLogsHash() => r'7590d7ecd6b2b4e73aea751b7b0d5a8aa1644062';
+String _$auditLogsHash() => r'cd1e82819b1dc6a46cd8b2f0db8f16785ea71f9d';
 
 /// 履歴画面に表示する操作履歴 (新しい順)。
 ///

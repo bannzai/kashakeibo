@@ -2,6 +2,7 @@ import 'package:kashakeibo/features/audit_log/audit_log_client.dart'
     as audit_log_client;
 import 'package:kashakeibo/provider/firebase_user.dart';
 import 'package:kashakeibo/provider/image.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'audit_log.g.dart';
@@ -38,6 +39,10 @@ Future<List<audit_log_client.AuditLog>> fetchAuditLogs() => callWorkerApi(
 class AuditLogs extends _$AuditLogs {
   @override
   Future<List<audit_log_client.AuditLog>> build() {
+    // 課金状態が変わったら取り直す。期間制限を適用するのは Worker のため値自体は使わないが、
+    // 依存に加えることで購入・失効のたびに Future が作り直され、画面を開いたままでも
+    // 制限後 / 制限なしの一覧に切り替わる。
+    ref.watch(isPremiumProvider);
     // サインイン中の uid が変わったら取り直す。
     if (ref.watch(currentUserIDProvider) == null) {
       return Future.value(const []);

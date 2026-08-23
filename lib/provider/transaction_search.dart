@@ -2,9 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
-import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
-import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -12,9 +10,10 @@ part 'transaction_search.g.dart';
 
 /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
 ///
-/// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
-/// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
-/// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
+/// 無料プランの下限 ([oldestSearchableTransactionDate]) は、課金状態と現在時刻の両方で
+/// 変わる値のため、この Provider の中では計算せず family の引数として画面から受け取る
+/// (Provider 内で計算すると、初回に作られた family インスタンスが古い下限を保持し続け、
+/// 月をまたいだ・課金状態が変わった時に再検索されない)。
 /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
 @riverpod
 Stream<List<Transaction>> searchedTransactions(
@@ -24,9 +23,9 @@ Stream<List<Transaction>> searchedTransactions(
   required int? minimumAmount,
   required int? maximumAmount,
   required String? titleKeyword,
+  required DateTime? oldestSearchableTransactionDate,
 }) {
   final userID = ref.watch(currentUserIDProvider);
-  final isPremium = ref.watch(isPremiumProvider);
   if (userID == null) {
     return Stream.value(const []);
   }
@@ -38,9 +37,7 @@ Stream<List<Transaction>> searchedTransactions(
     minimumAmount: minimumAmount,
     maximumAmount: maximumAmount,
     titleKeyword: titleKeyword,
-    oldestSearchableTransactionDate: isPremium
-        ? null
-        : oldestFreePlanHistoryDateTime(now: DateTime.now()),
+    oldestSearchableTransactionDate: oldestSearchableTransactionDate,
   );
 }
 

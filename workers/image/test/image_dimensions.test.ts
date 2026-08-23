@@ -112,6 +112,43 @@ describe("画像ヘッダーからの実寸・色の読み取り", () => {
     ).toEqual({ imageWidth: 3024, imageHeight: 4032, hasFullColorDepth: null });
   });
 
+  it("シグネチャの一部が壊れた PNG は解析しない", () => {
+    for (const [caseName, brokenSignatureByteIndex] of [
+      ["先頭の 0x89", 0],
+      ["CRLF の CR", 4],
+      ["末尾の LF", 7],
+    ] as [string, number][]) {
+      const brokenSignaturePngBytes = buildPngHeaderBytes({
+        imageWidth: 3024,
+        imageHeight: 4032,
+        bitDepth: 8,
+        colorType: 2,
+      });
+      brokenSignaturePngBytes[brokenSignatureByteIndex] ^= 0xff;
+      expect(readImageDimensions(brokenSignaturePngBytes.buffer as ArrayBuffer), caseName).toBeNull();
+    }
+  });
+
+  it("SOF のセグメント長が壊れた JPEG は解析しない", () => {
+    for (const [caseName, startOfFrameSegmentLength] of [
+      ["固定部すら収まらない長さ 2", 2],
+      ["コンポーネント 3 個ぶんに 1 バイト足りない長さ", 16],
+      ["バッファからはみ出す長さ", 0xffff],
+    ] as [string, number][]) {
+      expect(
+        readImageDimensions(
+          buildJpegHeaderBytes({
+            imageWidth: 2000,
+            imageHeight: 1500,
+            colorComponentCount: 3,
+            startOfFrameSegmentLength,
+          }).buffer as ArrayBuffer,
+        ),
+        caseName,
+      ).toBeNull();
+    }
+  });
+
   it("未知の形式・壊れたバイト列・実寸 0 のヘッダーでは null を返し、例外を投げない", () => {
     for (const [caseName, imageBytes] of [
       ["空", new Uint8Array(0)],

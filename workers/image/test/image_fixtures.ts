@@ -122,17 +122,21 @@ export function buildHeicHeaderBytes({
 /**
  * 指定した実寸・コンポーネント数で JPEG の SOI・ダミーの APP0・SOF セグメントを組み立てる (画素データは持たない)。
  * startOfFrameMarkerCode で baseline (0xC0) と progressive (0xC2) を切り替える。
+ * startOfFrameSegmentLength に実際のバイト数と合わない値を渡すと、長さが壊れた SOF になる。
  */
 export function buildJpegHeaderBytes({
   imageWidth,
   imageHeight,
   colorComponentCount,
   startOfFrameMarkerCode = 0xc0,
+  // SOF の宣言長は、既定では実際に並べるバイト数 (固定部 8 バイト + コンポーネントごとの 3 バイト) と一致させる
+  startOfFrameSegmentLength = 8 + 3 * colorComponentCount,
 }: {
   imageWidth: number;
   imageHeight: number;
   colorComponentCount: number;
   startOfFrameMarkerCode?: number;
+  startOfFrameSegmentLength?: number;
 }): Uint8Array {
   return new Uint8Array([
     0xff,
@@ -146,8 +150,8 @@ export function buildJpegHeaderBytes({
     0x00,
     0xff,
     startOfFrameMarkerCode,
-    0x00,
-    8 + 3 * colorComponentCount,
+    (startOfFrameSegmentLength >> 8) & 0xff,
+    startOfFrameSegmentLength & 0xff,
     // 精度 (チャンネルあたりの bit 数)
     0x08,
     (imageHeight >> 8) & 0xff,
