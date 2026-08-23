@@ -150,5 +150,6 @@
   "auditLogOperationUnknown": "其他操作",
   "auditLogChangedFieldExcludedFromAggregation": "计入总额",
   "auditLogChangedFieldSourceImage": "原始图片",
-  "auditLogChangedFieldDuplicateDecision": "重复项处理方式"
+  "auditLogChangedFieldDuplicateDecision": "重复项处理方式",
+  "transactionSearchOpen": "搜索交易记录"
 }
