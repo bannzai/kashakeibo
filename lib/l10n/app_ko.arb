@@ -147,5 +147,6 @@
   "auditLogOperationTransactionUpdated": "수정됨",
   "auditLogOperationTransactionDeleted": "삭제",
   "auditLogOperationTransactionImageDeleted": "이미지 삭제",
-  "auditLogOperationUnknown": "기타 작업"
+  "auditLogOperationUnknown": "기타 작업",
+  "auditLogChangedFieldExcludedFromAggregation": "합계 포함 여부"
 }

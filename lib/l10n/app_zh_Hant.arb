@@ -147,5 +147,6 @@
   "auditLogOperationTransactionUpdated": "已更正",
   "auditLogOperationTransactionDeleted": "已刪除",
   "auditLogOperationTransactionImageDeleted": "已刪除圖片",
-  "auditLogOperationUnknown": "其他操作"
+  "auditLogOperationUnknown": "其他操作",
+  "auditLogChangedFieldExcludedFromAggregation": "計入總額"
 }
