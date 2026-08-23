@@ -12,7 +12,7 @@ class MockUser extends Mock implements User {}
 
 /// アカウント削除機能のテスト。
 void main() {
-  test('アカウント削除は再認証後に全明細・ユーザードキュメント・Authを削除する', () async {
+  test('アカウント削除は再認証後に全明細・操作履歴・ユーザードキュメント・Authを削除する', () async {
     final firebaseFirestore = FakeFirebaseFirestore();
     final firebaseAuth = MockFirebaseAuth();
     final firebaseUser = MockUser();
@@ -41,6 +41,19 @@ void main() {
       );
     }
     await seedBatch.commit();
+    // 操作履歴の削除はページ境界を越えない件数で足りる (ページ分割は明細側で検証済み)。
+    final auditLogSeedBatch = firebaseFirestore.batch();
+    for (var index = 0; index < 3; index++) {
+      auditLogSeedBatch.set(
+        firebaseFirestore
+            .collection('users')
+            .doc('user-id')
+            .collection('auditLogs')
+            .doc('audit-log-$index'),
+        {'index': index},
+      );
+    }
+    await auditLogSeedBatch.commit();
 
     final deleteAccount = FirebaseDeleteAccount(
       firebaseAuth: firebaseAuth,
@@ -64,6 +77,16 @@ void main() {
               .collection('users')
               .doc('user-id')
               .collection('transactions')
+              .get())
+          .docs,
+      isEmpty,
+    );
+    // 明細と同じく、サブコレクションの操作履歴も残らない。
+    expect(
+      (await firebaseFirestore
+              .collection('users')
+              .doc('user-id')
+              .collection('auditLogs')
               .get())
           .docs,
       isEmpty,

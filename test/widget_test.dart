@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -547,6 +548,17 @@ void main() {
           ).overrideWith(
             (ref) => duplicateCandidates(transactions: transactions),
           ),
+          // 確認シートは重複解決の Provider を watch する。Firebase 未初期化の
+          // ウィジェットテストで FirebaseFirestore.instance に触れないよう差し替える。
+          mergeDuplicateTransactionsProvider.overrideWithValue(
+            MergeDuplicateTransactions(
+              firebaseFirestore: FakeFirebaseFirestore(),
+              deleteStoredImage: ({required imageObjectKey}) async {},
+            ),
+          ),
+          keepBothTransactionsProvider.overrideWithValue(
+            KeepBothTransactions(firebaseFirestore: FakeFirebaseFirestore()),
+          ),
         ],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -727,7 +739,8 @@ void main() {
 
 /// 手動入力 Widget テストで登録内容を記録する AddTransaction。
 class _RecordingAddTransaction extends AddTransaction {
-  _RecordingAddTransaction() : super(userID: 'user-id');
+  _RecordingAddTransaction()
+    : super(userID: 'user-id', firebaseFirestore: FakeFirebaseFirestore());
 
   /// 登録された収支種別。
   TransactionType? type;

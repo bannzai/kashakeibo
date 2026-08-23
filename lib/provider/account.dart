@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:kashakeibo/features/image_upload/image_upload_client.dart'
     as image_upload;
+import 'package:kashakeibo/provider/audit_log.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/utils/firebase_app_check/firebase_app_check.dart';
 
@@ -250,7 +251,20 @@ class FirebaseDeleteAccount implements DeleteAccount {
     );
 
     await deleteAllImagesForAccount(user: currentUser);
-    await _deleteTransactions(userID: currentUser.uid);
+    // サブコレクションは親ドキュメントの削除では消えないため、users/{uid} を消す前に
+    // 明細と操作履歴を個別に削除する。
+    await _deleteCollectionDocuments(
+      collectionReference: transactionDocumentsReference(
+        userID: currentUser.uid,
+        firebaseFirestore: firebaseFirestore,
+      ),
+    );
+    await _deleteCollectionDocuments(
+      collectionReference: auditLogDocumentsReference(
+        userID: currentUser.uid,
+        firebaseFirestore: firebaseFirestore,
+      ),
+    );
     await firebaseFirestore.collection('users').doc(currentUser.uid).delete();
     if (appleAuthorizationCode != null) {
       await firebaseAuth.revokeTokenWithAuthorizationCode(
@@ -271,21 +285,20 @@ class FirebaseDeleteAccount implements DeleteAccount {
     }
   }
 
-  /// 指定ユーザーの明細を Firestore の上限内のバッチへ分割して削除する。
-  Future<void> _deleteTransactions({required String userID}) async {
+  /// 指定コレクションの全ドキュメントを Firestore の上限内のバッチへ分割して削除する。
+  Future<void> _deleteCollectionDocuments({
+    required CollectionReference<Map<String, dynamic>> collectionReference,
+  }) async {
     while (true) {
       // Firestore の1バッチ上限500件に対して、将来同じバッチへ別の削除を追加しても
       // 上限を越えない余裕を残すため400件ずつ処理する。
-      final transactionDocuments = await transactionDocumentsReference(
-        userID: userID,
-        firebaseFirestore: firebaseFirestore,
-      ).limit(400).get();
-      if (transactionDocuments.docs.isEmpty) {
+      final documents = await collectionReference.limit(400).get();
+      if (documents.docs.isEmpty) {
         return;
       }
       final writeBatch = firebaseFirestore.batch();
-      for (final transactionDocument in transactionDocuments.docs) {
-        writeBatch.delete(transactionDocument.reference);
+      for (final document in documents.docs) {
+        writeBatch.delete(document.reference);
       }
       await writeBatch.commit();
     }
