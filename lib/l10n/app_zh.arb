@@ -138,5 +138,6 @@
   "settingsPlan": "方案",
   "planFree": "免费",
   "planPremium": "高级版",
-  "settingsAuditLog": "操作记录"
+  "settingsAuditLog": "操作记录",
+  "auditLogTitle": "操作记录"
 }

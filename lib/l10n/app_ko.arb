@@ -138,5 +138,6 @@
   "settingsPlan": "요금제",
   "planFree": "무료",
   "planPremium": "프리미엄",
-  "settingsAuditLog": "작업 기록"
+  "settingsAuditLog": "작업 기록",
+  "auditLogTitle": "작업 기록"
 }
