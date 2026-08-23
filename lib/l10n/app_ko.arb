@@ -151,5 +151,6 @@
   "auditLogChangedFieldExcludedFromAggregation": "합계 포함 여부",
   "auditLogChangedFieldSourceImage": "원본 이미지",
   "auditLogChangedFieldDuplicateDecision": "중복 항목 처리 방식",
-  "transactionSearchOpen": "거래 검색"
+  "transactionSearchOpen": "거래 검색",
+  "transactionSearchTitle": "검색"
 }

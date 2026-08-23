@@ -151,5 +151,6 @@
   "auditLogChangedFieldExcludedFromAggregation": "計入總額",
   "auditLogChangedFieldSourceImage": "原始圖片",
   "auditLogChangedFieldDuplicateDecision": "重複項處理方式",
-  "transactionSearchOpen": "搜尋交易紀錄"
+  "transactionSearchOpen": "搜尋交易紀錄",
+  "transactionSearchTitle": "搜尋"
 }
