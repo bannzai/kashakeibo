@@ -47,6 +47,6 @@
 
 ## 有効期限・制約
 
-- RevenueCat の public API key は `--dart-define` で注入する (`REVENUECAT_APPLE_PUBLIC_API_KEY` / `REVENUECAT_GOOGLE_PUBLIC_API_KEY`。debug ビルドは Test Store の `REVENUECAT_TEST_STORE_API_KEY`)。未注入のビルドでは SDK を初期化せず、ペイウォールは「料金プランを取得できませんでした」になる
+- RevenueCat の public API key は `--dart-define` で注入する (`REVENUECAT_PUBLIC_API_KEY_IOS` / `REVENUECAT_PUBLIC_API_KEY_ANDROID`。debug ビルドは Test Store の `REVENUECAT_TEST_STORE_API_KEY`)。未注入のビルドでは SDK を初期化せず、ペイウォールは「料金プランを取得できませんでした」になる
 - 無料枠の残量は Worker から取得するため、Worker に接続できないビルドでは残量チップを表示しない (撮影自体は Worker 側の判定に任せる)
 - 課金の動作確認は StoreKit Configuration + SKTestSession (`/ios-storekit-testing`) か RevenueCat Test Store で行う。シミュレータで起動したアプリは実ストア (Sandbox) に接続するため商品が解決されない

@@ -6,16 +6,16 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// RevenueCat の App Store 用 public API key (`appl_...`)。release / profile ビルドの iOS で使う。
 ///
-/// リポジトリが public のためソースに置かず、`--dart-define=REVENUECAT_APPLE_PUBLIC_API_KEY=...` で注入する
+/// リポジトリが public のためソースに置かず、`--dart-define=REVENUECAT_PUBLIC_API_KEY_IOS=...` で注入する
 /// (~/.claude/skills/revenuecat-product-setup/references/api_key_handling.md)。既定値は空文字で、
 /// 空のままなら SDK を初期化しない (課金なしで起動できる)。
-const revenueCatApplePublicApiKey = String.fromEnvironment(
-  'REVENUECAT_APPLE_PUBLIC_API_KEY',
+const revenueCatIOSPublicApiKey = String.fromEnvironment(
+  'REVENUECAT_PUBLIC_API_KEY_IOS',
 );
 
 /// RevenueCat の Play Store 用 public API key (`goog_...`)。release / profile ビルドの Android で使う。
-const revenueCatGooglePublicApiKey = String.fromEnvironment(
-  'REVENUECAT_GOOGLE_PUBLIC_API_KEY',
+const revenueCatAndroidPublicApiKey = String.fromEnvironment(
+  'REVENUECAT_PUBLIC_API_KEY_ANDROID',
 );
 
 /// RevenueCat の Test Store 用 public API key (`test_...`)。debug ビルドで使い、
@@ -37,8 +37,8 @@ String get revenueCatPublicApiKey {
     return revenueCatTestStorePublicApiKey;
   }
   return switch (defaultTargetPlatform) {
-    TargetPlatform.iOS => revenueCatApplePublicApiKey,
-    TargetPlatform.android => revenueCatGooglePublicApiKey,
+    TargetPlatform.iOS => revenueCatIOSPublicApiKey,
+    TargetPlatform.android => revenueCatAndroidPublicApiKey,
     _ => '',
   };
 }
