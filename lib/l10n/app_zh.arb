@@ -143,5 +143,6 @@
   "auditLogDescription": "记录您添加、更正或删除的明细，以及删除原始图片的操作。",
   "auditLogEmpty": "暂无操作记录",
   "auditLogSyncing": "正在同步",
-  "auditLogOperationTransactionCreated": "已添加"
+  "auditLogOperationTransactionCreated": "已添加",
+  "auditLogOperationTransactionUpdated": "已更正"
 }
