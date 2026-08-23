@@ -57,10 +57,12 @@ class SettingsPage extends HookConsumerWidget {
     final settingsCloseLogged = useRef(false);
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
+    // プライバシーポリシーは日本語版と英語版の 2 種類のみ用意しているため、
+    // 日本語ロケール以外 (en / ko / zh 等) は英語版へフォールバックする。
     final privacyPolicyPath =
-        Localizations.localeOf(context).languageCode == 'en'
-        ? 'PrivacyPolicy-en'
-        : 'PrivacyPolicy';
+        Localizations.localeOf(context).languageCode == 'ja'
+        ? 'PrivacyPolicy'
+        : 'PrivacyPolicy-en';
 
     void logSettingsClose() {
       if (settingsCloseLogged.value) {

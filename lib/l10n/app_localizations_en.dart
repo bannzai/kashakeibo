@@ -392,6 +392,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'No account linking. Just snap, and Premium reads every receipt and statement for you.';
 
   @override
+  String get paywallSavingsClaim =>
+      'About half of people who cut spending with a household budget saved ¥5,000 to under ¥10,000 a month*';
+
+  @override
+  String get paywallSavingsSource =>
+      '* Survey by JPX\'s Money-bu! (Oct 2022, 1,111 office workers in Japan)';
+
+  @override
   String paywallFreeQuota(int used, int limit) {
     return 'Free scans this month $used/$limit';
   }

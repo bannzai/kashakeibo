@@ -130,7 +130,10 @@ class MonthlyPage extends HookConsumerWidget {
               );
             case AddRecordOption.manual:
               unawaited(logAnalyticsEvent(name: 'manual_entry_open'));
-              final registered = await showManualEntrySheet(context: context);
+              final registered = await showManualEntrySheet(
+                context: context,
+                logAnalyticsEvent: logAnalyticsEvent,
+              );
               if (!context.mounted || registered != true) {
                 return;
               }
@@ -204,15 +207,30 @@ class MonthlyPage extends HookConsumerWidget {
                       if (duplicateCandidateList.isNotEmpty)
                         _DuplicateCandidateBanner(
                           candidateCount: duplicateCandidateList.length,
-                          onTap: () {
-                            showModalBottomSheet<void>(
+                          // キャンセルの記録は dismiss 経路 (背景タップ・スワイプ・
+                          // システム戻る) によらず、ここで一度だけ行う。
+                          onTap: () async {
+                            unawaited(
+                              logAnalyticsEvent(
+                                name: 'duplicate_candidate_open',
+                              ),
+                            );
+                            final resolved = await showModalBottomSheet<bool>(
                               context: context,
                               useSafeArea: true,
                               isScrollControlled: true,
                               builder: (context) => _DuplicateCandidateSheet(
                                 candidate: duplicateCandidateList.first,
+                                logAnalyticsEvent: logAnalyticsEvent,
                               ),
                             );
+                            if (resolved != true) {
+                              unawaited(
+                                logAnalyticsEvent(
+                                  name: 'duplicate_candidate_cancel',
+                                ),
+                              );
+                            }
                           },
                         ),
                       _CategoryBreakdownSection(transactions: transactions),
@@ -540,9 +558,12 @@ class _MonthlySummaryCard extends StatelessWidget {
                       TextSpan(
                         text: '¥',
                         style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                           color: appColors.textMuted,
+                          // 金額側の詰め (letterSpacing -0.42) を打ち消し、
+                          // 記号と数字がくっついて見えないよう余白を空ける。
+                          letterSpacing: 2,
                         ),
                       ),
                       TextSpan(text: formatAmountNumber(amount: expenseTotal)),
@@ -660,7 +681,13 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
   /// 確認する重複候補。
   final DuplicateCandidate candidate;
 
-  const _DuplicateCandidateSheet({required this.candidate});
+  /// Analyticsイベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
+  const _DuplicateCandidateSheet({
+    required this.candidate,
+    required this.logAnalyticsEvent,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -680,7 +707,7 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
       try {
         await operation();
         if (context.mounted) {
-          Navigator.of(context).pop();
+          Navigator.of(context).pop(true);
         }
       } catch (error) {
         if (context.mounted) {
@@ -772,17 +799,30 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
             onPressed: isSubmitting.value
                 ? null
                 : () {
+                    // 下側の候補を選択した場合は残す側・削除する側が入れ替わるため、
+                    // 実際にマージへ渡す明細を先に決めてから Analytics に記録する。
                     final keepPrimary =
                         selectedTransactionID.value ==
                         candidate.primaryTransaction.id;
+                    final primaryTransaction = keepPrimary
+                        ? candidate.primaryTransaction
+                        : candidate.duplicateTransaction;
+                    final duplicateTransaction = keepPrimary
+                        ? candidate.duplicateTransaction
+                        : candidate.primaryTransaction;
+                    unawaited(
+                      logAnalyticsEvent(
+                        name: 'duplicate_merge',
+                        parameters: {
+                          'primaryTransactionID': primaryTransaction.id,
+                          'duplicateTransactionID': duplicateTransaction.id,
+                        },
+                      ),
+                    );
                     resolve(
                       operation: () => mergeDuplicateTransactions.call(
-                        primaryTransaction: keepPrimary
-                            ? candidate.primaryTransaction
-                            : candidate.duplicateTransaction,
-                        duplicateTransaction: keepPrimary
-                            ? candidate.duplicateTransaction
-                            : candidate.primaryTransaction,
+                        primaryTransaction: primaryTransaction,
+                        duplicateTransaction: duplicateTransaction,
                       ),
                     );
                   },
@@ -801,6 +841,17 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
             onPressed: isSubmitting.value
                 ? null
                 : () {
+                    unawaited(
+                      logAnalyticsEvent(
+                        name: 'duplicate_keep_both',
+                        parameters: {
+                          'primaryTransactionID':
+                              candidate.primaryTransaction.id,
+                          'duplicateTransactionID':
+                              candidate.duplicateTransaction.id,
+                        },
+                      ),
+                    );
                     resolve(
                       operation: () => keepBothTransactions.call(
                         firstTransaction: candidate.primaryTransaction,

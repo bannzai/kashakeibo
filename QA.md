@@ -28,7 +28,7 @@ last_verified_at: 2026-08-19
 
 - シミュレータ管理: /ios-simulator skill を起点にする (リモート simtunnel を優先。ローカルで行う場合は /sim-manager)
 - UI 操作・スクリーンショット: /verify-ui-mobile-mcp (mobile-mcp)
-- E2E: Maestro は未導入 (https://github.com/bannzai/kashakeibo/issues/19 で整備予定)。導入までは全項目 agent のシミュレータ操作で確認する
+- E2E: Maestro を導入済み (issue #19)。主要フローは maestro/flows/ (手動入力 / レシート撮影→登録 / 計算対象からの除外 / 課金導線) にあり、/flutter-maestro skill で実行する。ローカル Simulator は iOS 18.x ランタイム推奨 (26.x は WDA 不安定)。撮影フローは App Check debug token の登録 (workers/image/README.md) が前提。maestro フローが無い項目は agent のシミュレータ操作で確認する
 
 ### 再現が難しい操作の手順
 
@@ -48,8 +48,9 @@ last_verified_at: 2026-08-19
 - **ローカル Simulator のロケール切替**: `xcrun simctl spawn <UDID> defaults write "Apple Global Domain" AppleLanguages -array ja` (英語は `-array en`) の後にアプリを再起動すると、l10n の表示言語が切り替わる。Simulator 全体の再起動は不要。ホスト macOS が日本語なら Simulator も既定で日本語ロケールになるため、日本語文言で判定する項目はローカルで行う (simtunnel のリモート Simulator は英語ロケール固定)
 - **ローカル Simulator は JST**: リモートと違い当日がホストマシンと一致する。デートピッカーの当日セルはアクセシビリティラベルが「22, 2026年8月22日土曜日, 今日」のように「今日」で終わるので、これで初期値が当日かを判定できる
 - **フォトライブラリへの画像投入**: `xcrun simctl addmedia <UDID> <画像パス>` で Simulator の写真に追加できる。「記録する」→「写真・スクショから選ぶ」で取り込むと、スクショ取込の明細 (出所チップが「スクショ」「自動取込」) と元画像付きの明細詳細を作れる。解析は Worker の無料スキャンを 1 回消費する (残量チップの数字が 1 減ることで確認できる)
-- **スキャン残量 0 の状態は現状どこからも作れない**: 今月のスキャン回数は Cloudflare の Durable Object (`workers/image/src/usage_counter.ts` の `UsageCounter`。インスタンス名 = 年月、キー `scan:uid:{uid}`) に持つ。Firestore ではないため firebase / gcloud CLI では触れず、wrangler にも DO storage を外部から書き換えるコマンドが無い。開発者メニュー (lib/features/debug/debug_sheet.dart) にも残量を操作する項目が無い。API 経由でカウンタだけを進める案 (アプリの uid の ID token で `POST /analyses` を極小画像で 50 回呼ぶ。Worker はカウンタ加算を Gemini 呼び出しの前に行うため原価はほぼゼロ) も、custom token の署名に必要な `iam.serviceAccounts.signJwt` 権限が無く実行できない (kashakeibo-dev では `roles/iam.serviceAccountTokenCreator` が firebase-adminsdk サービスアカウント自身にしか付いておらず、開発者アカウントは `roles/owner` のみ。owner に signJwt は含まれない)。そのため残量 0 前提の項目 (capture の「残量 0 のペイウォール」「無料枠超過 (402) からの購入・再解析」、paywall の「記録するシートの残量 0 導線」「解析 402 導線」) は確認できない。恒久策は開発者メニュー + Worker 側の DEBUG 用カウンタ設定経路の追加
+- **スキャン残量 0 の状態は開発者メニューで作る**: 今月のスキャン回数は Cloudflare の Durable Object (`workers/image/src/usage_counter.ts` の `UsageCounter`。インスタンス名 = 年月、キー `scan:uid:{uid}`) に持つ。Firestore ではないため firebase / gcloud CLI では触れず、wrangler にも DO storage を外部から書き換えるコマンドが無い。debug ビルドの開発者メニュー (月ラベル長押し → `lib/features/debug/debug_sheet.dart` の「スキャン残量を使い切る」。issue #67 で整備) から Worker の DEBUG 用カウンタ設定経路を叩いて作る
 - **並走レーンの Simulator を掴まない**: `xcrun simctl list devices booted` には他の worktree・他プロジェクトの Simulator も並ぶ。プロジェクトルートで `sim-boot` を実行して出た `DEVICE_UDID` を全操作 (`mobilecli --device`・`xcrun simctl`) に必ず渡す
+- **追加ロケール (ko / zh / zh_Hans / zh_Hant) の表示は未検証**: 2026-08-22 の多言語展開 (issue #16 / PR #64) で追加。検査は translate-app-arb の check (キー欠落・プレースホルダー・用語集の機械検査) と訳文の抜き取り目視のみで、シミュレータでの画面表示 (レイアウト崩れ・文字化け・法務リンクの言語) は未検証。各言語ロケールでの run-qa 実施時に確認する
 
 ## 横断確認項目
 

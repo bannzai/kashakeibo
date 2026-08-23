@@ -1,8 +1,8 @@
 ---
 feature: settings
 verification: mobile-mcp
-last_verified_commit: f492e1566dfd2fae08cfc3a15b79e1cc469e1e1e
-last_verified_at: 2026-08-22
+last_verified_commit: 290350f79dfaf68d1ebf1ecce2d1a18df72e6103
+last_verified_at: 2026-08-23
 ---
 
 # settings QA
@@ -19,7 +19,7 @@ last_verified_at: 2026-08-22
 | S1 | https://bannzai.github.io/kashakeibo/ で index・Terms・PrivacyPolicy・SpecifiedCommercialTransactionAct-ja・AccountDeletion が 200 を返す | 法務ページの配信確認 |
 | S2 | 設定画面に利用規約・プライバシーポリシー・特商法表記へのリンクがある | 設定画面の表示 / 法務ドキュメントを開く |
 | S3 | en-US ストアメタデータの privacy_url 用に英語版法務ページを用意する | 英語環境のプライバシーポリシー / ストアメタデータの privacy_url |
-| S4 | 匿名ユーザーに Apple / Google でのバックアップ (アカウントリンク) 導線を提示する (issue #11) | バックアップカードの表示 / Apple サインインシートの表示 / Google サインインシートの表示 |
+| S4 | 匿名ユーザーに Apple / Google でのバックアップ (アカウントリンク) 導線を提示し、Google はサインイン UI まで到達できる (issue #11 / issue #66) | バックアップカードの表示 / Apple サインインシートの表示 / Google サインインシートの表示 |
 | S5 | 選択したアカウントが別端末で利用中の可能性がある場合、匿名データへアクセスできなくなる旨の確認ダイアログを出す | Apple サインインシートの表示 / Google サインインシートの表示 (どちらもリンク導線のタップ直後に確認ダイアログ「この端末のデータを確認」が出ることを 2026-08-22 に確認した) |
 | S6 | プラン行からペイウォールを開ける | プラン行からペイウォール |
 | S7 | アカウント削除は確認ダイアログを挟み、実行するとアカウントと明細が完全に削除される | アカウント削除の確認ダイアログ / アカウント削除の実行 |
@@ -155,9 +155,10 @@ Privacy Policy 行をタップすると Safari が `https://bannzai.github.io/ka
 - [ ] **Apple サインインシートの表示**: Apple のバックアップ導線をタップすると Apple のサインイン UI が表示される (実 Apple ID の入力・リンク完了までは行わない)
   - 自動化: manual (シート表示までを agent のシミュレータ操作で確認する。リンク完了は実アカウントが必要なため対象外)
   - ⏭️ スキップ: Apple Account 未サインインの Simulator では、SiwA の資格情報シートの代わりに iOS のアラート「Apple Accountにサインインしてください」が出るため、シート本体を表示できない。アプリが SiwA を起動するところまでは確認済み (アプリの確認ダイアログ → `AuthorizationError Code=1000`)。シート表示の確認には Apple Account を設定した Simulator か実機が必要
-- [ ] **Google サインインシートの表示**: Google のバックアップ導線をタップすると Google のサインイン UI が表示される (実アカウントの入力・リンク完了までは行わない)
+- [x] **Google サインインシートの表示**: Google のバックアップ導線をタップすると Google のサインイン UI が表示される (実アカウントの入力・リンク完了までは行わない)
   - 自動化: manual (同上)
-  - ❌ 失敗: debug ビルド (bundle ID `com.bannzai.kashakeibo.dev`) で「Googleでリンク」→「続ける」と進むと、Google のサインイン UI が出ずにスナックバー `PlatformException(google_sign_in, Your app is missing support for the following URL schemes: com.googleusercontent.apps.750726705707-kp1f1kc6qj63l3miu8726rvc88uohop1, NSInvalidArgumentException, null)` が表示される。再現手順: debug ビルドを起動 → 設定 → 「Googleでリンク」→ 確認ダイアログの「続ける」。原因は `ios/Runner/Info.plist` の `CFBundleURLTypes` に共有 Extension 用スキームしか無く、`ios/Firebase/dev/GoogleService-Info.plist` の `REVERSED_CLIENT_ID` (上記の `com.googleusercontent.apps....`) が URL スキームとして登録されていないこと。`ios/Firebase/prod/GoogleService-Info.plist` には `REVERSED_CLIENT_ID` 自体が存在しないため、release ビルドでも同様に Google リンクが動かない可能性がある。issue: 未起票
+  - ✅ 2026-08-22 は `PlatformException(google_sign_in, Your app is missing support for the following URL schemes: ...)` で失敗していた。真因は `Copy GoogleService-Info.plist` ビルドフェーズの位置で、REVERSED_CLIENT_ID を URL スキームへ追記する処理が Xcode の Info.plist 生成に上書きされていた (issue #66 / PR #70 で修正)。修正後の 2026-08-23 に再実行して解消を確認した
+  - 機械検査: `ios/RunnerTests/GoogleSignInURLSchemeTests.swift` がビルド済み Runner.app の Info.plist に REVERSED_CLIENT_ID の URL スキーム・GIDClientID・共有 Extension のスキームが揃っているかを検証する
 - [x] **プラン行からペイウォール**: 「プラン」行に現在のプランが表示され、タップするとペイウォールが開く
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **アカウント削除の確認ダイアログ**: 「アカウントを削除」をタップすると確認ダイアログ (「アカウントを削除しますか？」・完全に削除され元に戻せない旨) が表示され、キャンセルすると何も起きない
@@ -208,20 +209,16 @@ Privacy Policy 行をタップすると Safari が `https://bannzai.github.io/ka
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-22**
+**確認日: 2026-08-23** (JST)
 
-ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+ローカル Simulator (kashakeibo-issue-66-iOS26.5 / iPhone 16 Pro、日本語ロケール) の debug ビルド (bundle ID `com.bannzai.kashakeibo.dev`)。
 
-❌ 失敗。左: 「Googleでリンク」をタップすると Apple と同じ確認ダイアログ「この端末のデータを確認」が出る。右: 「続ける」を選ぶと Google のサインイン UI は表示されず、画面下部にエラーのスナックバーが出た:
+2026-08-22 の初回実行では Google のサインイン UI が出ずにエラーのスナックバーが表示されて ❌ だった。issue #66 (PR #70) で `Copy GoogleService-Info.plist` ビルドフェーズを Runner ターゲットの最後尾へ移し、REVERSED_CLIENT_ID の URL スキームがビルド済み Info.plist に残るようにした後、再実行して解消を確認した。
 
-```text
-PlatformException(google_sign_in, Your app is missing support for the following URL schemes:
-com.googleusercontent.apps.750726705707-kp1f1kc6qj63l3miu8726rvc88uohop1,
-NSInvalidArgumentException, null)
-```
+左: 「Googleでリンク」をタップすると iOS の確認「"kashakeibo" がサインインのために "accounts.google.com" を使用しようとしています。」が出る (google_sign_in が URL スキームの検査を通過して認証セッションを開始できている)。右: 「続ける」で Google のログイン画面 (accounts.google.com /「project-750726705707」に移動 = kashakeibo-dev のプロジェクト番号) が表示された。エラーのスナックバーは出ない。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/60669991-a5d1-4bbe-8f90-22d958ed50a7.png" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/5ccfa3d9-a003-4153-babd-cb447d96b54a.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/1477dd2e-2d66-4dad-9540-7e139d1b0723.png" width="320" />
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/69d38aae-3136-4e31-947e-778c13412d8c.png" width="320" />
 
 </details>
 
