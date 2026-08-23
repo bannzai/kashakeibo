@@ -1,5 +1,5 @@
-import 'package:kashakeibo/entity/audit_log.dart';
 import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/features/audit_log/audit_log_client.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 
 /// 操作種別の表示名を返す。

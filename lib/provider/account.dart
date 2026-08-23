@@ -5,9 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:kashakeibo/features/audit_log/audit_log_client.dart'
+    as audit_log;
 import 'package:kashakeibo/features/image_upload/image_upload_client.dart'
     as image_upload;
-import 'package:kashakeibo/provider/audit_log.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/utils/firebase_app_check/firebase_app_check.dart';
 
@@ -29,6 +30,9 @@ typedef ReauthenticateForAccountDeletion =
 
 /// アカウントに属する R2 画像を削除する関数。
 typedef DeleteAllImagesForAccount = Future<void> Function({required User user});
+
+/// アカウントに属する操作履歴のパージを Worker へ依頼する関数。
+typedef DeleteAuditLogsForAccount = Future<void> Function({required User user});
 
 /// 現在の匿名ユーザーに保存済みデータがあるかを返す関数。
 typedef HasCurrentUserData = Future<bool> Function();
@@ -55,6 +59,7 @@ final deleteAccountProvider = Provider<DeleteAccount>(
     firebaseFirestore: FirebaseFirestore.instance,
     reauthenticateForAccountDeletion: reauthenticateForAccountDeletion,
     deleteAllImagesForAccount: deleteAllImagesForAccount,
+    deleteAuditLogsForAccount: deleteAuditLogsForAccount,
   ),
 );
 
@@ -186,17 +191,25 @@ Future<String?> reauthenticateForAccountDeletion({required User user}) async {
   return null;
 }
 
-/// Firebase ID token が有効なうちに Worker 経由で本人の R2 画像を全削除する。
+/// Firebase ID token が有効なうちに、削除対象のユーザーとして Worker API を 1 回呼ぶ。
 /// Worker は ID token に加えて App Check token (正規アプリからの証明) も要求する。
-Future<void> deleteAllImagesForAccount({required User user}) async {
+Future<void> _callWorkerApiForAccountDeletion({
+  required User user,
+  required Future<void> Function({
+    required String firebaseIdToken,
+    required String firebaseAppCheckToken,
+    required http.Client httpClient,
+  })
+  workerApiCall,
+}) async {
   final firebaseIdToken = await user.getIdToken(true);
   if (firebaseIdToken == null) {
-    throw StateError('画像の削除に必要な認証情報を取得できないため、アカウントを削除できない');
+    throw StateError('削除に必要な認証情報を取得できないため、アカウントを削除できない');
   }
   final firebaseAppCheckToken = await fetchFirebaseAppCheckToken();
   final httpClient = http.Client();
   try {
-    await image_upload.deleteAllImages(
+    await workerApiCall(
       firebaseIdToken: firebaseIdToken,
       firebaseAppCheckToken: firebaseAppCheckToken,
       httpClient: httpClient,
@@ -205,6 +218,39 @@ Future<void> deleteAllImagesForAccount({required User user}) async {
     httpClient.close();
   }
 }
+
+/// Worker 経由で本人の R2 画像を全削除する。
+Future<void> deleteAllImagesForAccount({required User user}) =>
+    _callWorkerApiForAccountDeletion(
+      user: user,
+      workerApiCall:
+          ({
+            required firebaseIdToken,
+            required firebaseAppCheckToken,
+            required httpClient,
+          }) => image_upload.deleteAllImages(
+            firebaseIdToken: firebaseIdToken,
+            firebaseAppCheckToken: firebaseAppCheckToken,
+            httpClient: httpClient,
+          ),
+    );
+
+/// Worker 経由で本人の操作履歴 (BigQuery の changelog) のパージを依頼する。
+/// Worker がパージの登録を受け付けた時点で成功として扱う (実削除は Worker 側で遅延実行される)。
+Future<void> deleteAuditLogsForAccount({required User user}) =>
+    _callWorkerApiForAccountDeletion(
+      user: user,
+      workerApiCall:
+          ({
+            required firebaseIdToken,
+            required firebaseAppCheckToken,
+            required httpClient,
+          }) => audit_log.deleteAuditLogs(
+            firebaseIdToken: firebaseIdToken,
+            firebaseAppCheckToken: firebaseAppCheckToken,
+            httpClient: httpClient,
+          ),
+    );
 
 /// アカウントと、その UID 配下のアプリデータを削除する機能。
 abstract interface class DeleteAccount {
@@ -226,15 +272,19 @@ class FirebaseDeleteAccount implements DeleteAccount {
   /// Worker 経由で R2 の全画像を削除する関数。
   final DeleteAllImagesForAccount deleteAllImagesForAccount;
 
+  /// Worker 経由で操作履歴のパージを依頼する関数。
+  final DeleteAuditLogsForAccount deleteAuditLogsForAccount;
+
   /// Firebase クライアントと再認証関数を指定して削除機能を作る。
   FirebaseDeleteAccount({
     required this.firebaseAuth,
     required this.firebaseFirestore,
     required this.reauthenticateForAccountDeletion,
     required this.deleteAllImagesForAccount,
+    required this.deleteAuditLogsForAccount,
   });
 
-  /// R2 画像、Firestore データ、Firebase Auth を削除する。
+  /// R2 画像、操作履歴、Firestore データ、Firebase Auth を削除する。
   ///
   /// 各削除は存在しないデータに対しても成功するため、途中失敗後の再実行を含めて
   /// 冪等。リンク済みアカウントは先に再認証し、データ削除後に recent-login
@@ -251,16 +301,13 @@ class FirebaseDeleteAccount implements DeleteAccount {
     );
 
     await deleteAllImagesForAccount(user: currentUser);
+    // 操作履歴の実体は明細の変更を写した BigQuery の changelog のため、明細を消す前に
+    // パージを登録する。登録後に発生する明細の削除イベントも Worker 側の遅延パージが拾う。
+    await deleteAuditLogsForAccount(user: currentUser);
     // サブコレクションは親ドキュメントの削除では消えないため、users/{uid} を消す前に
-    // 明細と操作履歴を個別に削除する。
+    // 明細を個別に削除する。
     await _deleteCollectionDocuments(
       collectionReference: transactionDocumentsReference(
-        userID: currentUser.uid,
-        firebaseFirestore: firebaseFirestore,
-      ),
-    );
-    await _deleteCollectionDocuments(
-      collectionReference: auditLogDocumentsReference(
         userID: currentUser.uid,
         firebaseFirestore: firebaseFirestore,
       ),

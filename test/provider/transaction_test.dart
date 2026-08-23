@@ -4,9 +4,7 @@
 // 画像削除と Firestore 更新の順序も合わせて確認する。
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kashakeibo/entity/audit_log.dart';
 import 'package:kashakeibo/entity/transaction.dart';
-import 'package:kashakeibo/provider/audit_log.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 
 /// テスト用の明細を組み立てる。
@@ -38,17 +36,6 @@ Future<void> saveTransaction({
   userID: transaction.userID,
   firebaseFirestore: firebaseFirestore,
 ).doc(transaction.id).set(transaction);
-
-/// fake の Firestore に記録された監査ログをすべて読み戻す。
-///
-/// サーバータイムスタンプは fake では同一時刻になり得るため、順序ではなく
-/// 操作種別と対象で絞り込んで検証する。
-Future<List<AuditLog>> readAuditLogs({
-  required FakeFirebaseFirestore firebaseFirestore,
-}) async => (await auditLogsReference(
-  userID: 'user-id',
-  firebaseFirestore: firebaseFirestore,
-).get()).docs.map((doc) => doc.data()).toList();
 
 /// fake の Firestore から明細を読み戻す。削除済みなら null。
 Future<Transaction?> readTransaction({
@@ -390,8 +377,8 @@ void main() {
     });
   });
 
-  group('監査ログ', () {
-    test('明細の作成で作成の履歴が同じバッチに残る', () async {
+  group('AddTransaction', () {
+    test('明細を 1 件作成し、取引日から yearMonth を導出して保存する', () async {
       final firebaseFirestore = FakeFirebaseFirestore();
 
       await AddTransaction(
@@ -409,173 +396,20 @@ void main() {
         analysisAdjustedByUser: false,
       );
 
-      final auditLogs = await readAuditLogs(
+      final createdTransactions = (await transactionsReference(
+        userID: 'user-id',
         firebaseFirestore: firebaseFirestore,
-      );
-      expect(auditLogs, hasLength(1));
-      expect(auditLogs.single.operation, AuditLogOperation.transactionCreated);
-      expect(auditLogs.single.userID, 'user-id');
-      expect(auditLogs.single.transactionTitle, 'コンビニ');
-      expect(auditLogs.single.transactionAmount, 980);
-      expect(auditLogs.single.changedFieldNames, isEmpty);
-      // 履歴の対象 ID から作成された明細を辿れる。
-      expect(
-        (await readTransaction(
-          transactionID: auditLogs.single.transactionID!,
-          firebaseFirestore: firebaseFirestore,
-        ))!.title,
-        'コンビニ',
-      );
+      ).get()).docs.map((doc) => doc.data()).toList();
+      expect(createdTransactions, hasLength(1));
+      expect(createdTransactions.single.title, 'コンビニ');
+      expect(createdTransactions.single.amount, 980);
+      expect(createdTransactions.single.yearMonth, '2026-08');
+      expect(createdTransactions.single.userID, 'user-id');
     });
+  });
 
-    test('計算対象の切替で訂正の履歴が残り、値が変わらない再実行では増えない', () async {
-      final firebaseFirestore = FakeFirebaseFirestore();
-      final transaction = buildTransaction(
-        id: 'transaction-id',
-        sourceImageObjectKey: null,
-        excludedFromAggregation: false,
-      );
-      await saveTransaction(
-        transaction: transaction,
-        firebaseFirestore: firebaseFirestore,
-      );
-      final updateTransactionExclusion = UpdateTransactionExclusion(
-        firebaseFirestore: firebaseFirestore,
-      );
-
-      await updateTransactionExclusion.call(
-        transaction: transaction,
-        excludedFromAggregation: true,
-      );
-      await updateTransactionExclusion.call(
-        transaction: transaction,
-        excludedFromAggregation: true,
-      );
-
-      final auditLogs = await readAuditLogs(
-        firebaseFirestore: firebaseFirestore,
-      );
-      expect(auditLogs, hasLength(1));
-      expect(auditLogs.single.operation, AuditLogOperation.transactionUpdated);
-      expect(auditLogs.single.transactionID, 'transaction-id');
-      expect(auditLogs.single.changedFieldNames, [
-        TransactionFirestoreKeys.excludedFromAggregation,
-      ]);
-    });
-
-    test('元画像だけの削除で画像削除と訂正の履歴が残る', () async {
-      final firebaseFirestore = FakeFirebaseFirestore();
-      final transaction = buildTransaction(
-        id: 'transaction-id',
-        sourceImageObjectKey: 'users/user-id/uuid.png',
-        excludedFromAggregation: false,
-      );
-      await saveTransaction(
-        transaction: transaction,
-        firebaseFirestore: firebaseFirestore,
-      );
-
-      await RemoveTransactionSourceImage(
-        firebaseFirestore: firebaseFirestore,
-        deleteStoredImage: ({required imageObjectKey}) async {},
-      ).call(transaction: transaction);
-
-      final auditLogs = await readAuditLogs(
-        firebaseFirestore: firebaseFirestore,
-      );
-      expect(auditLogs, hasLength(2));
-      final imageDeletionLog = auditLogs.singleWhere(
-        (auditLog) =>
-            auditLog.operation == AuditLogOperation.transactionImageDeleted,
-      );
-      expect(imageDeletionLog.imageObjectKey, 'users/user-id/uuid.png');
-      expect(imageDeletionLog.transactionID, 'transaction-id');
-      expect(
-        auditLogs
-            .singleWhere(
-              (auditLog) =>
-                  auditLog.operation == AuditLogOperation.transactionUpdated,
-            )
-            .changedFieldNames,
-        [TransactionFirestoreKeys.sourceImageObjectKey],
-      );
-    });
-
-    test('他の明細が参照する元画像では画像削除の履歴を残さない', () async {
-      final firebaseFirestore = FakeFirebaseFirestore();
-      final transaction = buildTransaction(
-        id: 'transaction-id',
-        sourceImageObjectKey: 'users/user-id/shared.png',
-        excludedFromAggregation: false,
-      );
-      await saveTransaction(
-        transaction: transaction,
-        firebaseFirestore: firebaseFirestore,
-      );
-      await saveTransaction(
-        transaction: buildTransaction(
-          id: 'sibling-transaction-id',
-          sourceImageObjectKey: 'users/user-id/shared.png',
-          excludedFromAggregation: false,
-        ),
-        firebaseFirestore: firebaseFirestore,
-      );
-
-      await RemoveTransactionSourceImage(
-        firebaseFirestore: firebaseFirestore,
-        deleteStoredImage: ({required imageObjectKey}) async {},
-      ).call(transaction: transaction);
-
-      final auditLogs = await readAuditLogs(
-        firebaseFirestore: firebaseFirestore,
-      );
-      expect(auditLogs.map((auditLog) => auditLog.operation), [
-        AuditLogOperation.transactionUpdated,
-      ]);
-    });
-
-    test('明細の削除で画像削除と削除の履歴が残る', () async {
-      final firebaseFirestore = FakeFirebaseFirestore();
-      final transaction = buildTransaction(
-        id: 'transaction-id',
-        sourceImageObjectKey: 'users/user-id/uuid.png',
-        excludedFromAggregation: false,
-      );
-      await saveTransaction(
-        transaction: transaction,
-        firebaseFirestore: firebaseFirestore,
-      );
-
-      await DeleteTransaction(
-        firebaseFirestore: firebaseFirestore,
-        deleteStoredImage: ({required imageObjectKey}) async {},
-      ).call(transaction: transaction);
-
-      final auditLogs = await readAuditLogs(
-        firebaseFirestore: firebaseFirestore,
-      );
-      expect(auditLogs, hasLength(2));
-      // 明細が消えた後も、履歴から店名と金額を確認できる。
-      final deletionLog = auditLogs.singleWhere(
-        (auditLog) =>
-            auditLog.operation == AuditLogOperation.transactionDeleted,
-      );
-      expect(deletionLog.transactionID, 'transaction-id');
-      expect(deletionLog.transactionTitle, 'スーパーマーケット');
-      expect(deletionLog.transactionAmount, 1280);
-      expect(
-        auditLogs
-            .singleWhere(
-              (auditLog) =>
-                  auditLog.operation ==
-                  AuditLogOperation.transactionImageDeleted,
-            )
-            .imageObjectKey,
-        'users/user-id/uuid.png',
-      );
-    });
-
-    test('重複候補のマージで残す側の訂正と削除側の削除の履歴が残る', () async {
+  group('MergeDuplicateTransactions', () {
+    test('残す側に相互の判定を記録し、削除側の明細を削除する', () async {
       final firebaseFirestore = FakeFirebaseFirestore();
       final primaryTransaction = buildTransaction(
         id: 'primary-transaction-id',
@@ -584,7 +418,7 @@ void main() {
       );
       final duplicateTransaction = buildTransaction(
         id: 'duplicate-transaction-id',
-        sourceImageObjectKey: null,
+        sourceImageObjectKey: 'users/user-id/uuid.png',
         excludedFromAggregation: false,
       );
       await saveTransaction(
@@ -595,40 +429,45 @@ void main() {
         transaction: duplicateTransaction,
         firebaseFirestore: firebaseFirestore,
       );
-
-      await MergeDuplicateTransactions(
+      final deletedImageObjectKeys = <String>[];
+      final mergeDuplicateTransactions = MergeDuplicateTransactions(
         firebaseFirestore: firebaseFirestore,
-        deleteStoredImage: ({required imageObjectKey}) async {},
-      ).call(
+        deleteStoredImage: ({required imageObjectKey}) async {
+          deletedImageObjectKeys.add(imageObjectKey);
+        },
+      );
+
+      await mergeDuplicateTransactions.call(
+        primaryTransaction: primaryTransaction,
+        duplicateTransaction: duplicateTransaction,
+      );
+      // 削除側が存在しない状態での再実行でも例外にならない (冪等)。
+      await mergeDuplicateTransactions.call(
         primaryTransaction: primaryTransaction,
         duplicateTransaction: duplicateTransaction,
       );
 
-      final auditLogs = await readAuditLogs(
-        firebaseFirestore: firebaseFirestore,
-      );
-      expect(auditLogs, hasLength(2));
       expect(
-        auditLogs
-            .singleWhere(
-              (auditLog) =>
-                  auditLog.operation == AuditLogOperation.transactionUpdated,
-            )
-            .transactionID,
-        'primary-transaction-id',
+        await readTransaction(
+          transactionID: 'duplicate-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ),
+        isNull,
       );
+      // 残す側は画像を持たないため、削除側の元画像を引き継ぐ (R2 の画像は消さない)。
       expect(
-        auditLogs
-            .singleWhere(
-              (auditLog) =>
-                  auditLog.operation == AuditLogOperation.transactionDeleted,
-            )
-            .transactionID,
-        'duplicate-transaction-id',
+        (await readTransaction(
+          transactionID: 'primary-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.sourceImageObjectKey,
+        'users/user-id/uuid.png',
       );
+      expect(deletedImageObjectKeys, isEmpty);
     });
+  });
 
-    test('別々の支出として残すと両方の明細に訂正の履歴が残り、再実行では増えない', () async {
+  group('KeepBothTransactions', () {
+    test('両明細へ相互の ID を記録し、再実行でも結果が変わらない (冪等)', () async {
       final firebaseFirestore = FakeFirebaseFirestore();
       final firstTransaction = buildTransaction(
         id: 'first-transaction-id',
@@ -661,20 +500,20 @@ void main() {
         secondTransaction: secondTransaction,
       );
 
-      final auditLogs = await readAuditLogs(
-        firebaseFirestore: firebaseFirestore,
+      expect(
+        (await readTransaction(
+          transactionID: 'first-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.confirmedDistinctTransactionIDs,
+        ['second-transaction-id'],
       );
-      expect(auditLogs, hasLength(2));
-      expect(auditLogs.map((auditLog) => auditLog.transactionID).toSet(), {
-        'first-transaction-id',
-        'second-transaction-id',
-      });
-      for (final auditLog in auditLogs) {
-        expect(auditLog.operation, AuditLogOperation.transactionUpdated);
-        expect(auditLog.changedFieldNames, [
-          TransactionFirestoreKeys.confirmedDistinctTransactionIDs,
-        ]);
-      }
+      expect(
+        (await readTransaction(
+          transactionID: 'second-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.confirmedDistinctTransactionIDs,
+        ['first-transaction-id'],
+      );
     });
   });
 }

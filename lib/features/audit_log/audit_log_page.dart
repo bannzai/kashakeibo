@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:kashakeibo/entity/audit_log.dart';
+import 'package:kashakeibo/features/audit_log/audit_log_client.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
 import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
 import 'package:kashakeibo/features/paywall/free_plan_history_notice.dart';
@@ -16,7 +16,8 @@ import 'package:kashakeibo/utils/analytics/analytics.dart';
 
 /// 操作履歴画面 (issue #73 の訂正削除履歴)。
 ///
-/// 明細の追加・訂正・削除と元画像の削除の履歴を、記録されたサーバー時刻の新しい順で表示する。
+/// 明細の追加・訂正・削除と元画像の削除の履歴を、Worker から取得した新しい順で表示する。
+/// リアルタイムには追従しないため、画面を開いたまま行った操作は pull-to-refresh で取り直す。
 /// 履歴は読み取り専用で、ここから明細を復元する導線は持たない。
 /// 無料プランでは表示できる期間が制限され (features/paywall/free_plan_history_limit.dart)、
 /// その旨の注記からペイウォールへ誘導する。
@@ -36,6 +37,9 @@ class AuditLogPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auditLogsAsync = ref.watch(auditLogsProvider);
+    // コールバックで ref を触らないよう、取り直す操作は build で確保する
+    // (`.claude/rules/riverpod-rules.md`)。
+    final auditLogsNotifier = ref.watch(auditLogsProvider.notifier);
     final isPremium = ref.watch(isPremiumProvider);
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
@@ -53,57 +57,62 @@ class AuditLogPage extends ConsumerWidget {
               child: Text(error.toString()),
             ),
           ),
-          data: (auditLogs) => ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xl,
-              14,
-              AppSpacing.xl,
-              24,
-            ),
-            children: [
-              Text(
-                l10n.auditLogDescription,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  height: 1.6,
-                  color: appColors.textMuted,
-                ),
+          data: (auditLogs) => RefreshIndicator(
+            onRefresh: auditLogsNotifier.refresh,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                14,
+                AppSpacing.xl,
+                24,
               ),
-              // 無料プランで表示できるのは直近 freePlanHistoryMonthCount ヶ月だけのため、
-              // 一覧が古い履歴を含まない理由を先頭で伝える。
-              if (!isPremium) ...[
-                const SizedBox(height: 14),
-                FreePlanHistoryNotice(
-                  message: l10n.auditLogFreePlanHistoryLimit(
-                    freePlanHistoryMonthCount,
+              // 履歴が空・少数で画面に収まる時も引いて取り直せるようにする。
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                Text(
+                  l10n.auditLogDescription,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.6,
+                    color: appColors.textMuted,
                   ),
-                  paywallTrigger: 'audit_log_history_limit',
-                  openExternalUri: openExternalUri,
-                  logAnalyticsEvent: logAnalyticsEvent,
                 ),
-              ],
-              const SizedBox(height: 14),
-              if (auditLogs.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xxl),
-                  child: Center(
-                    child: Text(
-                      l10n.auditLogEmpty,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: appColors.textMuted,
+                // 無料プランで表示できるのは直近 freePlanHistoryMonthCount ヶ月だけのため、
+                // 一覧が古い履歴を含まない理由を先頭で伝える。
+                if (!isPremium) ...[
+                  const SizedBox(height: 14),
+                  FreePlanHistoryNotice(
+                    message: l10n.auditLogFreePlanHistoryLimit(
+                      freePlanHistoryMonthCount,
+                    ),
+                    paywallTrigger: 'audit_log_history_limit',
+                    openExternalUri: openExternalUri,
+                    logAnalyticsEvent: logAnalyticsEvent,
+                  ),
+                ],
+                const SizedBox(height: 14),
+                if (auditLogs.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    child: Center(
+                      child: Text(
+                        l10n.auditLogEmpty,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: appColors.textMuted,
+                        ),
                       ),
                     ),
-                  ),
-                )
-              else
-                for (final auditLog in auditLogs)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: _AuditLogRow(auditLog: auditLog),
-                  ),
-            ],
+                  )
+                else
+                  for (final auditLog in auditLogs)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: _AuditLogRow(auditLog: auditLog),
+                    ),
+              ],
+            ),
           ),
         ),
       ),
@@ -122,7 +131,6 @@ class _AuditLogRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
-    final serverCreatedDateTime = auditLog.serverCreatedDateTime;
     final changedFieldLabels = [
       for (final changedFieldName in auditLog.changedFieldNames)
         ?auditLogChangedFieldLabel(
@@ -168,13 +176,9 @@ class _AuditLogRow extends StatelessWidget {
                   ),
                 Text(
                   [
-                    // サーバー時刻が確定するまでは日時を持たない (provider/audit_log.dart)。
-                    if (serverCreatedDateTime == null)
-                      l10n.auditLogSyncing
-                    else
-                      DateFormat.yMd(
-                        Localizations.localeOf(context).toString(),
-                      ).add_Hm().format(serverCreatedDateTime.toLocal()),
+                    DateFormat.yMd(
+                      Localizations.localeOf(context).toString(),
+                    ).add_Hm().format(auditLog.occurredAt.toLocal()),
                     ...changedFieldLabels,
                   ].join(' · '),
                   style: AppTextStyles.caption.copyWith(

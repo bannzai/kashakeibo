@@ -1,9 +1,7 @@
 // cloud_firestore の Transaction クラスと Entity の Transaction が衝突するため hide する。
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:kashakeibo/entity/audit_log.dart';
 import 'package:kashakeibo/entity/transaction.dart';
-import 'package:kashakeibo/provider/audit_log.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
 import 'package:kashakeibo/provider/image.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -126,7 +124,7 @@ class AddTransaction {
 
   AddTransaction({required this.userID, required this.firebaseFirestore});
 
-  /// 明細を 1 件作成し、作成の監査ログを同じバッチで残す。
+  /// 明細を 1 件作成する。
   ///
   /// 冪等ではない: 明細の追加はユーザー操作 1 回 = 1 件の意味を持ち、
   /// Firestore の自動生成 ID で毎回新しいドキュメントを作るため。
@@ -171,30 +169,12 @@ class AddTransaction {
       sourceImageObjectKey: sourceImageObjectKey,
       analysisAdjustedByUser: analysisAdjustedByUser,
     );
-    final auditLogReference = auditLogsReference(
-      userID: userID,
-      firebaseFirestore: firebaseFirestore,
-    ).doc();
-    // 明細と履歴が食い違わないよう、同じバッチでアトミックに書き込む。
-    final serverWrite =
-        (firebaseFirestore.batch()
-              ..set(documentReference, createdTransaction)
-              ..set(
-                auditLogReference,
-                transactionAuditLog(
-                  auditLogID: auditLogReference.id,
-                  operation: AuditLogOperation.transactionCreated,
-                  transaction: createdTransaction,
-                  imageObjectKey: null,
-                  changedFieldNames: const [],
-                ),
-              ))
-            .commit();
+    final serverWrite = documentReference.set(createdTransaction);
     final localWrite = documentReference
         .snapshots(includeMetadataChanges: true)
         .firstWhere((snapshot) => snapshot.exists)
         .then<void>((_) {});
-    // commit の Future はオフライン中にサーバー同期を待ち続ける。ローカルキャッシュへの
+    // set の Future はオフライン中にサーバー同期を待ち続ける。ローカルキャッシュへの
     // 反映を登録完了として扱い、サーバー同期は Firestore の永続キューに委ねる。
     await Future.any([serverWrite, localWrite]);
   }
@@ -223,7 +203,6 @@ class UpdateTransactionExclusion {
   }) => _updateLatestTransaction(
     firebaseFirestore: firebaseFirestore,
     transaction: transaction,
-    changedFieldNames: const [TransactionFirestoreKeys.excludedFromAggregation],
     update: (latestTransaction) => latestTransaction.copyWith(
       excludedFromAggregation: excludedFromAggregation,
     ),
@@ -231,27 +210,19 @@ class UpdateTransactionExclusion {
 }
 
 /// [transaction] のドキュメントを Firestore トランザクションで読み直し、最新の明細に
-/// [update] を適用して書き戻し、同じトランザクションで訂正の監査ログを 1 件残す。
+/// [update] を適用して書き戻す。
 ///
-/// 削除済み (null) の場合と、[update] が最新の明細と同じ値を返した場合は何も書き込まない。
-/// 値が変わらない再実行で履歴だけが増えないようにするため。
-/// [changedFieldNames] には [update] が変更し得る Transaction のフィールド名を渡す。
+/// 削除済み (null) の場合と、[update] が最新の明細と同じ値を返した場合は何も書き込まない
+/// (BigQuery の changelog に中身の変わらない更新を積まないため)。
 Future<void> _updateLatestTransaction({
   required FirebaseFirestore firebaseFirestore,
   required Transaction transaction,
-  required List<String> changedFieldNames,
   required Transaction Function(Transaction latestTransaction) update,
 }) {
   final transactionReference = transactionsReference(
     userID: transaction.userID,
     firebaseFirestore: firebaseFirestore,
   ).doc(transaction.id);
-  // 監査ログの参照はトランザクションの外で 1 度だけ作る。競合による再試行で
-  // 同じ操作の履歴が複数件にならないようにするため。
-  final auditLogReference = auditLogsReference(
-    userID: transaction.userID,
-    firebaseFirestore: firebaseFirestore,
-  ).doc();
   return firebaseFirestore.runTransaction((firestoreTransaction) async {
     final latestTransaction = (await firestoreTransaction.get(
       transactionReference,
@@ -268,43 +239,7 @@ Future<void> _updateLatestTransaction({
       updatedTransaction,
       SetOptions(merge: true),
     );
-    firestoreTransaction.set(
-      auditLogReference,
-      transactionAuditLog(
-        auditLogID: auditLogReference.id,
-        operation: AuditLogOperation.transactionUpdated,
-        transaction: updatedTransaction,
-        imageObjectKey: null,
-        changedFieldNames: changedFieldNames,
-      ),
-    );
   });
-}
-
-/// R2 の画像削除が成功した後に、画像削除の監査ログを 1 件残す。
-///
-/// Worker への画像削除は Firestore の書き込みとアトミックにできないため、削除の成功後に
-/// 記録する (削除されていない画像の履歴を残さない)。
-/// 冪等ではない: 同じ画像に対する再実行は履歴を 1 件増やす。実行のたびに「削除した」
-/// 事実を残すのが履歴の目的のため。
-Future<void> _writeImageDeletionAuditLog({
-  required FirebaseFirestore firebaseFirestore,
-  required Transaction transaction,
-  required String imageObjectKey,
-}) {
-  final auditLogReference = auditLogsReference(
-    userID: transaction.userID,
-    firebaseFirestore: firebaseFirestore,
-  ).doc();
-  return auditLogReference.set(
-    transactionAuditLog(
-      auditLogID: auditLogReference.id,
-      operation: AuditLogOperation.transactionImageDeleted,
-      transaction: transaction,
-      imageObjectKey: imageObjectKey,
-      changedFieldNames: const [],
-    ),
-  );
 }
 
 /// [imageObjectKey] を元画像として参照する明細が [excludedTransactionID] 以外にも存在するか。
@@ -355,8 +290,7 @@ class RemoveTransactionSourceImage {
   /// [transaction] の元画像を削除し、sourceImageObjectKey を null にする。
   ///
   /// 画像の削除 (対象が無くても成功) → 紐付けの解除の順で行い、途中で失敗しても
-  /// 再実行で同じ結果に収束するため冪等 (画像削除の履歴だけは実行のたびに増える。
-  /// [_writeImageDeletionAuditLog] 参照)。逆順にすると明細から辿れない孤児画像が残る。
+  /// 再実行で同じ結果に収束するため冪等。逆順にすると明細から辿れない孤児画像が残る。
   /// 他の明細が同じ元画像を参照している場合は R2 の画像は消さず、紐付けの解除だけを行う。
   /// 紐付けの解除は Firestore トランザクションで読み直した最新の明細に対して行い、
   /// 並行した他の変更 (計算対象除外の切替等) を巻き戻さない。
@@ -372,16 +306,10 @@ class RemoveTransactionSourceImage {
       excludedTransactionID: transaction.id,
     )) {
       await deleteStoredImage(imageObjectKey: sourceImageObjectKey);
-      await _writeImageDeletionAuditLog(
-        firebaseFirestore: firebaseFirestore,
-        transaction: transaction,
-        imageObjectKey: sourceImageObjectKey,
-      );
     }
     await _updateLatestTransaction(
       firebaseFirestore: firebaseFirestore,
       transaction: transaction,
-      changedFieldNames: const [TransactionFirestoreKeys.sourceImageObjectKey],
       update: (latestTransaction) =>
           latestTransaction.copyWith(sourceImageObjectKey: null),
     );
@@ -408,13 +336,10 @@ class DeleteTransaction {
     required this.deleteStoredImage,
   });
 
-  /// [transaction] の元画像 (あれば) と Firestore ドキュメントを削除し、削除の監査ログを
-  /// ドキュメントの削除と同じバッチで残す。
+  /// [transaction] の元画像 (あれば) と Firestore ドキュメントを削除する。
   ///
   /// 画像の削除 → ドキュメントの削除の順で行う。どちらも対象が無くても成功するため、
-  /// 途中で失敗しても再実行で同じ結果に収束する (冪等)。ただし削除の履歴は実行のたびに
-  /// 1 件増える: 削除済みかどうかで分岐するには読み取りを伴う runTransaction が必要になり、
-  /// オフラインで削除できなくなるため (WriteBatch はローカルキューに積まれる)。
+  /// 途中で失敗しても再実行で同じ結果に収束する (冪等)。
   /// 他の明細が同じ元画像を参照している場合は R2 の画像は消さず、ドキュメントだけを削除する。
   Future<void> call({required Transaction transaction}) async {
     final sourceImageObjectKey = transaction.sourceImageObjectKey;
@@ -426,34 +351,11 @@ class DeleteTransaction {
           excludedTransactionID: transaction.id,
         )) {
       await deleteStoredImage(imageObjectKey: sourceImageObjectKey);
-      await _writeImageDeletionAuditLog(
-        firebaseFirestore: firebaseFirestore,
-        transaction: transaction,
-        imageObjectKey: sourceImageObjectKey,
-      );
     }
-    final auditLogReference = auditLogsReference(
+    await transactionsReference(
       userID: transaction.userID,
       firebaseFirestore: firebaseFirestore,
-    ).doc();
-    await (firebaseFirestore.batch()
-          ..delete(
-            transactionsReference(
-              userID: transaction.userID,
-              firebaseFirestore: firebaseFirestore,
-            ).doc(transaction.id),
-          )
-          ..set(
-            auditLogReference,
-            transactionAuditLog(
-              auditLogID: auditLogReference.id,
-              operation: AuditLogOperation.transactionDeleted,
-              transaction: transaction,
-              imageObjectKey: null,
-              changedFieldNames: const [],
-            ),
-          ))
-        .commit();
+    ).doc(transaction.id).delete();
   }
 }
 
@@ -479,7 +381,6 @@ class MergeDuplicateTransactions {
   });
 
   /// [primaryTransaction] を残し、[duplicateTransaction] を削除する。
-  /// 残す側の訂正と削除側の削除の監査ログを、同じ Firestore トランザクションで残す。
   ///
   /// 同じ操作が再実行され、削除対象が存在しない場合は成功済みとして終了するため冪等。
   /// 逆向きのマージや「別物として残す」が別端末から同時実行された場合も、
@@ -503,16 +404,6 @@ class MergeDuplicateTransactions {
       userID: duplicateTransaction.userID,
       firebaseFirestore: firebaseFirestore,
     ).doc(duplicateTransaction.id);
-    // 監査ログの参照はトランザクションの外で 1 度だけ作る。競合による再試行で
-    // 同じ操作の履歴が複数件にならないようにするため。
-    final primaryAuditLogReference = auditLogsReference(
-      userID: primaryTransaction.userID,
-      firebaseFirestore: firebaseFirestore,
-    ).doc();
-    final duplicateAuditLogReference = auditLogsReference(
-      userID: duplicateTransaction.userID,
-      firebaseFirestore: firebaseFirestore,
-    ).doc();
 
     // 削除側にだけ画像があれば残す側へ引き継ぎ、両方にあれば削除側の画像を消す対象として返す。
     final orphanedImageObjectKey = await firebaseFirestore
@@ -561,30 +452,6 @@ class MergeDuplicateTransactions {
             SetOptions(merge: true),
           );
           firestoreTransaction.delete(duplicateReference);
-          firestoreTransaction.set(
-            primaryAuditLogReference,
-            transactionAuditLog(
-              auditLogID: primaryAuditLogReference.id,
-              operation: AuditLogOperation.transactionUpdated,
-              transaction: mergedPrimaryTransaction,
-              imageObjectKey: null,
-              changedFieldNames: [
-                TransactionFirestoreKeys.confirmedDistinctTransactionIDs,
-                if (inheritsDuplicateImage)
-                  TransactionFirestoreKeys.sourceImageObjectKey,
-              ],
-            ),
-          );
-          firestoreTransaction.set(
-            duplicateAuditLogReference,
-            transactionAuditLog(
-              auditLogID: duplicateAuditLogReference.id,
-              operation: AuditLogOperation.transactionDeleted,
-              transaction: latestDuplicateTransaction,
-              imageObjectKey: null,
-              changedFieldNames: const [],
-            ),
-          );
           return inheritsDuplicateImage
               ? null
               : latestDuplicateTransaction.sourceImageObjectKey;
@@ -600,11 +467,6 @@ class MergeDuplicateTransactions {
           excludedTransactionID: duplicateTransaction.id,
         )) {
       await deleteStoredImage(imageObjectKey: orphanedImageObjectKey);
-      await _writeImageDeletionAuditLog(
-        firebaseFirestore: firebaseFirestore,
-        transaction: duplicateTransaction,
-        imageObjectKey: orphanedImageObjectKey,
-      );
     }
   }
 }
@@ -621,8 +483,7 @@ class KeepBothTransactions {
 
   const KeepBothTransactions({required this.firebaseFirestore});
 
-  /// 2 件を「別物として残す」と Firestore トランザクションで確定し、両明細の訂正の
-  /// 監査ログを同じトランザクションで残す。
+  /// 2 件を「別物として残す」と Firestore トランザクションで確定する。
   ///
   /// 相互の ID が既に記録されていれば書き込まず終了するため冪等。
   Future<void> call({
@@ -641,16 +502,6 @@ class KeepBothTransactions {
       userID: secondTransaction.userID,
       firebaseFirestore: firebaseFirestore,
     ).doc(secondTransaction.id);
-    // 監査ログの参照はトランザクションの外で 1 度だけ作る。競合による再試行で
-    // 同じ操作の履歴が複数件にならないようにするため。
-    final firstAuditLogReference = auditLogsReference(
-      userID: firstTransaction.userID,
-      firebaseFirestore: firebaseFirestore,
-    ).doc();
-    final secondAuditLogReference = auditLogsReference(
-      userID: secondTransaction.userID,
-      firebaseFirestore: firebaseFirestore,
-    ).doc();
 
     await firebaseFirestore.runTransaction((firestoreTransaction) async {
       final firstSnapshot = await firestoreTransaction.get(firstReference);
@@ -700,23 +551,6 @@ class KeepBothTransactions {
         confirmedSecondTransaction,
         SetOptions(merge: true),
       );
-      for (final (auditLogReference, confirmedTransaction) in [
-        (firstAuditLogReference, confirmedFirstTransaction),
-        (secondAuditLogReference, confirmedSecondTransaction),
-      ]) {
-        firestoreTransaction.set(
-          auditLogReference,
-          transactionAuditLog(
-            auditLogID: auditLogReference.id,
-            operation: AuditLogOperation.transactionUpdated,
-            transaction: confirmedTransaction,
-            imageObjectKey: null,
-            changedFieldNames: const [
-              TransactionFirestoreKeys.confirmedDistinctTransactionIDs,
-            ],
-          ),
-        );
-      }
     });
   }
 }

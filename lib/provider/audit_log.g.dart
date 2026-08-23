@@ -6,29 +6,31 @@ part of 'audit_log.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$auditLogsHash() => r'922820edcbc0494a07ab3f06d829f4a9b976a70e';
+String _$auditLogsHash() => r'7590d7ecd6b2b4e73aea751b7b0d5a8aa1644062';
 
-/// 操作履歴を新しい順に購読するストリーム。履歴画面の一覧に使う。
+/// 履歴画面に表示する操作履歴 (新しい順)。
 ///
-/// snapshot listener なので、履歴画面を開いたまま行った操作もそのまま追加される。
-/// サーバータイムスタンプが確定するまでの書き込み直後のログは
-/// [AuditLog.serverCreatedDateTime] が null で流れる (Firestore の並び順では末尾になり、
-/// 無料プランの範囲条件からも外れるため、確定するまで一覧に出ない)。
+/// 履歴の正は明細の変更を写した BigQuery の changelog で、件数の上限と無料プランの
+/// 期間制限は Worker が適用済みの結果を返す (lib/features/audit_log/audit_log_client.dart)。
+/// Firestore の snapshot listener で購読していた頃のリアルタイム反映は API 化で失われるため、
+/// 画面を開いたまま行った操作は [refresh] (履歴画面の pull-to-refresh) で取り直す。
 ///
-/// Copied from [auditLogs].
-@ProviderFor(auditLogs)
-final auditLogsProvider = AutoDisposeStreamProvider<List<AuditLog>>.internal(
-  auditLogs,
-  name: r'auditLogsProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$auditLogsHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+/// Copied from [AuditLogs].
+@ProviderFor(AuditLogs)
+final auditLogsProvider =
+    AutoDisposeAsyncNotifierProvider<
+      AuditLogs,
+      List<audit_log_client.AuditLog>
+    >.internal(
+      AuditLogs.new,
+      name: r'auditLogsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$auditLogsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef AuditLogsRef = AutoDisposeStreamProviderRef<List<AuditLog>>;
+typedef _$AuditLogs = AutoDisposeAsyncNotifier<List<audit_log_client.AuditLog>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
