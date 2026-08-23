@@ -7,7 +7,7 @@ part of 'transaction_search.dart';
 // **************************************************************************
 
 String _$searchedTransactionsHash() =>
-    r'9739505e2109b575f8cfe40ba9e37516a643c911';
+    r'21f5ff772e2f76dcc33baf7eaa39c256af878523';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -32,6 +32,9 @@ class _SystemHash {
 
 /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
 ///
+/// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
+/// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
+/// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
 /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
 ///
 /// Copied from [searchedTransactions].
@@ -40,12 +43,18 @@ const searchedTransactionsProvider = SearchedTransactionsFamily();
 
 /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
 ///
+/// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
+/// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
+/// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
 /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
 ///
 /// Copied from [searchedTransactions].
 class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
   /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
   ///
+  /// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
+  /// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
+  /// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
   /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
   ///
   /// Copied from [searchedTransactions].
@@ -53,6 +62,9 @@ class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
 
   /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
   ///
+  /// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
+  /// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
+  /// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
   /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
   ///
   /// Copied from [searchedTransactions].
@@ -102,6 +114,9 @@ class SearchedTransactionsFamily extends Family<AsyncValue<List<Transaction>>> {
 
 /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
 ///
+/// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
+/// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
+/// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
 /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
 ///
 /// Copied from [searchedTransactions].
@@ -109,6 +124,9 @@ class SearchedTransactionsProvider
     extends AutoDisposeStreamProvider<List<Transaction>> {
   /// 検索条件に一致する明細を取引日の新しい順で購読するストリーム。検索画面の一覧に使う。
   ///
+  /// 無料プランのユーザーには [oldestFreePlanHistoryDateTime] より古い明細を返さない
+  /// (検索が「全期間の履歴」の制限の迂回経路にならないようにする)。プレミアムになると
+  /// [isPremiumProvider] の更新でこのストリームが張り直され、制限なしの結果に切り替わる。
   /// 条件の意味と絞り込みの方法は [searchTransactions] を参照。
   ///
   /// Copied from [searchedTransactions].

@@ -6,13 +6,14 @@ part of 'audit_log.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$auditLogsHash() => r'b91daf082b5b341ca10148057990193cb4a5ab81';
+String _$auditLogsHash() => r'922820edcbc0494a07ab3f06d829f4a9b976a70e';
 
 /// 操作履歴を新しい順に購読するストリーム。履歴画面の一覧に使う。
 ///
 /// snapshot listener なので、履歴画面を開いたまま行った操作もそのまま追加される。
 /// サーバータイムスタンプが確定するまでの書き込み直後のログは
-/// [AuditLog.serverCreatedDateTime] が null で流れる (Firestore の並び順では末尾になる)。
+/// [AuditLog.serverCreatedDateTime] が null で流れる (Firestore の並び順では末尾になり、
+/// 無料プランの範囲条件からも外れるため、確定するまで一覧に出ない)。
 ///
 /// Copied from [auditLogs].
 @ProviderFor(auditLogs)

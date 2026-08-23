@@ -458,5 +458,27 @@
         "type": "int"
       }
     }
+  },
+  "transactionSearchFreePlanHistoryLimit": "The free plan searches only the last {monthCount} months",
+  "@transactionSearchFreePlanHistoryLimit": {
+    "description": "Notice shown on the search screen to free plan users, explaining that older transactions are out of range",
+    "placeholders": {
+      "monthCount": {
+        "type": "int"
+      }
+    }
+  },
+  "auditLogFreePlanHistoryLimit": "The free plan shows only the last {monthCount} months of operations",
+  "@auditLogFreePlanHistoryLimit": {
+    "description": "Notice shown on the operation history screen to free plan users, explaining that older operations are out of range",
+    "placeholders": {
+      "monthCount": {
+        "type": "int"
+      }
+    }
+  },
+  "freePlanHistoryLimitUpgrade": "See your full history with Premium",
+  "@freePlanHistoryLimitUpgrade": {
+    "description": "Tappable hint under the free plan history notice that opens the paywall"
   }
 }

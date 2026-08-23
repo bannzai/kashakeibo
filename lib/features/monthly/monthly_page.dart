@@ -414,6 +414,7 @@ class _MonthHeader extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (context) => TransactionSearchPage(
+                        openExternalUri: openExternalUri,
                         logAnalyticsEvent: logAnalyticsEvent,
                       ),
                     ),

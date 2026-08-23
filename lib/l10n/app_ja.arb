@@ -226,5 +226,22 @@
         "type": "int"
       }
     }
-  }
+  },
+  "transactionSearchFreePlanHistoryLimit": "無料プランでは直近{monthCount}ヶ月の明細だけを検索できます",
+  "@transactionSearchFreePlanHistoryLimit": {
+    "placeholders": {
+      "monthCount": {
+        "type": "int"
+      }
+    }
+  },
+  "auditLogFreePlanHistoryLimit": "無料プランでは直近{monthCount}ヶ月の操作履歴だけを表示します",
+  "@auditLogFreePlanHistoryLimit": {
+    "placeholders": {
+      "monthCount": {
+        "type": "int"
+      }
+    }
+  },
+  "freePlanHistoryLimitUpgrade": "プレミアムで全期間の履歴を見る"
 }

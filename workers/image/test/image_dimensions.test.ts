@@ -9,6 +9,7 @@ import {
   scannerResolutionMinimumPixelCount,
 } from "../src/image_dimensions";
 import {
+  buildHeicHeaderBytes,
   buildJpegHeaderBytes,
   buildPngHeaderBytes,
   onePixelJpegBytes,
@@ -77,6 +78,38 @@ describe("画像ヘッダーからの実寸・色の読み取り", () => {
         buildJpegHeaderBytes({ imageWidth: 2000, imageHeight: 1500, colorComponentCount: 1 }).buffer as ArrayBuffer,
       ),
     ).toEqual({ imageWidth: 2000, imageHeight: 1500, hasFullColorDepth: false });
+  });
+
+  it("HEIC の色の階調は pixi のチャンネル数と bit 数で判定し、pixi が無ければ判定しない", () => {
+    for (const [caseName, bitsPerChannel, expectedHasFullColorDepth] of [
+      ["3チャンネル 8bit", [8, 8, 8], true],
+      ["4チャンネル 8bit (アルファ付き)", [8, 8, 8, 8], true],
+      ["3チャンネル 10bit", [10, 10, 10], true],
+      ["1チャンネル (グレースケール)", [8], false],
+      ["3チャンネルだが 4bit のチャンネルを含む", [8, 4, 8], false],
+      ["pixi 無し", null, null],
+    ] as [string, number[] | null, boolean | null][]) {
+      expect(
+        readImageDimensions(
+          buildHeicHeaderBytes({ imageWidth: 3024, imageHeight: 4032, bitsPerChannel }).buffer as ArrayBuffer,
+        ),
+        caseName,
+      ).toEqual({ imageWidth: 3024, imageHeight: 4032, hasFullColorDepth: expectedHasFullColorDepth });
+    }
+  });
+
+  it("内容が足りない pixi を持つ HEIC は色の階調を判定しない", () => {
+    expect(
+      readImageDimensions(
+        // チャンネル数 3 と宣言しながら bit 数を 1 つしか持たない pixi
+        buildHeicHeaderBytes({
+          imageWidth: 3024,
+          imageHeight: 4032,
+          bitsPerChannel: [8],
+          declaredChannelCount: 3,
+        }).buffer as ArrayBuffer,
+      ),
+    ).toEqual({ imageWidth: 3024, imageHeight: 4032, hasFullColorDepth: null });
   });
 
   it("未知の形式・壊れたバイト列・実寸 0 のヘッダーでは null を返し、例外を投げない", () => {

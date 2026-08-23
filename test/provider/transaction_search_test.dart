@@ -60,6 +60,9 @@ Future<void> saveSearchedTransactions({
 }
 
 /// 検索を 1 回実行し、一致した明細の ID を返す。
+///
+/// oldestSearchableTransactionDate の既定値 null は、制限のないプレミアムの検索を表す
+/// (無料プランの下限を検証するテストだけが値を渡す)。
 Future<List<String>> searchTransactionIDs({
   required FakeFirebaseFirestore firebaseFirestore,
   DateTime? transactionDateFrom,
@@ -67,6 +70,7 @@ Future<List<String>> searchTransactionIDs({
   int? minimumAmount,
   int? maximumAmount,
   String? titleKeyword,
+  DateTime? oldestSearchableTransactionDate,
 }) async => (await searchTransactions(
   firebaseFirestore: firebaseFirestore,
   userID: 'user-id',
@@ -75,6 +79,7 @@ Future<List<String>> searchTransactionIDs({
   minimumAmount: minimumAmount,
   maximumAmount: maximumAmount,
   titleKeyword: titleKeyword,
+  oldestSearchableTransactionDate: oldestSearchableTransactionDate,
 ).first).map((transaction) => transaction.id).toList();
 
 void main() {
@@ -171,6 +176,43 @@ void main() {
           titleKeyword: 'ドラッグストア',
         ),
         isEmpty,
+      );
+    });
+
+    test('無料プランの下限日時より古い明細は結果に含まれない', () async {
+      final firebaseFirestore = FakeFirebaseFirestore();
+      await saveSearchedTransactions(firebaseFirestore: firebaseFirestore);
+
+      expect(
+        await searchTransactionIDs(
+          firebaseFirestore: firebaseFirestore,
+          minimumAmount: 100,
+          oldestSearchableTransactionDate: DateTime(2026, 9, 1),
+        ),
+        ['electronics'],
+      );
+    });
+
+    test('ユーザー指定の開始日が無料プランの下限日時より古い場合は下限を優先する', () async {
+      final firebaseFirestore = FakeFirebaseFirestore();
+      await saveSearchedTransactions(firebaseFirestore: firebaseFirestore);
+
+      expect(
+        await searchTransactionIDs(
+          firebaseFirestore: firebaseFirestore,
+          transactionDateFrom: DateTime(2026, 1, 1),
+          oldestSearchableTransactionDate: DateTime(2026, 8, 15),
+        ),
+        ['electronics', 'convenience-store'],
+      );
+      // 下限より新しい開始日の指定は、そのままユーザーの指定が効く。
+      expect(
+        await searchTransactionIDs(
+          firebaseFirestore: firebaseFirestore,
+          transactionDateFrom: DateTime(2026, 9, 1),
+          oldestSearchableTransactionDate: DateTime(2026, 8, 15),
+        ),
+        ['electronics'],
       );
     });
 

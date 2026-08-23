@@ -3,22 +3,40 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:kashakeibo/entity/audit_log.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
+import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
+import 'package:kashakeibo/features/paywall/free_plan_history_notice.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/audit_log_labels.dart';
 import 'package:kashakeibo/provider/audit_log.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
 
 /// 操作履歴画面 (issue #73 の訂正削除履歴)。
 ///
 /// 明細の追加・訂正・削除と元画像の削除の履歴を、記録されたサーバー時刻の新しい順で表示する。
 /// 履歴は読み取り専用で、ここから明細を復元する導線は持たない。
+/// 無料プランでは表示できる期間が制限され (features/paywall/free_plan_history_limit.dart)、
+/// その旨の注記からペイウォールへ誘導する。
 class AuditLogPage extends ConsumerWidget {
-  const AuditLogPage({super.key});
+  /// 利用規約・プライバシーポリシーを開く処理 (ペイウォールへ渡す)。
+  final OpenExternalUri openExternalUri;
+
+  /// Analytics イベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
+  const AuditLogPage({
+    required this.openExternalUri,
+    required this.logAnalyticsEvent,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auditLogsAsync = ref.watch(auditLogsProvider);
+    final isPremium = ref.watch(isPremiumProvider);
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
 
@@ -51,6 +69,19 @@ class AuditLogPage extends ConsumerWidget {
                   color: appColors.textMuted,
                 ),
               ),
+              // 無料プランで表示できるのは直近 freePlanHistoryMonthCount ヶ月だけのため、
+              // 一覧が古い履歴を含まない理由を先頭で伝える。
+              if (!isPremium) ...[
+                const SizedBox(height: 14),
+                FreePlanHistoryNotice(
+                  message: l10n.auditLogFreePlanHistoryLimit(
+                    freePlanHistoryMonthCount,
+                  ),
+                  paywallTrigger: 'audit_log_history_limit',
+                  openExternalUri: openExternalUri,
+                  logAnalyticsEvent: logAnalyticsEvent,
+                ),
+              ],
               const SizedBox(height: 14),
               if (auditLogs.isEmpty)
                 Padding(

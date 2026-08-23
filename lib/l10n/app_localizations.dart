@@ -1111,6 +1111,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 transaction} other{{count} transactions}}'**
   String transactionSearchResultCount(int count);
+
+  /// Notice shown on the search screen to free plan users, explaining that older transactions are out of range
+  ///
+  /// In en, this message translates to:
+  /// **'The free plan searches only the last {monthCount} months'**
+  String transactionSearchFreePlanHistoryLimit(int monthCount);
+
+  /// Notice shown on the operation history screen to free plan users, explaining that older operations are out of range
+  ///
+  /// In en, this message translates to:
+  /// **'The free plan shows only the last {monthCount} months of operations'**
+  String auditLogFreePlanHistoryLimit(int monthCount);
+
+  /// Tappable hint under the free plan history notice that opens the paywall
+  ///
+  /// In en, this message translates to:
+  /// **'See your full history with Premium'**
+  String get freePlanHistoryLimitUpgrade;
 }
 
 class _AppLocalizationsDelegate

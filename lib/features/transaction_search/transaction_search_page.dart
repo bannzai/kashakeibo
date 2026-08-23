@@ -6,8 +6,12 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
+import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
+import 'package:kashakeibo/features/paywall/free_plan_history_notice.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/features/transaction_detail/transaction_detail_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/provider/transaction_search.dart';
 import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
@@ -38,11 +42,20 @@ const _SearchCondition _emptySearchCondition = (
 /// 結果を月次一覧と同じ行デザイン ([TransactionRow]) で取引日の新しい順に表示する。
 /// 検索は「検索する」を押した時点の条件で実行し、入力のたびには実行しない
 /// (入力中に Firestore のクエリを張り替えないため)。
+/// 無料プランでは検索できる期間が制限され (features/paywall/free_plan_history_limit.dart)、
+/// その旨の注記からペイウォールへ誘導する。
 class TransactionSearchPage extends HookConsumerWidget {
+  /// 利用規約・プライバシーポリシーを開く処理 (ペイウォールへ渡す)。
+  final OpenExternalUri openExternalUri;
+
   /// Analytics イベントを記録する処理。
   final LogAnalyticsEvent logAnalyticsEvent;
 
-  const TransactionSearchPage({required this.logAnalyticsEvent, super.key});
+  const TransactionSearchPage({
+    required this.openExternalUri,
+    required this.logAnalyticsEvent,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,6 +76,7 @@ class TransactionSearchPage extends HookConsumerWidget {
         titleKeyword: searchCondition.value.titleKeyword,
       ),
     );
+    final isPremium = ref.watch(isPremiumProvider);
     final l10n = AppLocalizations.of(context);
     final appColors = context.appColors;
 
@@ -237,6 +251,19 @@ class TransactionSearchPage extends HookConsumerWidget {
                       ),
                     ],
                   ),
+                  // 無料プランで検索できるのは直近 freePlanHistoryMonthCount ヶ月だけのため、
+                  // 結果が古い明細を含まない理由をフォームの直後で伝える。
+                  if (!isPremium) ...[
+                    const SizedBox(height: 14),
+                    FreePlanHistoryNotice(
+                      message: l10n.transactionSearchFreePlanHistoryLimit(
+                        freePlanHistoryMonthCount,
+                      ),
+                      paywallTrigger: 'transaction_search_history_limit',
+                      openExternalUri: openExternalUri,
+                      logAnalyticsEvent: logAnalyticsEvent,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -263,49 +290,54 @@ class TransactionSearchPage extends HookConsumerWidget {
                       message: l10n.transactionSearchNoResults,
                     );
                   }
-                  return ListView(
+                  // 件数の上限が無い検索結果のため、画面付近の行だけを組み立てる。
+                  // 先頭 (index 0) は件数表示で、それ以降が明細の行。
+                  return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(
                       AppSpacing.xl,
                       0,
                       AppSpacing.xl,
                       24,
                     ),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: Text(
-                          l10n.transactionSearchResultCount(
-                            transactions.length,
+                    itemCount: transactions.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: Text(
+                            l10n.transactionSearchResultCount(
+                              transactions.length,
+                            ),
+                            style: AppTextStyles.caption.copyWith(
+                              color: appColors.textMuted,
+                            ),
                           ),
-                          style: AppTextStyles.caption.copyWith(
-                            color: appColors.textMuted,
-                          ),
-                        ),
-                      ),
-                      for (final transaction in transactions)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: TransactionRow(
-                            transaction: transaction,
-                            onTap: () {
-                              unawaited(
-                                logAnalyticsEvent(
-                                  name: 'transaction_detail_open',
-                                  parameters: {'transactionID': transaction.id},
+                        );
+                      }
+                      final transaction = transactions[index - 1];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: TransactionRow(
+                          transaction: transaction,
+                          onTap: () {
+                            unawaited(
+                              logAnalyticsEvent(
+                                name: 'transaction_detail_open',
+                                parameters: {'transactionID': transaction.id},
+                              ),
+                            );
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (context) => TransactionDetailPage(
+                                  transactionID: transaction.id,
+                                  logAnalyticsEvent: logAnalyticsEvent,
                                 ),
-                              );
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (context) => TransactionDetailPage(
-                                    transactionID: transaction.id,
-                                    logAnalyticsEvent: logAnalyticsEvent,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
                         ),
-                    ],
+                      );
+                    },
                   );
                 },
               ),

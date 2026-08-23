@@ -198,31 +198,47 @@ function readWebpDimensions(imageBytesView: DataView): ImageDimensions | null {
 }
 
 /**
- * HEIC (ISOBMFF) の ispe ボックスから実寸を読む。
- * HEIC の画素データは HEVC で、iOS が撮影・保存に使う Main / Main Still Picture プロファイルは
- * 8bit 以上のカラーのため、色の階調は満たす扱いにする。
+ * HEIC (ISOBMFF) の ispe ボックスから実寸を、pixi ボックスから色の階調を読む。
+ * pixi を持たない・pixi が壊れている HEIC は色の階調を判定できないため null (unknown) にする。
  */
 function readHeicDimensions(imageBytesView: DataView): ImageDimensions | null {
-  const largestImageSpatialExtent = findLargestImageSpatialExtent(imageBytesView, 0, imageBytesView.byteLength);
-  if (largestImageSpatialExtent === null) {
+  const heicImageProperties = findHeicImageProperties(imageBytesView, 0, imageBytesView.byteLength);
+  if (heicImageProperties.largestImageSpatialExtent === null) {
     return null;
   }
-  return { ...largestImageSpatialExtent, hasFullColorDepth: true };
+  return {
+    ...heicImageProperties.largestImageSpatialExtent,
+    hasFullColorDepth: heicImageProperties.hasFullColorDepth,
+  };
 }
 
-// ispe を内側に持つ ISOBMFF のコンテナボックス。meta は FullBox のため、子ボックスの前に version + flags の 4 バイトが入る
+/** HEIC のプロパティボックスから読み取った主画像の実寸と色の階調。 */
+interface HeicImageProperties {
+  /** 見つかった ispe のうち画素数が最大のもの。ispe が 1 つも無ければ null。 */
+  largestImageSpatialExtent: { imageWidth: number; imageHeight: number } | null;
+  /** pixi から判定した RGB 256階調以上か。pixi が無い・壊れている場合は null。 */
+  hasFullColorDepth: boolean | null;
+}
+
+// ispe・pixi を内側に持つ ISOBMFF のコンテナボックス。meta は FullBox のため、子ボックスの前に version + flags の 4 バイトが入る
 const isobmffContainerBoxTypes = ["meta", "iprp", "ipco"];
 
 /**
- * 指定範囲の ISOBMFF ボックスを辿り、見つかった ispe (画像の空間サイズ) のうち画素数が最大のものを返す。
- * HEIC はサムネイル等の副画像も ispe を持つため、最大のものを主画像とみなす。
+ * 指定範囲の ISOBMFF ボックスを辿り、主画像の ispe (画像の空間サイズ) と pixi (画素の構成) を集める。
+ *
+ * ispe は HEIC がサムネイル等の副画像ぶんも持つため、画素数が最大のものを主画像とみなす。
+ * pixi はどの画像のプロパティかがボックス単位では対応付けられないため、最初に判定できたものを採用する
+ * (iOS の HEIC は主画像・サムネイルとも同じチャンネル構成で保存される)。
  */
-function findLargestImageSpatialExtent(
+function findHeicImageProperties(
   imageBytesView: DataView,
   rangeStartOffset: number,
   rangeEndOffset: number,
-): { imageWidth: number; imageHeight: number } | null {
-  let largestImageSpatialExtent: { imageWidth: number; imageHeight: number } | null = null;
+): HeicImageProperties {
+  const heicImageProperties: HeicImageProperties = {
+    largestImageSpatialExtent: null,
+    hasFullColorDepth: null,
+  };
   for (let boxOffset = rangeStartOffset; boxOffset + 8 <= rangeEndOffset; ) {
     // ボックス長 1 は 64bit 長 (ヘッダー直後の largesize)、0 は範囲の末尾までを表す
     const boxEndOffset =
@@ -234,28 +250,68 @@ function findLargestImageSpatialExtent(
             : imageBytesView.getUint32(boxOffset));
     if (boxEndOffset <= boxOffset || boxEndOffset > rangeEndOffset) {
       // 長さが壊れている場合は、それ以降を読まずにここまでの結果を返す
-      return largestImageSpatialExtent;
+      return heicImageProperties;
     }
     const boxContentOffset = boxOffset + (imageBytesView.getUint32(boxOffset) === 1 ? 16 : 8);
-    if (readAsciiText(imageBytesView, boxOffset + 4, 4) === "ispe") {
+    const boxType = readAsciiText(imageBytesView, boxOffset + 4, 4);
+    if (boxType === "ispe") {
       // ispe は FullBox のため version + flags の 4 バイトを飛ばした先に幅・高さが並ぶ
-      largestImageSpatialExtent = largerImageSpatialExtent(largestImageSpatialExtent, {
-        imageWidth: imageBytesView.getUint32(boxContentOffset + 4),
-        imageHeight: imageBytesView.getUint32(boxContentOffset + 8),
-      });
-    } else if (isobmffContainerBoxTypes.includes(readAsciiText(imageBytesView, boxOffset + 4, 4))) {
-      largestImageSpatialExtent = largerImageSpatialExtent(
-        largestImageSpatialExtent,
-        findLargestImageSpatialExtent(
-          imageBytesView,
-          readAsciiText(imageBytesView, boxOffset + 4, 4) === "meta" ? boxContentOffset + 4 : boxContentOffset,
-          boxEndOffset,
-        ),
+      heicImageProperties.largestImageSpatialExtent = largerImageSpatialExtent(
+        heicImageProperties.largestImageSpatialExtent,
+        {
+          imageWidth: imageBytesView.getUint32(boxContentOffset + 4),
+          imageHeight: imageBytesView.getUint32(boxContentOffset + 8),
+        },
       );
+    } else if (boxType === "pixi") {
+      heicImageProperties.hasFullColorDepth =
+        heicImageProperties.hasFullColorDepth ??
+        readPixelInformationFullColorDepth(imageBytesView, boxContentOffset, boxEndOffset);
+    } else if (isobmffContainerBoxTypes.includes(boxType)) {
+      const nestedHeicImageProperties = findHeicImageProperties(
+        imageBytesView,
+        boxType === "meta" ? boxContentOffset + 4 : boxContentOffset,
+        boxEndOffset,
+      );
+      heicImageProperties.largestImageSpatialExtent = largerImageSpatialExtent(
+        heicImageProperties.largestImageSpatialExtent,
+        nestedHeicImageProperties.largestImageSpatialExtent,
+      );
+      heicImageProperties.hasFullColorDepth =
+        heicImageProperties.hasFullColorDepth ?? nestedHeicImageProperties.hasFullColorDepth;
     }
     boxOffset = boxEndOffset;
   }
-  return largestImageSpatialExtent;
+  return heicImageProperties;
+}
+
+/**
+ * pixi (FullBox) の内容から RGB 256階調以上かを判定する。
+ * 途中で切れている pixi は判定できないため null を返す。
+ */
+function readPixelInformationFullColorDepth(
+  imageBytesView: DataView,
+  boxContentOffset: number,
+  boxEndOffset: number,
+): boolean | null {
+  // FullBox の version + flags の 4 バイトの後ろにチャンネル数、その後ろにチャンネルごとの bit 数が 1 バイトずつ並ぶ
+  if (boxContentOffset + 5 > boxEndOffset) {
+    return null;
+  }
+  const channelCount = imageBytesView.getUint8(boxContentOffset + 4);
+  if (boxContentOffset + 5 + channelCount > boxEndOffset) {
+    return null;
+  }
+  // チャンネルが 3 未満はモノクロ等で、bit 深度が足りていても RGB のカラーにはならない
+  if (channelCount < 3) {
+    return false;
+  }
+  for (let channelIndex = 0; channelIndex < channelCount; channelIndex += 1) {
+    if (imageBytesView.getUint8(boxContentOffset + 5 + channelIndex) < 8) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /** 2つの ispe の実寸のうち画素数が大きい方 (null は候補なし)。 */

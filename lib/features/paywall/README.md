@@ -33,14 +33,14 @@
 
 ## フロー
 
-1. 導線 (残量チップ / 記録するシートで残量 0 の「カメラで撮影」/ 設定のプラン行 / 撮影フローで解析が 402 / 無料範囲より古い月への月送り) からペイウォールを開く。`showPaywall` の `trigger` で導線を Analytics に記録する
+1. 導線 (残量チップ / 記録するシートで残量 0 の「カメラで撮影」/ 設定のプラン行 / 撮影フローで解析が 402 / 無料範囲より古い月への月送り / 検索・操作履歴の履歴制限の注記) からペイウォールを開く。`showPaywall` の `trigger` で導線を Analytics に記録する
 2. 料金カードを選び「プレミアムを始める」でストアの購入シートを開く (`purchasePremiumPackageProvider`)。キャンセルは何も表示せず開いたまま、失敗はエラー文をそのまま表示する
 3. 購入・復元後にプレミアムの entitlement が有効なら完了メッセージを出して true で閉じる。撮影フローは true を受けて同じ画像で解析をやり直す
 4. 「購入の復元」はストアの購入履歴から entitlement を復元する (`restorePurchasesProvider`)。復元できる購入が無ければその旨を表示する
 
 ## データ形式
 
-- 無料プランの履歴範囲: 当月を含む直近 3 ヶ月 (`free_plan_history_limit.dart`)。それより古い月への月送り (features/monthly) でペイウォールを開く。履歴は LLM 原価が発生しない経路のためサーバー強制はせず UI ガードのみ
+- 無料プランの履歴範囲: 当月を含む直近 3 ヶ月 (`free_plan_history_limit.dart`)。それより古い月への月送り (features/monthly) でペイウォールを開く。過去へ届く他の経路 (features/transaction_search の検索・features/audit_log の操作履歴) にも同じ下限を適用し、`FreePlanHistoryNotice` (`free_plan_history_notice.dart`) の注記からペイウォールへ誘導する。履歴は LLM 原価が発生しない経路のためサーバー強制はせず UI ガードのみ
 - プレミアム判定: `CustomerInfo.entitlements.active` に `premium` (`lib/utils/purchase/purchase.dart` の `premiumEntitlementIdentifier`) が含まれるか (`lib/provider/purchase.dart` の `isPremiumProvider`)。Firestore には持たない
 - 商品: App Store / Google Play / RevenueCat に同じ識別子で登録する `kashakeibo_premium_monthly_480yen` (月額 ¥480) / `kashakeibo_premium_annual_3800yen` (年額 ¥3,800)。RevenueCat の Current Offering の monthly / annual パッケージとして取得する
 - app user ID: Firebase uid。サインイン完了後に `Purchases.logIn(uid)` で揃え (`features/auth` の `SignInResolver`)、Worker が同じ uid で RevenueCat の entitlement を検証する (`workers/image/src/entitlement.ts`)

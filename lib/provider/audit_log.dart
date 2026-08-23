@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/audit_log.dart';
 import 'package:kashakeibo/entity/transaction.dart';
+import 'package:kashakeibo/features/paywall/free_plan_history_limit.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
+import 'package:kashakeibo/provider/purchase.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'audit_log.g.dart';
@@ -58,20 +60,52 @@ AuditLog transactionAuditLog({
   changedFieldNames: changedFieldNames,
 );
 
+/// 操作履歴を新しい順に読み取るクエリ。
+///
+/// [oldestServerCreatedDateTime] は無料プランで表示できる最古の記録時刻
+/// (プレミアムは制限なしのため null)。非 null の場合はそれより古い履歴を読み取らず、
+/// 操作履歴が「全期間の履歴」の制限の迂回経路にならないようにする
+/// (制限の基準と UI ガードだけで守る方針は features/paywall/free_plan_history_limit.dart を参照)。
+/// 範囲条件と並び順が同じフィールドのため複合インデックスは要らない。
+Query<AuditLog> auditLogsQuery({
+  required String userID,
+  required DateTime? oldestServerCreatedDateTime,
+  FirebaseFirestore? firebaseFirestore,
+}) {
+  Query<AuditLog> query = auditLogsReference(
+    userID: userID,
+    firebaseFirestore: firebaseFirestore,
+  );
+  if (oldestServerCreatedDateTime != null) {
+    query = query.where(
+      AuditLogFirestoreKeys.serverCreatedDateTime,
+      isGreaterThanOrEqualTo: Timestamp.fromDate(oldestServerCreatedDateTime),
+    );
+  }
+  return query
+      .orderBy(AuditLogFirestoreKeys.serverCreatedDateTime, descending: true)
+      .limit(auditLogDisplayLimit);
+}
+
 /// 操作履歴を新しい順に購読するストリーム。履歴画面の一覧に使う。
 ///
 /// snapshot listener なので、履歴画面を開いたまま行った操作もそのまま追加される。
 /// サーバータイムスタンプが確定するまでの書き込み直後のログは
-/// [AuditLog.serverCreatedDateTime] が null で流れる (Firestore の並び順では末尾になる)。
+/// [AuditLog.serverCreatedDateTime] が null で流れる (Firestore の並び順では末尾になり、
+/// 無料プランの範囲条件からも外れるため、確定するまで一覧に出ない)。
 @riverpod
 Stream<List<AuditLog>> auditLogs(Ref ref) {
   final userID = ref.watch(currentUserIDProvider);
+  final isPremium = ref.watch(isPremiumProvider);
   if (userID == null) {
     return Stream.value(const []);
   }
-  return auditLogsReference(userID: userID)
-      .orderBy(AuditLogFirestoreKeys.serverCreatedDateTime, descending: true)
-      .limit(auditLogDisplayLimit)
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  return auditLogsQuery(
+    userID: userID,
+    oldestServerCreatedDateTime: isPremium
+        ? null
+        : oldestFreePlanHistoryDateTime(now: DateTime.now()),
+  ).snapshots().map(
+    (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
+  );
 }

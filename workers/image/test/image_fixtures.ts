@@ -63,6 +63,62 @@ export function buildPngHeaderBytes({
   return pngHeaderBytes;
 }
 
+/** ISOBMFF (HEIC) のボックス 1 つ分のバイト列を組み立てる。 */
+function buildIsobmffBoxBytes(boxType: string, boxContentBytes: number[]): number[] {
+  return [
+    ...buildUint32Bytes(8 + boxContentBytes.length),
+    ...Array.from(boxType, (boxTypeCharacter) => boxTypeCharacter.charCodeAt(0)),
+    ...boxContentBytes,
+  ];
+}
+
+/** ISOBMFF・PNG が使うビッグエンディアンの 32bit 整数のバイト列。 */
+function buildUint32Bytes(value: number): number[] {
+  return [(value >> 24) & 0xff, (value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff];
+}
+
+/**
+ * 指定した実寸・画素の構成で HEIC の ftyp と meta > iprp > ipco > ispe (+ pixi) を組み立てる (画素データは持たない)。
+ * bitsPerChannel に null を渡すと pixi ボックス自体を持たない HEIC になる。
+ * declaredChannelCount に bitsPerChannel より多い数を渡すと、内容が足りない (壊れた) pixi になる。
+ */
+export function buildHeicHeaderBytes({
+  imageWidth,
+  imageHeight,
+  bitsPerChannel,
+  // pixi が宣言するチャンネル数は、既定では実際に並べる bit 数の個数と一致させる (正常な pixi)
+  declaredChannelCount = bitsPerChannel?.length ?? 0,
+}: {
+  imageWidth: number;
+  imageHeight: number;
+  bitsPerChannel: number[] | null;
+  declaredChannelCount?: number;
+}): Uint8Array {
+  return new Uint8Array([
+    ...buildIsobmffBoxBytes("ftyp", [
+      ...Array.from("heic", (brandCharacter) => brandCharacter.charCodeAt(0)),
+      ...buildUint32Bytes(0),
+      ...Array.from("mif1", (brandCharacter) => brandCharacter.charCodeAt(0)),
+    ]),
+    // meta は FullBox のため、子ボックスの前に version + flags の 4 バイトが入る
+    ...buildIsobmffBoxBytes("meta", [
+      ...buildUint32Bytes(0),
+      ...buildIsobmffBoxBytes("iprp", [
+        ...buildIsobmffBoxBytes("ipco", [
+          ...buildIsobmffBoxBytes("ispe", [
+            ...buildUint32Bytes(0),
+            ...buildUint32Bytes(imageWidth),
+            ...buildUint32Bytes(imageHeight),
+          ]),
+          ...(bitsPerChannel === null
+            ? []
+            : buildIsobmffBoxBytes("pixi", [...buildUint32Bytes(0), declaredChannelCount, ...bitsPerChannel])),
+        ]),
+      ]),
+    ]),
+  ]);
+}
+
 /**
  * 指定した実寸・コンポーネント数で JPEG の SOI・ダミーの APP0・SOF セグメントを組み立てる (画素データは持たない)。
  * startOfFrameMarkerCode で baseline (0xC0) と progressive (0xC2) を切り替える。

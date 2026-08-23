@@ -255,7 +255,10 @@ class SettingsPage extends HookConsumerWidget {
                         unawaited(logAnalyticsEvent(name: 'audit_log_open'));
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (context) => const AuditLogPage(),
+                            builder: (context) => AuditLogPage(
+                              openExternalUri: openExternalUri,
+                              logAnalyticsEvent: logAnalyticsEvent,
+                            ),
                           ),
                         );
                       },

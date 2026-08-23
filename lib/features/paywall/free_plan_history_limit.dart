@@ -2,6 +2,8 @@
 ///
 /// 表示できるのは表示時点の月を含む直近 [freePlanHistoryMonthCount] ヶ月。
 /// それより古い月へ月送りしようとした無料プランのユーザーにはペイウォールを表示する (features/monthly)。
+/// 月送り以外に過去へ届く経路 (features/transaction_search の検索・features/audit_log の操作履歴) にも
+/// [oldestFreePlanHistoryDateTime] で同じ下限を適用し、制限の迂回経路を作らない。
 /// 履歴は LLM 原価が発生しない経路のためサーバー側では強制せず、UI ガードだけで守る
 /// (`.claude/rules/firestore-rules-simplicity.md` のプレミアム機能制限の方針)。
 library;
@@ -12,15 +14,19 @@ library;
 /// それより長期の記録価値をプレミアム特典「全期間の履歴」に置く値として、当月 + 過去 2 ヶ月にしている。
 const freePlanHistoryMonthCount = 3;
 
+/// 無料プランで振り返れる最古の日時 (今日 [now] の月を含む直近 [freePlanHistoryMonthCount] ヶ月の先頭)。
+///
+/// 月単位で判定する月次画面 ([isMonthWithinFreePlanHistory]) と同じ境界を、日時で絞り込む画面
+/// (検索・操作履歴) が使えるように日時で表したもの。
+DateTime oldestFreePlanHistoryDateTime({required DateTime now}) =>
+    DateTime(now.year, now.month - (freePlanHistoryMonthCount - 1));
+
 /// [month] が無料プランで表示できる範囲 (今日 [now] の月を含む直近 [freePlanHistoryMonthCount] ヶ月) 内かどうか。
 /// 未来の月は制限しない (先の月へ送ってもプレミアム特典を先取りしない)。
 bool isMonthWithinFreePlanHistory({
   required DateTime month,
   required DateTime now,
-}) {
-  final oldestFreeMonth = DateTime(
-    now.year,
-    now.month - (freePlanHistoryMonthCount - 1),
-  );
-  return !DateTime(month.year, month.month).isBefore(oldestFreeMonth);
-}
+}) => !DateTime(
+  month.year,
+  month.month,
+).isBefore(oldestFreePlanHistoryDateTime(now: now));

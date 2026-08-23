@@ -537,4 +537,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String transactionSearchResultCount(int count) {
     return '$count件';
   }
+
+  @override
+  String transactionSearchFreePlanHistoryLimit(int monthCount) {
+    return '無料プランでは直近$monthCountヶ月の明細だけを検索できます';
+  }
+
+  @override
+  String auditLogFreePlanHistoryLimit(int monthCount) {
+    return '無料プランでは直近$monthCountヶ月の操作履歴だけを表示します';
+  }
+
+  @override
+  String get freePlanHistoryLimitUpgrade => 'プレミアムで全期間の履歴を見る';
 }

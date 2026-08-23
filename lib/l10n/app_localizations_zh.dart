@@ -549,6 +549,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String transactionSearchResultCount(int count) {
     return '$count 笔';
   }
+
+  @override
+  String transactionSearchFreePlanHistoryLimit(int monthCount) {
+    return 'The free plan searches only the last $monthCount months';
+  }
+
+  @override
+  String auditLogFreePlanHistoryLimit(int monthCount) {
+    return 'The free plan shows only the last $monthCount months of operations';
+  }
+
+  @override
+  String get freePlanHistoryLimitUpgrade =>
+      'See your full history with Premium';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
