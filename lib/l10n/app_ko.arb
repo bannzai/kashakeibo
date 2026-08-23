@@ -168,5 +168,6 @@
   "transactionSearchAmountRangeInvalid": "최댓값은 최솟값 이상으로 설정해야 합니다.",
   "transactionSearchNoResults": "조건에 일치하는 거래가 없습니다",
   "transactionSearchResultCount": "{count}건",
-  "transactionSearchFreePlanHistoryLimit": "무료 플랜에서는 최근 {monthCount}개월만 검색합니다"
+  "transactionSearchFreePlanHistoryLimit": "무료 플랜에서는 최근 {monthCount}개월만 검색합니다",
+  "auditLogFreePlanHistoryLimit": "무료 플랜에서는 최근 {monthCount}개월의 작업 기록만 표시됩니다"
 }

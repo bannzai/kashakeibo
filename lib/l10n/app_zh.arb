@@ -168,5 +168,6 @@
   "transactionSearchAmountRangeInvalid": "最大值应设置为最小值或更大",
   "transactionSearchNoResults": "没有符合条件的交易",
   "transactionSearchResultCount": "{count} 笔",
-  "transactionSearchFreePlanHistoryLimit": "免费版仅搜索最近 {monthCount} 个月的记录"
+  "transactionSearchFreePlanHistoryLimit": "免费版仅搜索最近 {monthCount} 个月的记录",
+  "auditLogFreePlanHistoryLimit": "免费方案仅显示最近 {monthCount} 个月的操作记录"
 }
