@@ -149,6 +149,18 @@ describe("画像ヘッダーからの実寸・色の読み取り", () => {
     }
   });
 
+  it("VP8X の WebP は実画像チャンクを持つ時だけ実寸を読む", () => {
+    // 実ファイル (VP8X + ALPH + VP8) から読めることは「実ファイルの…から実寸を読む」で確認済み。
+    // ここでは VP8X が宣言するキャンバスの寸法だけがあり、画素を持つチャンクが無いケースを見る
+    const vp8xHeaderOnlyWebpBytes = onePixelVp8xWebpBytes.slice(0, 30);
+    // 切り詰めた長さに合わせて RIFF の宣言ファイル長を書き直し、実画像チャンクの不在だけで落ちることを確かめる
+    new DataView(vp8xHeaderOnlyWebpBytes.buffer).setUint32(4, vp8xHeaderOnlyWebpBytes.byteLength - 8, true);
+    expect(readImageDimensions(vp8xHeaderOnlyWebpBytes.buffer as ArrayBuffer)).toBeNull();
+
+    // RIFF が宣言するファイル長に届かない (途中で切れた) ファイル
+    expect(readImageDimensions(onePixelVp8xWebpBytes.slice(0, 40).buffer as ArrayBuffer)).toBeNull();
+  });
+
   it("未知の形式・壊れたバイト列・実寸 0 のヘッダーでは null を返し、例外を投げない", () => {
     for (const [caseName, imageBytes] of [
       ["空", new Uint8Array(0)],

@@ -284,7 +284,7 @@ class FirebaseDeleteAccount implements DeleteAccount {
     required this.deleteAuditLogsForAccount,
   });
 
-  /// R2 画像、操作履歴、Firestore データ、Firebase Auth を削除する。
+  /// 操作履歴、R2 画像、Firestore データ、Firebase Auth を削除する。
   ///
   /// 各削除は存在しないデータに対しても成功するため、途中失敗後の再実行を含めて
   /// 冪等。リンク済みアカウントは先に再認証し、データ削除後に recent-login
@@ -300,10 +300,15 @@ class FirebaseDeleteAccount implements DeleteAccount {
       user: currentUser,
     );
 
-    await deleteAllImagesForAccount(user: currentUser);
     // 操作履歴の実体は明細の変更を写した BigQuery の changelog のため、明細を消す前に
     // パージを登録する。登録後に発生する明細の削除イベントも Worker 側の遅延パージが拾う。
+    //
+    // パージ依頼は Worker に予約を登録するだけの非破壊・冪等な操作なので、復元不能な削除より先に行う。
+    // 画像削除を先にすると、パージ依頼が失敗した時に全レシート画像だけが失われたアカウントが残る。
+    // この順なら、後続が失敗した時に失われ得るのは稼働中アカウントの操作履歴 (Worker が数時間後にパージする)
+    // だけで済む。
     await deleteAuditLogsForAccount(user: currentUser);
+    await deleteAllImagesForAccount(user: currentUser);
     // サブコレクションは親ドキュメントの削除では消えないため、users/{uid} を消す前に
     // 明細を個別に削除する。
     await _deleteCollectionDocuments(

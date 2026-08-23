@@ -6,7 +6,11 @@
 import { env, fetchMock } from "cloudflare:test";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { VerifyFirebaseAppCheckToken } from "../src/app_check";
-import { auditLogPurgeMinimumWaitMilliseconds, freePlanAuditLogHistoryMonthCount } from "../src/audit_log";
+import {
+  auditLogPurgeMinimumWaitMilliseconds,
+  auditLogPurgeRequestRetentionMilliseconds,
+  freePlanAuditLogHistoryMonthCount,
+} from "../src/audit_log";
 import type { ImageWorkerEnv, TokenVerifiers, VerifyFirebaseIdToken } from "../src/handler";
 import {
   auditLogsPath,
@@ -446,7 +450,7 @@ describe("パージ予約 (DELETE /audit-logs)", () => {
 describe("予約済みパージの実行 (scheduled)", () => {
   const scheduledController = { scheduledTime: Date.now(), cron: "0 * * * *", noRetry: () => {} } as ScheduledController;
 
-  /** 待ち時間を満たす (登録から 1 時間以上経過した) パージ予約を作る。 */
+  /** 指定した時間だけ過去に登録されたパージ予約を作る。 */
   async function seedPurgeRequest(uid: string, registeredAtMillisecondsAgo: number): Promise<void> {
     await env.PUBLIC_JWK_CACHE_KV.put(
       `audit-log-purge:${uid}`,
@@ -461,24 +465,37 @@ describe("予約済みパージの実行 (scheduled)", () => {
     });
   }
 
-  it("待ち時間を過ぎた予約は DELETE の DML を実行して予約が消える", async () => {
-    const uid = "uid-audit-purge-done";
+  it("待ち時間を過ぎた予約は DELETE の DML を実行するが、猶予期間中は予約が残る", async () => {
+    const uid = "uid-audit-purge-retained";
     await seedPurgeRequest(uid, auditLogPurgeMinimumWaitMilliseconds + 60_000);
+    interceptGoogleAccessToken();
+    const capturedQueryRequests = interceptBigQueryQuery({ responseBody: { jobComplete: true } });
+
+    await runScheduled(buildAuditLogEnv({ serviceAccountName: "purge-retained" }));
+
+    expect(capturedQueryRequests[0].query).toContain("DELETE FROM");
+    expect(capturedQueryRequests[0].queryParameters).toEqual([
+      { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } },
+    ]);
+    // 最初の DML より後に届いた削除イベントを消し切るため、猶予期間が過ぎるまでは毎時の実行を続ける
+    expect(await env.PUBLIC_JWK_CACHE_KV.get(`audit-log-purge:${uid}`)).not.toBeNull();
+  });
+
+  it("猶予期間を過ぎた予約は DML の成功で予約が消える", async () => {
+    const uid = "uid-audit-purge-done";
+    await seedPurgeRequest(uid, auditLogPurgeRequestRetentionMilliseconds + 60_000);
     interceptGoogleAccessToken();
     const capturedQueryRequests = interceptBigQueryQuery({ responseBody: { jobComplete: true } });
 
     await runScheduled(buildAuditLogEnv({ serviceAccountName: "purge-done" }));
 
     expect(capturedQueryRequests[0].query).toContain("DELETE FROM");
-    expect(capturedQueryRequests[0].queryParameters).toEqual([
-      { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } },
-    ]);
     expect(await env.PUBLIC_JWK_CACHE_KV.get(`audit-log-purge:${uid}`)).toBeNull();
   });
 
-  it("DML に失敗した予約は残り、次回の実行で再試行できる", async () => {
+  it("DML に失敗した予約は猶予期間を過ぎていても残り、次回の実行で再試行できる", async () => {
     const uid = "uid-audit-purge-failed";
-    await seedPurgeRequest(uid, auditLogPurgeMinimumWaitMilliseconds + 60_000);
+    await seedPurgeRequest(uid, auditLogPurgeRequestRetentionMilliseconds + 60_000);
     interceptGoogleAccessToken();
     // ストリーミングバッファ中の行を DML で消せない時に BigQuery が返すエラーに相当する
     interceptBigQueryQuery({ responseBody: { error: { message: "streaming buffer" } }, status: 400 });

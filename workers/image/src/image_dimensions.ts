@@ -211,7 +211,17 @@ function readWebpDimensions(imageBytesView: DataView): ImageDimensions | null {
     };
   }
   if (readAsciiText(imageBytesView, 12, 4) === "VP8X" && imageBytesView.byteLength >= 30) {
-    // 拡張形式。フラグ4バイトの後ろに、24bit の (キャンバス幅-1)・(キャンバス高さ-1) がリトルエンディアンで並ぶ
+    // RIFF ヘッダーが宣言するファイル長 (自身の 8 バイトを含まない) に届かないバッファは途中で切れており、
+    // VP8X が宣言するキャンバスの寸法どおりの画像が入っているとは限らない
+    if (imageBytesView.getUint32(4, true) + 8 > imageBytesView.byteLength) {
+      return null;
+    }
+    // VP8X はキャンバスの寸法とフラグだけを持つヘッダーで、画素は後続のチャンクにある。
+    // 実画像チャンクが無い (ヘッダーだけの) ファイルは寸法・階調とも実体を伴わないため解析できなかった扱いにする
+    if (!hasWebpImageDataChunk(imageBytesView)) {
+      return null;
+    }
+    // フラグ4バイトの後ろに、24bit の (キャンバス幅-1)・(キャンバス高さ-1) がリトルエンディアンで並ぶ
     return {
       imageWidth: readUint24LittleEndian(imageBytesView, 24) + 1,
       imageHeight: readUint24LittleEndian(imageBytesView, 27) + 1,
@@ -219,6 +229,28 @@ function readWebpDimensions(imageBytesView: DataView): ImageDimensions | null {
     };
   }
   return null;
+}
+
+/**
+ * RIFF のチャンクを辿り、画素を持つチャンクがバッファの範囲内にあるかを返す。
+ *
+ * アニメーション (ANIM/ANMF) はレシート・明細スクショの保存経路では作られないため、
+ * フレーム内のチャンクまでは辿らず、静止画の VP8 (非可逆)・VP8L (可逆) だけを実画像として扱う。
+ */
+function hasWebpImageDataChunk(imageBytesView: DataView): boolean {
+  // RIFF のチャンクは種別4バイト + 長さ4バイトのヘッダーを持ち、内容が奇数長のチャンクは 1 バイトのパディングで詰められる
+  for (let chunkOffset = 12; chunkOffset + 8 <= imageBytesView.byteLength; ) {
+    const chunkContentByteLength = imageBytesView.getUint32(chunkOffset + 4, true);
+    if (chunkOffset + 8 + chunkContentByteLength > imageBytesView.byteLength) {
+      // 内容がバッファからはみ出すチャンクは途中で切れており、その先にチャンクは無い
+      return false;
+    }
+    if (["VP8 ", "VP8L"].includes(readAsciiText(imageBytesView, chunkOffset, 4))) {
+      return true;
+    }
+    chunkOffset += 8 + chunkContentByteLength + (chunkContentByteLength % 2);
+  }
+  return false;
 }
 
 /**

@@ -73,6 +73,13 @@ const auditLogPurgeKeyPrefix = "audit-log-purge:";
 // (バッファ解消前に失敗した場合も、キーを残して毎時のリトライで消し切る)
 export const auditLogPurgeMinimumWaitMilliseconds = 60 * 60 * 1000;
 
+// パージ要求を KV に残しておく期間。この期間が過ぎるまでは DML が成功しても要求を消さず、毎時の実行で消し直す。
+// アカウント削除時の明細の DELETE イベントは extension が Cloud Tasks 経由で非同期に書き出し、
+// 失敗した書き出しはリトライで数時間後に届くことがあるため、最初の DML の後から changelog に行が増える。
+// 24 時間は extension のリトライとストリーミングバッファの滞留 (最大 90 分程度) のどちらも大きく上回る猶予で、
+// この間の毎時の再実行で後着の行まで消し切る
+export const auditLogPurgeRequestRetentionMilliseconds = 24 * 60 * 60 * 1000;
+
 /**
  * 監査ログを新しい順に取得する。
  * uid は呼び出し側が検証済み ID token から取り出したものを渡す (クライアント申告のユーザー ID は使わない)。
@@ -267,7 +274,7 @@ export async function registerAuditLogPurge({ env, uid }: { env: ImageWorkerEnv;
 
 /**
  * 予約済みの履歴パージをまとめて実行する (毎時の scheduled から呼ぶ)。
- * 待ち時間に満たない要求はスキップし、DML に失敗した要求は KV に残して次回の実行で再試行する。
+ * 待ち時間に満たない要求はスキップし、DML に失敗した要求と猶予期間中の要求は KV に残して次回の実行で消し直す。
  * 冪等: 同じ状態で何度実行しても、消えるべき履歴が消えた状態に収束する。
  */
 export async function purgeRequestedAuditLogs(env: ImageWorkerEnv): Promise<void> {
@@ -284,7 +291,7 @@ export async function purgeRequestedAuditLogs(env: ImageWorkerEnv): Promise<void
   } while (purgeRequestListCursor !== undefined);
 }
 
-/** パージ要求 1 件を処理する。実行できた場合だけ KV の要求を消す。 */
+/** パージ要求 1 件を処理する。DML が成功し、かつ猶予期間を過ぎている場合だけ KV の要求を消す。 */
 async function purgeAuditLogsOfPurgeRequest({
   env,
   purgeRequestKeyName,
@@ -297,9 +304,10 @@ async function purgeAuditLogsOfPurgeRequest({
     // list と get の間に別の実行が処理を終えた要求
     return;
   }
-  // 登録時刻を読めない要求 (Date.parse が NaN) は比較が偽になり、待たずにパージへ進む
-  // (ユーザーが要求済みの削除であり、待ち直すより実行する側に倒す)
-  if (Date.now() - Date.parse(purgeRequestedAt) < auditLogPurgeMinimumWaitMilliseconds) {
+  // 登録時刻を読めない要求 (Date.parse が NaN) は比較が偽になり、待たずにパージへ進み、成功したらそのまま消える
+  // (ユーザーが要求済みの削除であり、経過時間を判定できないまま待ち続けるより実行して終わらせる側に倒す)
+  const purgeRequestElapsedMilliseconds = Date.now() - Date.parse(purgeRequestedAt);
+  if (purgeRequestElapsedMilliseconds < auditLogPurgeMinimumWaitMilliseconds) {
     return;
   }
 
@@ -318,6 +326,11 @@ async function purgeAuditLogsOfPurgeRequest({
     // ストリーミングバッファに残った行は DML で削除できないため、この段階の失敗は異常ではない。
     // 要求を KV に残し、次回 (1時間後) 以降の実行で再試行する
     console.warn("監査ログのパージに失敗しました (次回の scheduled で再試行します)", error);
+    return;
+  }
+  // 猶予期間中は DML が成功しても要求を残し、後から changelog に届いた行を次回以降の実行で消し切る
+  // ([auditLogPurgeRequestRetentionMilliseconds] を参照)
+  if (purgeRequestElapsedMilliseconds < auditLogPurgeRequestRetentionMilliseconds) {
     return;
   }
   await env.PUBLIC_JWK_CACHE_KV.delete(purgeRequestKeyName);

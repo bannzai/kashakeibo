@@ -49,12 +49,16 @@ class AuditLogPage extends ConsumerWidget {
       body: SafeArea(
         child: auditLogsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
+          // 通信が復旧した後に画面内から取り直せるよう、エラー表示も引き下げを受け付ける。
           // エラーメッセージは加工せずそのまま表示する
           // (`.claude/rules/coding-conventions.md`)。
-          error: (error, _) => Center(
-            child: Padding(
+          error: (error, _) => RefreshIndicator(
+            onRefresh: auditLogsNotifier.refresh,
+            child: ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Text(error.toString()),
+              // エラー文が画面に収まる時も引いて取り直せるようにする。
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [Center(child: Text(error.toString()))],
             ),
           ),
           data: (auditLogs) => RefreshIndicator(
