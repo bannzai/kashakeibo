@@ -77,6 +77,16 @@ runner の Simulator が英語ロケールのため、"Spending" / "Income" / "B
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ad8df1d9-ee7b-4d97-85e4-463a4b806977.jpg" width="320">
 
+**確認日: 2026-08-23**
+
+ローカル Simulator (kashakeibo-issue-72-iOS26.5) で、支出の主表示の ¥ 記号の見え方を再確認した (issue #72)。手動入力で ¥128,400 の支出を 1 件登録し、サマリーカードの主表示が `¥ 128,400` になること (クライアント集計が即時反映されること) と、¥ が数字と同じ字面で読める大きさになり、数字との間に余白があることを確認した。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/222021d6-db6b-4948-8ae0-a82a47adeb3b.png" width="320" />
+
+issue #72 の報告時 (上) と修正後 (下) の支出金額の比較。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/b600f9a8-860a-410d-9694-1c440772b77d.png" width="320" />
+
 </details>
 
 ### **カテゴリ内訳**: 支出のカテゴリ別合計が金額の大きい順の横棒で表示される。明細が無い月ではセクションごと非表示になる
