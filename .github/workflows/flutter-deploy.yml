@@ -57,17 +57,21 @@ jobs:
       # dev / prod を選択するため両方を復元する)
       - name: Restore Firebase configs
         env:
-          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          GOOGLE_SERVICE_INFO_PLIST_PROD_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_PROD_BASE64 }}
           GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64 }}
         run: |
           # plist は gitignore 対象でディレクトリ自体が checkout に存在しないため先に作る
           mkdir -p ios/Firebase/prod ios/Firebase/dev
-          echo -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > ios/Firebase/prod/GoogleService-Info.plist
+          echo -n "$GOOGLE_SERVICE_INFO_PLIST_PROD_BASE64" | base64 --decode > ios/Firebase/prod/GoogleService-Info.plist
           echo -n "$GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64" | base64 --decode > ios/Firebase/dev/GoogleService-Info.plist
           for f in ios/Firebase/prod/GoogleService-Info.plist ios/Firebase/dev/GoogleService-Info.plist; do
+            case "$f" in
+              *"/prod/"*) SECRET_NAME=GOOGLE_SERVICE_INFO_PLIST_PROD_BASE64 ;;
+              *) SECRET_NAME=GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64 ;;
+            esac
             SIZE=$(wc -c < "$f")
             if [ "$SIZE" -lt 100 ]; then
-              echo "::error::$f is suspiciously small ($SIZE bytes). Secrets の base64 が壊れている可能性があります。"
+              echo "::error::$f is suspiciously small ($SIZE bytes). Secret $SECRET_NAME が未登録か、base64 が壊れている可能性があります。"
               exit 1
             fi
             # REVERSED_CLIENT_ID が無い plist だと Google サインインが実行時に
@@ -75,7 +79,7 @@ jobs:
             # ビルド前に落とす (issue #66。Firebase の iOS OAuth クライアント構成前に取得した古い secret を検出する)
             REVERSED_CLIENT_ID=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" "$f" 2>/dev/null || true)
             if [ -z "$REVERSED_CLIENT_ID" ]; then
-              echo "::error::$f の REVERSED_CLIENT_ID が空、またはキー自体がありません。firebase apps:sdkconfig IOS <App ID> --project <プロジェクトID> で取得し直した plist で Secrets を更新してください。"
+              echo "::error::$f の REVERSED_CLIENT_ID が空、またはキー自体がありません。firebase apps:sdkconfig IOS <App ID> --project <プロジェクトID> で取得し直した plist で Secret $SECRET_NAME を更新してください。"
               exit 1
             fi
           done
