@@ -2,9 +2,11 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/capture_page.dart';
+import 'package:kashakeibo/features/capture/image_analysis_client.dart';
 import 'package:kashakeibo/features/paywall/paywall_page.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/provider/image.dart';
@@ -18,12 +20,19 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 /// 到達困難な状態 (明細データの投入・スキャン残量 0) を、起動引数ではなくアプリ内メニューから
 /// 作れるようにする (~/.claude/rules/debug-menu-first-for-hard-to-reach-states.md のパターン)。
 /// DEBUG 限定のため文言は日本語固定で l10n の対象外とする。
-class DebugSheet extends ConsumerWidget {
+class DebugSheet extends HookConsumerWidget {
   const DebugSheet({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final addTransaction = ref.watch(addTransactionProvider);
+    // Provider は build で確保し、await をまたぐコールバックからは ref に触れない
+    // (`.claude/rules/riverpod-rules.md`)。
+    final scanQuotaFuture = ref.watch(monthlyScanQuotaProvider.future);
+    final monthlyScanQuota = ref.watch(monthlyScanQuotaProvider.notifier);
+    final setDebugScanCount = ref.watch(setDebugScanCountProvider);
+    // 残量設定の実行中。Worker の応答待ちに連打して pop が二重に走るのを防ぐ。
+    final exhaustScanQuotaInProgress = useState(false);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -71,11 +80,27 @@ class DebugSheet extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.battery_alert_outlined),
+            enabled: !exhaustScanQuotaInProgress.value,
             title: const Text('スキャン残量を使い切る'),
             subtitle: const Text(
               '今月のスキャン回数を無料枠の上限に設定し、残量 0 (ペイウォールが開く状態) を作る',
             ),
-            onTap: () => _exhaustScanQuota(context: context, ref: ref),
+            onTap: () async {
+              exhaustScanQuotaInProgress.value = true;
+              try {
+                await _exhaustScanQuota(
+                  context: context,
+                  scanQuotaFuture: scanQuotaFuture,
+                  setDebugScanCount: setDebugScanCount,
+                  monthlyScanQuota: monthlyScanQuota,
+                );
+              } finally {
+                // シートが閉じた後の setState を避ける (閉じていれば hook は破棄済み)。
+                if (context.mounted) {
+                  exhaustScanQuotaInProgress.value = false;
+                }
+              }
+            },
           ),
           ListTile(
             leading: const Icon(Icons.workspace_premium_outlined),
@@ -108,18 +133,20 @@ class DebugSheet extends ConsumerWidget {
 /// 冪等: 何度実行しても残量 0 のまま。
 Future<void> _exhaustScanQuota({
   required BuildContext context,
-  required WidgetRef ref,
+  required Future<ScanQuota> scanQuotaFuture,
+  required SetDebugScanCount setDebugScanCount,
+  required MonthlyScanQuota monthlyScanQuota,
 }) async {
   // シートを閉じた後もスナックバーを出せるよう、閉じる前に Navigator と ScaffoldMessenger を確保する。
   final navigator = Navigator.of(context);
   final scaffoldMessenger = ScaffoldMessenger.of(context);
   try {
     // 無料枠の上限は Worker が返す値を使う (クライアントに上限を持たせない)。
-    final scanQuota = await ref.read(monthlyScanQuotaProvider.future);
-    final exhaustedScanQuota = await ref.read(setDebugScanCountProvider)(
+    final scanQuota = await scanQuotaFuture;
+    final exhaustedScanQuota = await setDebugScanCount(
       monthlyScanCount: scanQuota.monthlyFreeScanLimit,
     );
-    ref.read(monthlyScanQuotaProvider.notifier).refresh();
+    monthlyScanQuota.refresh();
     if (!context.mounted) {
       return;
     }
