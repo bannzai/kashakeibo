@@ -2,11 +2,14 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/entity/transaction.dart';
 import 'package:kashakeibo/features/capture/capture_page.dart';
+import 'package:kashakeibo/features/capture/image_analysis_client.dart';
 import 'package:kashakeibo/features/paywall/paywall_page.dart';
 import 'package:kashakeibo/features/settings/settings_page.dart';
+import 'package:kashakeibo/provider/image.dart';
 import 'package:kashakeibo/provider/purchase.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
@@ -14,15 +17,22 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// DEBUG ビルド限定の開発者メニュー。
 ///
-/// 到達困難な状態 (明細データの投入) を、起動引数ではなくアプリ内メニューから
+/// 到達困難な状態 (明細データの投入・スキャン残量 0) を、起動引数ではなくアプリ内メニューから
 /// 作れるようにする (~/.claude/rules/debug-menu-first-for-hard-to-reach-states.md のパターン)。
 /// DEBUG 限定のため文言は日本語固定で l10n の対象外とする。
-class DebugSheet extends ConsumerWidget {
+class DebugSheet extends HookConsumerWidget {
   const DebugSheet({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final addTransaction = ref.watch(addTransactionProvider);
+    // Provider は build で確保し、await をまたぐコールバックからは ref に触れない
+    // (`.claude/rules/riverpod-rules.md`)。
+    final scanQuotaFuture = ref.watch(monthlyScanQuotaProvider.future);
+    final monthlyScanQuota = ref.watch(monthlyScanQuotaProvider.notifier);
+    final setDebugScanCount = ref.watch(setDebugScanCountProvider);
+    // 残量設定の実行中。Worker の応答待ちに連打して pop が二重に走るのを防ぐ。
+    final exhaustScanQuotaInProgress = useState(false);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -42,21 +52,7 @@ class DebugSheet extends ConsumerWidget {
                 if (!context.mounted) {
                   return;
                 }
-                // エラーメッセージは加工せずそのまま表示する (.claude/rules/coding-conventions.md)。
-                await showDialog<void>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    content: SingleChildScrollView(
-                      child: Text(error.toString()),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  ),
-                );
+                await _showErrorDialog(context: context, error: error);
               }
             },
           ),
@@ -83,6 +79,28 @@ class DebugSheet extends ConsumerWidget {
             ),
           ),
           ListTile(
+            leading: const Icon(Icons.battery_alert_outlined),
+            enabled: !exhaustScanQuotaInProgress.value,
+            title: const Text('スキャン残量を使い切る'),
+            subtitle: const Text('今月のスキャン回数を無料枠の上限に設定し、残量 0 (ペイウォールが開く状態) を作る'),
+            onTap: () async {
+              exhaustScanQuotaInProgress.value = true;
+              try {
+                await _exhaustScanQuota(
+                  context: context,
+                  scanQuotaFuture: scanQuotaFuture,
+                  setDebugScanCount: setDebugScanCount,
+                  monthlyScanQuota: monthlyScanQuota,
+                );
+              } finally {
+                // シートが閉じた後の setState を避ける (閉じていれば hook は破棄済み)。
+                if (context.mounted) {
+                  exhaustScanQuotaInProgress.value = false;
+                }
+              }
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.workspace_premium_outlined),
             title: const Text('ペイウォールをサンプル価格で開く'),
             subtitle: const Text(
@@ -103,6 +121,68 @@ class DebugSheet extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// 今月のスキャン回数を無料枠の上限に設定し、残量 0 の状態を作る (DEBUG 用)。
+///
+/// 使用回数は Cloudflare の Durable Object の中にしか無く外部から書き換えられないため、
+/// dev 環境の Worker にだけ用意した DEBUG 経路 (POST /debug/scan-count) 経由で設定する。
+/// 設定後は残量表示 (monthlyScanQuotaProvider) を取り直して画面に反映する。
+/// 冪等: 何度実行しても残量 0 のまま。
+Future<void> _exhaustScanQuota({
+  required BuildContext context,
+  required Future<ScanQuota> scanQuotaFuture,
+  required SetDebugScanCount setDebugScanCount,
+  required MonthlyScanQuota monthlyScanQuota,
+}) async {
+  // シートを閉じた後もスナックバーを出せるよう、閉じる前に Navigator と ScaffoldMessenger を確保する。
+  final navigator = Navigator.of(context);
+  final scaffoldMessenger = ScaffoldMessenger.of(context);
+  try {
+    // 無料枠の上限は Worker が返す値を使う (クライアントに上限を持たせない)。
+    final scanQuota = await scanQuotaFuture;
+    final exhaustedScanQuota = await setDebugScanCount(
+      monthlyScanCount: scanQuota.monthlyFreeScanLimit,
+    );
+    monthlyScanQuota.refresh();
+    if (!context.mounted) {
+      return;
+    }
+    navigator.pop();
+    scaffoldMessenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          '今月のスキャン回数を ${exhaustedScanQuota.monthlyScanCount} 回 '
+          '(無料枠 ${exhaustedScanQuota.monthlyFreeScanLimit} 回) に設定しました',
+        ),
+      ),
+    );
+  } catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    await _showErrorDialog(context: context, error: error);
+  }
+}
+
+/// 開発者メニューの操作が失敗した時に、エラーをそのまま表示するダイアログ。
+Future<void> _showErrorDialog({
+  required BuildContext context,
+  required Object error,
+}) {
+  // エラーメッセージは加工せずそのまま表示する (.claude/rules/coding-conventions.md)。
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      content: SingleChildScrollView(child: Text(error.toString())),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
+  );
 }
 
 /// 描画したサンプル画像で取込フロー画面 (`CapturePage`) を開き、登録完了ならトーストを出す。

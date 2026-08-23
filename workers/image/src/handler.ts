@@ -1,6 +1,7 @@
 // 画像アップロード (POST /images)・取得 (GET /images/{objectKey})・個別削除 (DELETE /images/{objectKey})・
 // アカウント削除時の全消去 (DELETE /images)・Gemini による明細抽出 (POST /analyses)・
-// 今月のスキャン回数と無料枠の取得 (GET /analyses/quota) のリクエスト処理本体。
+// 今月のスキャン回数と無料枠の取得 (GET /analyses/quota)・
+// DEBUG 用のスキャン回数設定 (POST /debug/scan-count。dev 環境限定) のリクエスト処理本体。
 // Firebase ID token と Firebase App Check token の検証手段を tokenVerifiers として注入する構造にし、
 // テストでは実際の Google JWK / JWKS 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
 // (実際の検証器の組み立ては index.ts を参照)。
@@ -52,6 +53,11 @@ export interface ImageWorkerEnv extends EntitlementEnv {
   GEMINI_API_KEY: string;
   /** 明細抽出に使う Gemini のモデル ID。 */
   GEMINI_MODEL: string;
+  /**
+   * DEBUG エンドポイント (POST /debug/scan-count) を有効にするフラグ。
+   * dev 環境の wrangler.jsonc にだけ `"true"` を置き、prod では未定義にすることで経路自体を 404 にする。
+   */
+  DEBUG_ENDPOINTS_ENABLED?: string;
 }
 
 // アップロードを許可する画像形式と、オブジェクトキーに使う拡張子の対応。
@@ -112,6 +118,9 @@ export const monthlyPremiumScanLimit = 1000;
 export const maxAnalysisImageBytes = 14 * 1024 * 1024;
 
 const imageObjectPathPrefix = "/images/";
+
+/** DEBUG 用のスキャン回数設定エンドポイントのパス (dev 環境でのみ有効。handleDebugScanCountSet を参照)。 */
+export const debugScanCountPath = "/debug/scan-count";
 
 // X-Upload-Id ヘッダーに要求する UUID 形式。オブジェクトキーの一部になるため、
 // パス区切りや ".." を構造的に含められない形式だけを受け付ける
@@ -185,6 +194,14 @@ export async function handleImageRequest(
   }
   if (request.method === "GET" && requestUrl.pathname === "/analyses/quota") {
     return handleScanQuotaGet(env, verifiedFirebaseUser);
+  }
+  // DEBUG エンドポイントは dev 環境でだけ有効にする。prod では経路自体が存在しない (未知のパスと同じ 404)
+  if (
+    request.method === "POST" &&
+    requestUrl.pathname === debugScanCountPath &&
+    env.DEBUG_ENDPOINTS_ENABLED === "true"
+  ) {
+    return handleDebugScanCountSet(request, env, verifiedFirebaseUser);
   }
   return jsonResponse(404, { error: "not found" });
 }
@@ -464,6 +481,50 @@ async function handleScanQuotaGet(env: ImageWorkerEnv, verifiedFirebaseUser: Ver
     monthlyScanCount: await monthlyUsageCounter(env).getCount(monthlyScanCounterKey(verifiedFirebaseUser)),
     monthlyFreeScanLimit,
   });
+}
+
+/**
+ * 今月のスキャン回数を指定値に設定する (POST /debug/scan-count)。DEBUG (dev 環境) 限定。
+ *
+ * 使用回数は Durable Object の中にしか無く、firebase / gcloud / wrangler のどれからも書き換えられないため、
+ * 残量 0 の QA (残量 0 のペイウォールガード・402 からの購入 → 再解析) を作れない。
+ * その状態をアプリの開発者メニューから作れるようにするための経路
+ * (`~/.claude/rules/debug-menu-first-for-hard-to-reach-states.md` の「開発者メニューを第一候補にする」方針)。
+ *
+ * リクエストは `{"monthlyScanCount": 50}`。他ユーザーの回数は変更できない (JWT の uid のカウンターだけを触る)。
+ * ID token と App Check token の検証は他のエンドポイントと同じく必須で、経路の有効化は
+ * env の DEBUG_ENDPOINTS_ENABLED (dev の wrangler.jsonc にだけ置く) が担う。
+ * 冪等: 同じ値で何度呼んでも結果は同じ。
+ */
+async function handleDebugScanCountSet(
+  request: Request,
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<Response> {
+  let requestBody: { monthlyScanCount?: unknown };
+  try {
+    requestBody = (await request.json()) as { monthlyScanCount?: unknown };
+  } catch (error) {
+    return jsonResponse(400, { error: "JSON のリクエストボディが必要です" });
+  }
+  const monthlyScanCount = requestBody.monthlyScanCount;
+  if (
+    typeof monthlyScanCount !== "number" ||
+    !Number.isInteger(monthlyScanCount) ||
+    monthlyScanCount < 0 ||
+    monthlyScanCount > monthlyPremiumScanLimit
+  ) {
+    return jsonResponse(400, {
+      error: `monthlyScanCount には 0 以上 ${monthlyPremiumScanLimit} 以下の整数が必要です`,
+    });
+  }
+  await monthlyUsageCounter(env).setCount(
+    monthlyScanCounterKey(verifiedFirebaseUser),
+    monthlyScanCount,
+    monthlyCounterPurgeDelayMilliseconds,
+  );
+  // 設定後の状態を GET /analyses/quota と同じ形で返し、クライアントが残量表示をそのまま更新できるようにする
+  return jsonResponse(200, { monthlyScanCount, monthlyFreeScanLimit });
 }
 
 /**

@@ -209,6 +209,10 @@ class PaywallPage extends HookConsumerWidget {
                   color: appColors.textMuted,
                 ),
               ),
+              if (!isPremium) ...[
+                const SizedBox(height: AppSpacing.lg),
+                const _SavingsResearchCard(),
+              ],
               const SizedBox(height: AppSpacing.xl),
               if (!isPremium && scanQuotaAsync.valueOrNull != null)
                 _FreeQuotaBar(scanQuota: scanQuotaAsync.valueOrNull!),
@@ -417,10 +421,12 @@ class PaywallPage extends HookConsumerWidget {
                       label: l10n.privacyPolicy,
                       document: 'privacy_policy',
                       uri: legalDocumentUri(
+                        // プライバシーポリシーは日本語版と英語版の 2 種類のみ用意しているため、
+                        // 日本語ロケール以外 (en / ko / zh 等) は英語版へフォールバックする。
                         path:
-                            Localizations.localeOf(context).languageCode == 'en'
-                            ? 'PrivacyPolicy-en'
-                            : 'PrivacyPolicy',
+                            Localizations.localeOf(context).languageCode == 'ja'
+                            ? 'PrivacyPolicy'
+                            : 'PrivacyPolicy-en',
                       ),
                       openExternalUri: openExternalUri,
                       logAnalyticsEvent: logAnalyticsEvent,
@@ -474,6 +480,46 @@ String _perMonthPriceString({required Package annualPackage}) =>
       // 日本円は小数を持たないため。他通貨はストアの表示に合わせて 2 桁
       decimalDigits: annualPackage.storeProduct.currencyCode == 'JPY' ? 0 : 2,
     ).format(annualPackage.storeProduct.price / 12);
+
+/// 家計簿をつけることの節約効果 (調査データ) を訴求するカード。
+///
+/// 出典は東証マネ部! (JPX 運営メディア) の「お金に関するアンケート」
+/// (調査時期 2022年10月・全国20〜40代の会社員・有効回答 1,111 件)
+/// https://money-bu-jpx.com/news/article042167/ 。
+/// 家計簿をつけている人のうち「支出が減った」が 34.1%、その支出が減った人のうち
+/// 月「5,000円〜1万円未満」の節約が 48.6% (最多) で、文言の「約半数」「月5,000円〜1万円未満」は
+/// この 48.6% と価格帯に対応する。文言の数字は原典と一致させる。
+class _SavingsResearchCard extends StatelessWidget {
+  const _SavingsResearchCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final appColors = context.appColors;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: appColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: appShadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.paywallSavingsClaim,
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            l10n.paywallSavingsSource,
+            style: TextStyle(fontSize: 9.5, color: appColors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// 今月の無料スキャンの消費バー (「今月の無料スキャン n/10」+ accent-500 のバー)。
 class _FreeQuotaBar extends StatelessWidget {

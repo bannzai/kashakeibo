@@ -7,6 +7,8 @@ import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
 import 'app_localizations_ja.dart';
+import 'app_localizations_ko.dart';
+import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
 
@@ -96,6 +98,10 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('ja'),
+    Locale('ko'),
+    Locale('zh'),
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
   /// The application name shown in the app bar and store listings
@@ -776,6 +782,18 @@ abstract class AppLocalizations {
   /// **'No account linking. Just snap, and Premium reads every receipt and statement for you.'**
   String get paywallSubtitle;
 
+  /// ペイウォールの節約効果訴求。出典: 東証マネ部!「お金に関するアンケート」(2022年10月、n=1,111) https://money-bu-jpx.com/news/article042167/ — 家計簿で支出が減った人 (34.1%) のうち 48.6% が月5,000円〜1万円未満の節約と回答。数字は原典と一致させること
+  ///
+  /// In en, this message translates to:
+  /// **'About half of people who cut spending with a household budget saved ¥5,000 to under ¥10,000 a month*'**
+  String get paywallSavingsClaim;
+
+  /// 節約効果訴求の出典注記 (調査主体・時期・N数)
+  ///
+  /// In en, this message translates to:
+  /// **'* Survey by JPX\'s Money-bu! (Oct 2022, 1,111 office workers in Japan)'**
+  String get paywallSavingsSource;
+
   /// No description provided for @paywallFreeQuota.
   ///
   /// In en, this message translates to:
@@ -1106,19 +1124,37 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'ja'].contains(locale.languageCode);
+      <String>['en', 'ja', 'ko', 'zh'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when language+script codes are specified.
+  switch (locale.languageCode) {
+    case 'zh':
+      {
+        switch (locale.scriptCode) {
+          case 'Hans':
+            return AppLocalizationsZhHans();
+          case 'Hant':
+            return AppLocalizationsZhHant();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
     case 'ja':
       return AppLocalizationsJa();
+    case 'ko':
+      return AppLocalizationsKo();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(

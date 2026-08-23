@@ -10,6 +10,9 @@
 	<array>
 		<string>en</string>
 		<string>ja</string>
+		<string>ko</string>
+		<string>zh-Hans</string>
+		<string>zh-Hant</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Kashakeibo</string>
