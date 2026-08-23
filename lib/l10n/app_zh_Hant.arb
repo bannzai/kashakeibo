@@ -163,5 +163,6 @@
   "transactionSearchTitleKeyword": "店家",
   "transactionSearchSubmit": "搜尋",
   "transactionSearchClear": "清除條件",
-  "transactionSearchConditionRequired": "請至少輸入一項條件"
+  "transactionSearchConditionRequired": "請至少輸入一項條件",
+  "transactionSearchDateRangeInvalid": "結束日期必須晚於或等於開始日期"
 }
