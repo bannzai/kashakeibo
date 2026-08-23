@@ -62,7 +62,11 @@
         // secret API key は wrangler secret REVENUECAT_SECRET_API_KEY (README のデプロイ手順)。
         // secret が未登録の間は Worker が全ユーザーを無料プランとして扱う (src/entitlement.ts)
         "REVENUECAT_PROJECT_ID": "proje2d79a89",
-        "REVENUECAT_PREMIUM_ENTITLEMENT_ID": "entl34c3809c32"
+        "REVENUECAT_PREMIUM_ENTITLEMENT_ID": "entl34c3809c32",
+        // DEBUG エンドポイント (POST /debug/scan-count。今月のスキャン回数を任意の値に設定する) の有効化フラグ。
+        // アプリの開発者メニューから残量 0 を作って QA するための経路で、dev 環境にだけ置く。
+        // prod の vars にはこの項目を置かず、経路自体が 404 になるようにする (src/handler.ts の handleDebugScanCountSet)
+        "DEBUG_ENDPOINTS_ENABLED": "true"
       }
     },
     "prod": {

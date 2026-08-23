@@ -8,6 +8,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { VerifyFirebaseAppCheckToken } from "../src/app_check";
 import type { ImageWorkerEnv, TokenVerifiers, VerifyFirebaseIdToken } from "../src/handler";
 import {
+  debugScanCountPath,
   firebaseAppCheckHeaderName,
   handleImageRequest,
   maxDailyAnalysisCountPerUser,
@@ -1137,5 +1138,184 @@ describe("スキャン無料枠 (月次) とプレミアム判定", () => {
     await seedMonthlyScanCount("uid-quota-independent-a", 3);
     expect(await (await requestScanQuota("uid-quota-independent-a")).json()).toEqual({ monthlyScanCount: 3, monthlyFreeScanLimit });
     expect(await (await requestScanQuota("uid-quota-independent-b")).json()).toEqual({ monthlyScanCount: 0, monthlyFreeScanLimit });
+  });
+});
+
+describe("DEBUG 用のスキャン回数設定 (POST /debug/scan-count)", () => {
+  // dev 環境の wrangler.jsonc 相当 (DEBUG_ENDPOINTS_ENABLED が "true")。
+  // vitest の既定 binding には置かず、prod 相当を既定にしている (他のテストが DEBUG 経路に依存しないようにする)
+  const devEnv: ImageWorkerEnv = { ...env, DEBUG_ENDPOINTS_ENABLED: "true" };
+
+  function requestDebugScanCountSet({
+    uid,
+    body,
+    envOverride = devEnv,
+    appCheckToken = validAppCheckToken,
+  }: {
+    uid: string;
+    body: unknown;
+    envOverride?: ImageWorkerEnv;
+    appCheckToken?: string;
+  }): Promise<Response> {
+    return handleImageRequest(
+      new Request(`${workerBaseUrl}${debugScanCountPath}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer valid-token-${uid}`,
+          [firebaseAppCheckHeaderName]: appCheckToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }),
+      envOverride,
+      stubTokenVerifiers,
+    );
+  }
+
+  function requestScanQuotaWithEnv(uid: string, envOverride: ImageWorkerEnv): Promise<Response> {
+    return handleImageRequest(
+      new Request(`${workerBaseUrl}/analyses/quota`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer valid-token-${uid}`,
+          [firebaseAppCheckHeaderName]: validAppCheckToken,
+        },
+      }),
+      envOverride,
+      stubTokenVerifiers,
+    );
+  }
+
+  it("dev 環境では今月のスキャン回数を指定値に設定でき、GET /analyses/quota に反映される", async () => {
+    const uid = "uid-debug-scan-count-dev";
+    const response = await requestDebugScanCountSet({ uid, body: { monthlyScanCount: monthlyFreeScanLimit } });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ monthlyScanCount: monthlyFreeScanLimit, monthlyFreeScanLimit });
+    expect(await (await requestScanQuotaWithEnv(uid, devEnv)).json()).toEqual({
+      monthlyScanCount: monthlyFreeScanLimit,
+      monthlyFreeScanLimit,
+    });
+  });
+
+  it("設定は冪等で、0 に戻すこともできる", async () => {
+    const uid = "uid-debug-scan-count-idempotent";
+    await requestDebugScanCountSet({ uid, body: { monthlyScanCount: monthlyFreeScanLimit } });
+    await requestDebugScanCountSet({ uid, body: { monthlyScanCount: monthlyFreeScanLimit } });
+    expect(await (await requestScanQuotaWithEnv(uid, devEnv)).json()).toEqual({
+      monthlyScanCount: monthlyFreeScanLimit,
+      monthlyFreeScanLimit,
+    });
+
+    await requestDebugScanCountSet({ uid, body: { monthlyScanCount: 0 } });
+    expect(await (await requestScanQuotaWithEnv(uid, devEnv)).json()).toEqual({
+      monthlyScanCount: 0,
+      monthlyFreeScanLimit,
+    });
+  });
+
+  it("無料枠の上限に設定すると、その uid の解析が 402 (ペイウォール誘導) になる", async () => {
+    const uid = "uid-debug-scan-count-paywall";
+    // RevenueCat 未設定の env で判定させ、無料枠超過の判定だけを検証する (外部 API を呼ばない)
+    const devEnvWithoutRevenueCat: ImageWorkerEnv = {
+      ...devEnv,
+      REVENUECAT_SECRET_API_KEY: undefined as unknown as string,
+      REVENUECAT_PROJECT_ID: "",
+      REVENUECAT_PREMIUM_ENTITLEMENT_ID: "",
+    };
+    const uploadResponse = await handleImageRequest(
+      buildUploadRequest({
+        authorizationHeader: `Bearer valid-token-${uid}`,
+        fileContentType: "image/png",
+        fileBytes: pngBytes,
+        uploadId: "dddddddd-0000-4000-8000-000000000001",
+      }),
+      devEnvWithoutRevenueCat,
+      stubTokenVerifiers,
+    );
+    const { imageObjectKey } = (await uploadResponse.json()) as { imageObjectKey: string };
+
+    expect(
+      (await requestDebugScanCountSet({ uid, body: { monthlyScanCount: monthlyFreeScanLimit } })).status,
+    ).toBe(200);
+
+    const analysisResponse = await handleImageRequest(
+      new Request(`${workerBaseUrl}/analyses`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer valid-token-${uid}`,
+          [firebaseAppCheckHeaderName]: validAppCheckToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageObjectKey }),
+      }),
+      devEnvWithoutRevenueCat,
+      stubTokenVerifiers,
+    );
+    expect(analysisResponse.status).toBe(402);
+  });
+
+  it("他ユーザーの回数は変更されない (JWT の uid のカウンターだけを設定する)", async () => {
+    await requestDebugScanCountSet({ uid: "uid-debug-scan-count-owner", body: { monthlyScanCount: 7 } });
+    expect(await (await requestScanQuotaWithEnv("uid-debug-scan-count-owner", devEnv)).json()).toEqual({
+      monthlyScanCount: 7,
+      monthlyFreeScanLimit,
+    });
+    expect(await (await requestScanQuotaWithEnv("uid-debug-scan-count-other", devEnv)).json()).toEqual({
+      monthlyScanCount: 0,
+      monthlyFreeScanLimit,
+    });
+  });
+
+  it("prod 相当 (DEBUG_ENDPOINTS_ENABLED 無し) では 404 になり、回数も変わらない", async () => {
+    const uid = "uid-debug-scan-count-prod";
+    const response = await requestDebugScanCountSet({
+      uid,
+      body: { monthlyScanCount: monthlyFreeScanLimit },
+      envOverride: env,
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "not found" });
+    expect(await (await requestScanQuotaWithEnv(uid, env)).json()).toEqual({
+      monthlyScanCount: 0,
+      monthlyFreeScanLimit,
+    });
+  });
+
+  it("DEBUG_ENDPOINTS_ENABLED が \"true\" 以外の値でも 404 になる", async () => {
+    const response = await requestDebugScanCountSet({
+      uid: "uid-debug-scan-count-flag-off",
+      body: { monthlyScanCount: 1 },
+      envOverride: { ...env, DEBUG_ENDPOINTS_ENABLED: "false" },
+    });
+    expect(response.status).toBe(404);
+  });
+
+  it("App Check token が無ければ dev 環境でも 401 (認証は他のエンドポイントと同じく必須)", async () => {
+    const response = await handleImageRequest(
+      new Request(`${workerBaseUrl}${debugScanCountPath}`, {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer valid-token-uid-debug-scan-count-noauth",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ monthlyScanCount: 1 }),
+      }),
+      devEnv,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("monthlyScanCount が整数でない・範囲外・欠落なら 400 で、回数は変わらない", async () => {
+    const uid = "uid-debug-scan-count-invalid";
+    for (const invalidBody of [{}, { monthlyScanCount: "50" }, { monthlyScanCount: 1.5 }, { monthlyScanCount: -1 }, { monthlyScanCount: monthlyPremiumScanLimit + 1 }]) {
+      expect((await requestDebugScanCountSet({ uid, body: invalidBody })).status).toBe(400);
+    }
+    expect(await (await requestScanQuotaWithEnv(uid, devEnv)).json()).toEqual({
+      monthlyScanCount: 0,
+      monthlyFreeScanLimit,
+    });
   });
 });
