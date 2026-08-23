@@ -140,5 +140,6 @@
   "planPremium": "프리미엄",
   "settingsAuditLog": "작업 기록",
   "auditLogTitle": "작업 기록",
-  "auditLogDescription": "추가, 수정 또는 삭제한 내역과 삭제한 원본 이미지의 기록입니다."
+  "auditLogDescription": "추가, 수정 또는 삭제한 내역과 삭제한 원본 이미지의 기록입니다.",
+  "auditLogEmpty": "아직 기록된 작업이 없습니다"
 }
