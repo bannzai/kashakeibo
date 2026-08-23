@@ -5,6 +5,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:kashakeibo/features/capture/image_analysis_client.dart'
     as image_analysis;
+import 'package:kashakeibo/features/debug/debug_scan_count_client.dart'
+    as debug_scan_count;
 import 'package:kashakeibo/features/image_upload/image_upload_client.dart'
     as image_upload;
 import 'package:kashakeibo/provider/firebase_user.dart';
@@ -38,6 +40,10 @@ typedef DeleteStoredImage =
 /// 今月のスキャン回数と無料枠を Worker から取得する操作。
 typedef FetchScanQuota = Future<image_analysis.ScanQuota> Function();
 
+/// 今月のスキャン回数を指定値に設定する操作 (DEBUG 開発者メニュー限定)。
+typedef SetDebugScanCount =
+    Future<image_analysis.ScanQuota> Function({required int monthlyScanCount});
+
 /// 撮影・選択した画像のアップロード操作。テストでは差し替える。
 final uploadCapturedImageProvider = Provider<UploadCapturedImage>(
   (ref) => uploadCapturedImage,
@@ -61,6 +67,11 @@ final deleteStoredImageProvider = Provider<DeleteStoredImage>(
 /// 今月のスキャン回数と無料枠の取得操作。テストでは差し替える。
 final fetchScanQuotaProvider = Provider<FetchScanQuota>(
   (ref) => fetchScanQuota,
+);
+
+/// 今月のスキャン回数の設定操作 (DEBUG 開発者メニュー限定)。テストでは差し替える。
+final setDebugScanCountProvider = Provider<SetDebugScanCount>(
+  (ref) => setDebugScanCount,
 );
 
 /// 今月のスキャン回数と無料枠 (残量チップ・ペイウォールの表示判定に使う)。
@@ -194,6 +205,26 @@ Future<image_analysis.ScanQuota> fetchScanQuota() => _callImageApi(
         required firebaseAppCheckToken,
         required httpClient,
       }) => image_analysis.fetchScanQuota(
+        firebaseIdToken: firebaseIdToken,
+        firebaseAppCheckToken: firebaseAppCheckToken,
+        httpClient: httpClient,
+      ),
+);
+
+/// 今月のスキャン回数を指定値に設定する (DEBUG 開発者メニュー限定)。
+///
+/// Worker 側の経路は dev 環境でだけ有効で、prod では 404 になる
+/// (workers/image/src/handler.ts の handleDebugScanCountSet)。冪等。
+Future<image_analysis.ScanQuota> setDebugScanCount({
+  required int monthlyScanCount,
+}) => _callImageApi(
+  imageApiCall:
+      ({
+        required firebaseIdToken,
+        required firebaseAppCheckToken,
+        required httpClient,
+      }) => debug_scan_count.setDebugScanCount(
+        monthlyScanCount: monthlyScanCount,
         firebaseIdToken: firebaseIdToken,
         firebaseAppCheckToken: firebaseAppCheckToken,
         httpClient: httpClient,
