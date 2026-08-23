@@ -37,12 +37,11 @@ Future<void> saveAuditLog({
 Future<List<String>> readAuditLogIDs({
   required FakeFirebaseFirestore firebaseFirestore,
   required DateTime? oldestServerCreatedDateTime,
-}) async =>
-    (await auditLogsQuery(
-      userID: 'user-id',
-      oldestServerCreatedDateTime: oldestServerCreatedDateTime,
-      firebaseFirestore: firebaseFirestore,
-    ).get()).docs.map((doc) => doc.data().id).toList();
+}) async => (await auditLogsQuery(
+  userID: 'user-id',
+  oldestServerCreatedDateTime: oldestServerCreatedDateTime,
+  firebaseFirestore: firebaseFirestore,
+).get()).docs.map((doc) => doc.data().id).toList();
 
 void main() {
   group('auditLogsQuery', () {
