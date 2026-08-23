@@ -203,3 +203,28 @@ last_verified_at: 2026-08-23
 </details>
 
 </details>
+
+---
+
+## 4. 無料プランの履歴制限 (レビュー対応で追加)
+
+- [x] **無料プランの注記表示**: 無料プランでは検索フォームの下に「無料プランでは直近3ヶ月の明細だけを検索できます」の注記が表示され、タップでペイウォールが開ける (検索結果には直近3ヶ月より古い明細が含まれない)
+  - 自動化: manual (絞り込み自体は test/provider/transaction_search_test.dart の下限適用テストで検証している)
+
+#### 動作確認
+<details>
+<summary>動作確認エビデンス</summary>
+
+### **無料プランの注記表示**
+
+<details><summary>動作確認スクショ</summary>
+
+**確認日: 2026-08-23** (ローカル Simulator / debug ビルド = RevenueCat 未設定のためプレミアムなし)
+
+無料プラン状態で検索画面に注記が表示された。下限適用後も既存 (直近) の明細検索は「1. 検索フォーム」「2. 検索の実行」のとおり動作する。3ヶ月より古い明細の非表示は、古い明細の作り込みが必要なためシミュレータでは未実施 (下限の適用ロジックは provider テストで検証済み)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/892639df-ee29-439a-b97d-237eebf5bded.png" width="320" />
+
+</details>
+
+</details>
