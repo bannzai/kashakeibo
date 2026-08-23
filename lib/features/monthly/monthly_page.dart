@@ -19,6 +19,7 @@ import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/features/share_import/shared_image_import.dart';
 import 'package:kashakeibo/features/share_import/shared_image_inbox.dart';
 import 'package:kashakeibo/features/transaction_detail/transaction_detail_page.dart';
+import 'package:kashakeibo/features/transaction_search/transaction_search_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/l10n/transaction_labels.dart';
 import 'package:kashakeibo/provider/image.dart';
@@ -384,23 +385,40 @@ class _MonthHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 10, AppSpacing.xl, 2),
       child: Column(
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: _CircleGhostButton(
-              icon: Icons.tune,
-              tooltip: l10n.openSettings,
-              onPressed: () {
-                unawaited(logAnalyticsEvent(name: 'settings_open'));
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (context) => SettingsPage(
-                      openExternalUri: openExternalUri,
-                      logAnalyticsEvent: logAnalyticsEvent,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _CircleGhostButton(
+                icon: Icons.search,
+                tooltip: l10n.transactionSearchOpen,
+                onPressed: () {
+                  unawaited(logAnalyticsEvent(name: 'transaction_search_open'));
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (context) => TransactionSearchPage(
+                        logAnalyticsEvent: logAnalyticsEvent,
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _CircleGhostButton(
+                icon: Icons.tune,
+                tooltip: l10n.openSettings,
+                onPressed: () {
+                  unawaited(logAnalyticsEvent(name: 'settings_open'));
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (context) => SettingsPage(
+                        openExternalUri: openExternalUri,
+                        logAnalyticsEvent: logAnalyticsEvent,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
           Row(
             children: [
@@ -1075,7 +1093,7 @@ List<Widget> _groupedTransactionRows({
     rows.add(
       Padding(
         padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, 6),
-        child: _TransactionRow(
+        child: TransactionRow(
           transaction: transaction,
           onTap: () => onTransactionTap(transaction),
         ),
@@ -1086,15 +1104,19 @@ List<Widget> _groupedTransactionRows({
 }
 
 /// 明細リストの 1 行 (明細タブの行デザイン)。計算対象外の明細は opacity 0.45。
-/// タップで明細詳細を開く。
-class _TransactionRow extends StatelessWidget {
+/// タップで明細詳細を開く。月次一覧と検索結果 (features/transaction_search) で共有する。
+class TransactionRow extends StatelessWidget {
   /// 表示する明細。
   final Transaction transaction;
 
   /// 行のタップ時の処理。
   final VoidCallback onTap;
 
-  const _TransactionRow({required this.transaction, required this.onTap});
+  const TransactionRow({
+    required this.transaction,
+    required this.onTap,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
