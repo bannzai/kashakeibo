@@ -161,5 +161,6 @@
   "transactionSearchMinimumAmount": "最低",
   "transactionSearchMaximumAmount": "最高",
   "transactionSearchTitleKeyword": "店家",
-  "transactionSearchSubmit": "搜索"
+  "transactionSearchSubmit": "搜索",
+  "transactionSearchClear": "清除条件"
 }

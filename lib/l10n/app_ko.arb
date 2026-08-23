@@ -161,5 +161,6 @@
   "transactionSearchMinimumAmount": "최소",
   "transactionSearchMaximumAmount": "최대",
   "transactionSearchTitleKeyword": "상호",
-  "transactionSearchSubmit": "검색"
+  "transactionSearchSubmit": "검색",
+  "transactionSearchClear": "조건 지우기"
 }
