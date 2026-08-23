@@ -156,5 +156,6 @@
   "transactionSearchPeriod": "日期",
   "transactionSearchDateFrom": "开始日期",
   "transactionSearchDateTo": "结束日期",
-  "transactionSearchDateUnset": "不限"
+  "transactionSearchDateUnset": "不限",
+  "transactionSearchAmount": "金额"
 }
