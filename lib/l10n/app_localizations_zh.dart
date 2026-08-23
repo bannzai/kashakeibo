@@ -457,6 +457,98 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get planPremium => '高级版';
+
+  @override
+  String get settingsAuditLog => '操作记录';
+
+  @override
+  String get auditLogTitle => '操作记录';
+
+  @override
+  String get auditLogDescription => '记录您添加、更正或删除的明细，以及删除原始图片的操作。';
+
+  @override
+  String get auditLogEmpty => '暂无操作记录';
+
+  @override
+  String get auditLogSyncing => '正在同步';
+
+  @override
+  String get auditLogOperationTransactionCreated => '已添加';
+
+  @override
+  String get auditLogOperationTransactionUpdated => '已更正';
+
+  @override
+  String get auditLogOperationTransactionDeleted => '已删除';
+
+  @override
+  String get auditLogOperationTransactionImageDeleted => '已删除图片';
+
+  @override
+  String get auditLogOperationUnknown => '其他操作';
+
+  @override
+  String get auditLogChangedFieldExcludedFromAggregation => '计入总额';
+
+  @override
+  String get auditLogChangedFieldSourceImage => '原始图片';
+
+  @override
+  String get auditLogChangedFieldDuplicateDecision => '重复项处理方式';
+
+  @override
+  String get transactionSearchOpen => '搜索交易记录';
+
+  @override
+  String get transactionSearchTitle => '搜索';
+
+  @override
+  String get transactionSearchPeriod => '日期';
+
+  @override
+  String get transactionSearchDateFrom => '开始日期';
+
+  @override
+  String get transactionSearchDateTo => '结束日期';
+
+  @override
+  String get transactionSearchDateUnset => '不限';
+
+  @override
+  String get transactionSearchAmount => '金额';
+
+  @override
+  String get transactionSearchMinimumAmount => '最低';
+
+  @override
+  String get transactionSearchMaximumAmount => '最高';
+
+  @override
+  String get transactionSearchTitleKeyword => '店家';
+
+  @override
+  String get transactionSearchSubmit => '搜索';
+
+  @override
+  String get transactionSearchClear => '清除条件';
+
+  @override
+  String get transactionSearchConditionRequired => '请输入至少一个条件';
+
+  @override
+  String get transactionSearchDateRangeInvalid => '结束日期必须晚于或等于开始日期';
+
+  @override
+  String get transactionSearchAmountRangeInvalid => '最大值应设置为最小值或更大';
+
+  @override
+  String get transactionSearchNoResults => '没有符合条件的交易';
+
+  @override
+  String transactionSearchResultCount(int count) {
+    return '$count 笔';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -912,6 +1004,98 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get planPremium => '高级版';
+
+  @override
+  String get settingsAuditLog => '操作记录';
+
+  @override
+  String get auditLogTitle => '操作记录';
+
+  @override
+  String get auditLogDescription => '记录您添加、更正或删除的明细，以及删除原始图片的操作。';
+
+  @override
+  String get auditLogEmpty => '暂无操作记录';
+
+  @override
+  String get auditLogSyncing => '正在同步';
+
+  @override
+  String get auditLogOperationTransactionCreated => '已添加';
+
+  @override
+  String get auditLogOperationTransactionUpdated => '已更正';
+
+  @override
+  String get auditLogOperationTransactionDeleted => '已删除';
+
+  @override
+  String get auditLogOperationTransactionImageDeleted => '已删除图片';
+
+  @override
+  String get auditLogOperationUnknown => '其他操作';
+
+  @override
+  String get auditLogChangedFieldExcludedFromAggregation => '计入总额';
+
+  @override
+  String get auditLogChangedFieldSourceImage => '原始图片';
+
+  @override
+  String get auditLogChangedFieldDuplicateDecision => '重复项处理方式';
+
+  @override
+  String get transactionSearchOpen => '搜索交易记录';
+
+  @override
+  String get transactionSearchTitle => '搜索';
+
+  @override
+  String get transactionSearchPeriod => '日期';
+
+  @override
+  String get transactionSearchDateFrom => '开始日期';
+
+  @override
+  String get transactionSearchDateTo => '结束日期';
+
+  @override
+  String get transactionSearchDateUnset => '不限';
+
+  @override
+  String get transactionSearchAmount => '金额';
+
+  @override
+  String get transactionSearchMinimumAmount => '最低';
+
+  @override
+  String get transactionSearchMaximumAmount => '最高';
+
+  @override
+  String get transactionSearchTitleKeyword => '店家';
+
+  @override
+  String get transactionSearchSubmit => '搜索';
+
+  @override
+  String get transactionSearchClear => '清除条件';
+
+  @override
+  String get transactionSearchConditionRequired => '请输入至少一个条件';
+
+  @override
+  String get transactionSearchDateRangeInvalid => '结束日期必须晚于或等于开始日期';
+
+  @override
+  String get transactionSearchAmountRangeInvalid => '最大值应设置为最小值或更大';
+
+  @override
+  String get transactionSearchNoResults => '没有符合条件的交易';
+
+  @override
+  String transactionSearchResultCount(int count) {
+    return '$count 笔';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1366,4 +1550,96 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get planPremium => '進階版';
+
+  @override
+  String get settingsAuditLog => '操作記錄';
+
+  @override
+  String get auditLogTitle => '操作記錄';
+
+  @override
+  String get auditLogDescription => '記錄您新增、修正或刪除的明細，以及刪除原始圖片的操作。';
+
+  @override
+  String get auditLogEmpty => '尚無操作記錄';
+
+  @override
+  String get auditLogSyncing => '正在同步';
+
+  @override
+  String get auditLogOperationTransactionCreated => '已新增';
+
+  @override
+  String get auditLogOperationTransactionUpdated => '已更正';
+
+  @override
+  String get auditLogOperationTransactionDeleted => '已刪除';
+
+  @override
+  String get auditLogOperationTransactionImageDeleted => '已刪除圖片';
+
+  @override
+  String get auditLogOperationUnknown => '其他操作';
+
+  @override
+  String get auditLogChangedFieldExcludedFromAggregation => '計入總額';
+
+  @override
+  String get auditLogChangedFieldSourceImage => '原始圖片';
+
+  @override
+  String get auditLogChangedFieldDuplicateDecision => '重複項處理方式';
+
+  @override
+  String get transactionSearchOpen => '搜尋交易紀錄';
+
+  @override
+  String get transactionSearchTitle => '搜尋';
+
+  @override
+  String get transactionSearchPeriod => '日期';
+
+  @override
+  String get transactionSearchDateFrom => '開始日期';
+
+  @override
+  String get transactionSearchDateTo => '結束日期';
+
+  @override
+  String get transactionSearchDateUnset => '不限';
+
+  @override
+  String get transactionSearchAmount => '金額';
+
+  @override
+  String get transactionSearchMinimumAmount => '最低';
+
+  @override
+  String get transactionSearchMaximumAmount => '最高';
+
+  @override
+  String get transactionSearchTitleKeyword => '店家';
+
+  @override
+  String get transactionSearchSubmit => '搜尋';
+
+  @override
+  String get transactionSearchClear => '清除條件';
+
+  @override
+  String get transactionSearchConditionRequired => '請至少輸入一項條件';
+
+  @override
+  String get transactionSearchDateRangeInvalid => '結束日期必須晚於或等於開始日期';
+
+  @override
+  String get transactionSearchAmountRangeInvalid => '最大值應設為最小值或更大';
+
+  @override
+  String get transactionSearchNoResults => '沒有符合條件的交易';
+
+  @override
+  String transactionSearchResultCount(int count) {
+    return '$count 筆';
+  }
 }

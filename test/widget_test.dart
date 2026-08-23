@@ -618,6 +618,12 @@ void main() {
           mergeDuplicateTransactionsProvider.overrideWithValue(
             mergeDuplicateTransactions,
           ),
+          // 確認シートは「別々の支出として残す」の Provider も watch する。
+          // Firebase 未初期化のウィジェットテストで FirebaseFirestore.instance に
+          // 触れないよう差し替える。
+          keepBothTransactionsProvider.overrideWithValue(
+            KeepBothTransactions(firebaseFirestore: FakeFirebaseFirestore()),
+          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -793,6 +799,12 @@ void main() {
           ),
           mergeDuplicateTransactionsProvider.overrideWithValue(
             mergeDuplicateTransactions,
+          ),
+          // 確認シートは「別々の支出として残す」の Provider も watch する。
+          // Firebase 未初期化のウィジェットテストで FirebaseFirestore.instance に
+          // 触れないよう差し替える。
+          keepBothTransactionsProvider.overrideWithValue(
+            KeepBothTransactions(firebaseFirestore: FakeFirebaseFirestore()),
           ),
         ],
         child: MaterialApp(
@@ -1072,7 +1084,10 @@ class _PendingAddTransaction extends _RecordingAddTransaction {
 /// Firestore へ書き込まず、マージに渡された 2 件を記録する MergeDuplicateTransactions。
 class _RecordingMergeDuplicateTransactions extends MergeDuplicateTransactions {
   _RecordingMergeDuplicateTransactions()
-    : super(deleteStoredImage: ({required imageObjectKey}) async {});
+    : super(
+        firebaseFirestore: FakeFirebaseFirestore(),
+        deleteStoredImage: ({required imageObjectKey}) async {},
+      );
 
   /// マージ後に残す明細として渡された明細。
   Transaction? primaryTransaction;
