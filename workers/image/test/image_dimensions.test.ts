@@ -198,6 +198,16 @@ describe("画像ヘッダーからの実寸・色の読み取り", () => {
 
     // RIFF が宣言するファイル長に届かない (途中で切れた) ファイル
     expect(readImageDimensions(onePixelVp8xWebpBytes.slice(0, 40).buffer as ArrayBuffer)).toBeNull();
+
+    // 空の VP8 子チャンク (VP8X + 種別 "VP8 " + 宣言長 0) は画素の実体として数えない
+    const emptyChildChunkWebpBytes = new Uint8Array([...onePixelVp8xWebpBytes.slice(0, 30), 0x56, 0x50, 0x38, 0x20, 0, 0, 0, 0]);
+    new DataView(emptyChildChunkWebpBytes.buffer).setUint32(4, emptyChildChunkWebpBytes.byteLength - 8, true);
+    expect(readImageDimensions(emptyChildChunkWebpBytes.buffer as ArrayBuffer)).toBeNull();
+
+    // RIFF の宣言末尾より後ろに置かれた実画像チャンクは RIFF の外にあるバイト列で、チャンクとして数えない
+    const childChunkBeyondRiffEndWebpBytes = Uint8Array.from(onePixelVp8xWebpBytes);
+    new DataView(childChunkBeyondRiffEndWebpBytes.buffer).setUint32(4, 22, true);
+    expect(readImageDimensions(childChunkBeyondRiffEndWebpBytes.buffer as ArrayBuffer)).toBeNull();
   });
 
   it("未知の形式・壊れたバイト列・実寸 0 のヘッダーでは null を返し、例外を投げない", () => {

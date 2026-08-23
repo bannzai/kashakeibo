@@ -262,14 +262,28 @@ function readWebpDimensions(imageBytesView: DataView): ImageDimensions | null {
  * フレーム内のチャンクまでは辿らず、静止画の VP8 (非可逆)・VP8L (可逆) だけを実画像として扱う。
  */
 function hasWebpImageDataChunk(imageBytesView: DataView): boolean {
+  // RIFF ヘッダーが宣言するファイル末尾より先は RIFF の外で、そこにあるバイト列はチャンクとして扱わない
+  const riffDeclaredEndOffset = Math.min(imageBytesView.getUint32(4, true) + 8, imageBytesView.byteLength);
   // RIFF のチャンクは種別4バイト + 長さ4バイトのヘッダーを持ち、内容が奇数長のチャンクは 1 バイトのパディングで詰められる
-  for (let chunkOffset = 12; chunkOffset + 8 <= imageBytesView.byteLength; ) {
+  for (let chunkOffset = 12; chunkOffset + 8 <= riffDeclaredEndOffset; ) {
     const chunkContentByteLength = imageBytesView.getUint32(chunkOffset + 4, true);
-    if (chunkOffset + 8 + chunkContentByteLength > imageBytesView.byteLength) {
-      // 内容がバッファからはみ出すチャンクは途中で切れており、その先にチャンクは無い
+    if (chunkOffset + 8 + chunkContentByteLength > riffDeclaredEndOffset) {
+      // 内容が RIFF の宣言範囲からはみ出すチャンクは途中で切れており、その先にチャンクは無い
       return false;
     }
-    if (["VP8 ", "VP8L"].includes(readAsciiText(imageBytesView, chunkOffset, 4))) {
+    const chunkType = readAsciiText(imageBytesView, chunkOffset, 4);
+    // 実画像として認めるのは、最低限の内容 (VP8: フレームタグ3 + sync code 3 + 寸法4、VP8L: シグネチャ1 + 寸法4) を
+    // 宣言し、シグネチャも一致するチャンクだけ。空・切り詰められた VP8/VP8L チャンクを画素の実体として数えない
+    if (
+      chunkType === "VP8 " &&
+      chunkContentByteLength >= 10 &&
+      imageBytesView.getUint8(chunkOffset + 11) === 0x9d &&
+      imageBytesView.getUint8(chunkOffset + 12) === 0x01 &&
+      imageBytesView.getUint8(chunkOffset + 13) === 0x2a
+    ) {
+      return true;
+    }
+    if (chunkType === "VP8L" && chunkContentByteLength >= 5 && imageBytesView.getUint8(chunkOffset + 8) === 0x2f) {
       return true;
     }
     chunkOffset += 8 + chunkContentByteLength + (chunkContentByteLength % 2);
