@@ -146,5 +146,6 @@
   "auditLogOperationTransactionCreated": "已新增",
   "auditLogOperationTransactionUpdated": "已更正",
   "auditLogOperationTransactionDeleted": "已刪除",
-  "auditLogOperationTransactionImageDeleted": "已刪除圖片"
+  "auditLogOperationTransactionImageDeleted": "已刪除圖片",
+  "auditLogOperationUnknown": "其他操作"
 }
