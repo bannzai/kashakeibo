@@ -164,5 +164,6 @@
   "transactionSearchSubmit": "搜尋",
   "transactionSearchClear": "清除條件",
   "transactionSearchConditionRequired": "請至少輸入一項條件",
-  "transactionSearchDateRangeInvalid": "結束日期必須晚於或等於開始日期"
+  "transactionSearchDateRangeInvalid": "結束日期必須晚於或等於開始日期",
+  "transactionSearchAmountRangeInvalid": "最大值應設為最小值或更大"
 }
