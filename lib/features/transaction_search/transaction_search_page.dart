@@ -121,6 +121,12 @@ class TransactionSearchPage extends HookConsumerWidget {
       );
     }
 
+    /// 検索の全入力経路 (検索ボタン・各入力欄の検索キー) を1本化し、計測してから検索を確定する。
+    void logAndSubmitSearch() {
+      unawaited(logAnalyticsEvent(name: 'transaction_search_submit'));
+      submitSearch();
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.transactionSearchTitle)),
       body: SafeArea(
@@ -177,7 +183,7 @@ class TransactionSearchPage extends HookConsumerWidget {
                         child: _AmountField(
                           label: l10n.transactionSearchMinimumAmount,
                           controller: minimumAmountController,
-                          onSubmitted: submitSearch,
+                          onSubmitted: logAndSubmitSearch,
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
@@ -185,7 +191,7 @@ class TransactionSearchPage extends HookConsumerWidget {
                         child: _AmountField(
                           label: l10n.transactionSearchMaximumAmount,
                           controller: maximumAmountController,
-                          onSubmitted: submitSearch,
+                          onSubmitted: logAndSubmitSearch,
                         ),
                       ),
                     ],
@@ -199,12 +205,7 @@ class TransactionSearchPage extends HookConsumerWidget {
                       border: const OutlineInputBorder(),
                       isDense: true,
                     ),
-                    onSubmitted: (titleKeyword) {
-                      unawaited(
-                        logAnalyticsEvent(name: 'transaction_search_submit'),
-                      );
-                      submitSearch();
-                    },
+                    onSubmitted: (titleKeyword) => logAndSubmitSearch(),
                   ),
                   if (validationMessage.value != null)
                     Padding(
@@ -222,14 +223,7 @@ class TransactionSearchPage extends HookConsumerWidget {
                     children: [
                       Expanded(
                         child: FilledButton(
-                          onPressed: () {
-                            unawaited(
-                              logAnalyticsEvent(
-                                name: 'transaction_search_submit',
-                              ),
-                            );
-                            submitSearch();
-                          },
+                          onPressed: logAndSubmitSearch,
                           child: Text(l10n.transactionSearchSubmit),
                         ),
                       ),
