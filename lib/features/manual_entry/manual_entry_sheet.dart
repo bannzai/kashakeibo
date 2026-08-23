@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -9,19 +11,35 @@ import 'package:kashakeibo/l10n/transaction_labels.dart';
 import 'package:kashakeibo/provider/transaction.dart';
 import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/style/tokens.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
 
 /// 手動明細入力シートを表示し、登録完了時は true を返す。
-Future<bool?> showManualEntrySheet({required BuildContext context}) =>
-    showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => const ManualEntrySheet(),
-    );
+///
+/// キャンセルの記録は dismiss 経路 (閉じるボタン・背景タップ・スワイプ) によらず、
+/// ここで一度だけ行う。
+Future<bool?> showManualEntrySheet({
+  required BuildContext context,
+  required LogAnalyticsEvent logAnalyticsEvent,
+}) async {
+  final registered = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (context) =>
+        ManualEntrySheet(logAnalyticsEvent: logAnalyticsEvent),
+  );
+  if (registered != true) {
+    unawaited(logAnalyticsEvent(name: 'manual_entry_cancel'));
+  }
+  return registered;
+}
 
 /// 金額・日付・店名・カテゴリ・収支種別を入力して明細を登録するシート。
 class ManualEntrySheet extends HookConsumerWidget {
-  const ManualEntrySheet({super.key});
+  /// Analytics イベントを記録する処理。
+  final LogAnalyticsEvent logAnalyticsEvent;
+
+  const ManualEntrySheet({required this.logAnalyticsEvent, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -212,6 +230,9 @@ class ManualEntrySheet extends HookConsumerWidget {
                 onPressed: submitting.value
                     ? null
                     : () async {
+                        unawaited(
+                          logAnalyticsEvent(name: 'manual_entry_register'),
+                        );
                         if (!formKey.currentState!.validate()) {
                           return;
                         }

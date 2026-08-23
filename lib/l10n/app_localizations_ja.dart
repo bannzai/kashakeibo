@@ -86,11 +86,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get accountBackupConfigured => '設定済み';
 
   @override
-  String get accountBackupDescription => 'アカウントをリンクすると、機種変更してもデータが引き継げます。';
+  String get accountBackupDescription => 'アカウントをリンクすると、機種変更してもデータが引き継げます';
 
   @override
   String get accountBackupConfiguredDescription =>
-      '別の端末で同じアカウントを選ぶと、保存済みのデータを引き継げます。';
+      '別の端末で同じアカウントを選ぶと、保存済みのデータを引き継げます';
 
   @override
   String get linkOrSignInWithApple => 'Appleでリンク';
@@ -262,7 +262,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String captureCandidatesNote(int count) {
-    return '$count件の明細を読み取りました。登録する明細を選んでください';
+    return '読み取った$count件から登録する明細を選んでください';
   }
 
   @override
@@ -360,7 +360,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get paywallTitle => 'スキャンし放題に';
 
   @override
-  String get paywallSubtitle => '連携しないから壊れない。撮るだけで、レシートも明細も AI が読み取ります。';
+  String get paywallSubtitle => '連携しないから壊れない。撮るだけでレシートも明細も AI が読み取ります';
+
+  @override
+  String get paywallSavingsClaim => '家計簿で支出が減った人の約半数が、月5,000円〜1万円未満の節約を実感*';
+
+  @override
+  String get paywallSavingsSource =>
+      '* 東証マネ部!「お金に関するアンケート」2022年10月・全国20〜40代の会社員1,111名';
 
   @override
   String paywallFreeQuota(int used, int limit) {
@@ -405,26 +412,26 @@ class AppLocalizationsJa extends AppLocalizations {
   String get paywallRestore => '購入の復元';
 
   @override
-  String get paywallRestored => '購入を復元しました。プレミアムが有効です';
+  String get paywallRestored => 'プレミアムを復元しました';
 
   @override
   String get paywallRestoreNotFound => '復元できる購入がありません';
 
   @override
-  String get paywallPurchased => 'プレミアムを開始しました。スキャンし放題です!';
+  String get paywallPurchased => 'スキャンし放題のプレミアムを開始しました!';
 
   @override
   String get paywallPremiumActive => 'プレミアム利用中';
 
   @override
-  String get paywallPremiumActiveDescription => 'スキャンし放題と全期間の履歴が使えます。';
+  String get paywallPremiumActiveDescription => 'スキャンし放題と全期間の履歴が使えます';
 
   @override
   String get paywallOfferingUnavailable => '料金プランを取得できませんでした';
 
   @override
   String get paywallFairUseNote =>
-      'スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます。';
+      'スキャンし放題は、サービス品質維持のため通常の利用では達しない月間上限の範囲で提供されます';
 
   @override
   String get paywallSubscriptionNote =>

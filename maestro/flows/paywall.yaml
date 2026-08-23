@@ -1,0 +1,31 @@
+# 課金導線フロー: DEBUG 開発者メニュー (月ラベル長押し) の「ペイウォールをサンプル価格で
+# 開く」で RevenueCat 未設定でもペイウォールを表示し、料金カード・節約効果の訴求 (issue #52)・
+# 購入 (mock で成功) を確認する。
+# セレクタは Semantics の結合 (title+subtitle が 1 ノード) とロケール差 (en / ja) を
+# 吸収するため、(?s) 付きの部分一致正規表現にする。
+appId: com.bannzai.kashakeibo.dev
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(20\\d\\d年\\d+月|[A-Za-z]+ 20\\d\\d).*"
+    timeout: 30000
+- longPressOn:
+    text: "(?s).*(20\\d\\d年\\d+月|[A-Za-z]+ 20\\d\\d).*"
+- tapOn:
+    text: "(?s).*ペイウォールをサンプル価格で開く.*"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Scan freely with Premium|スキャンし放題に).*"
+    timeout: 15000
+# 料金カード (サンプル価格) と節約効果の訴求 (調査データ) の表示
+- assertVisible: "(?s).*¥480.*"
+- assertVisible: "(?s).*¥3,800.*"
+- assertVisible: "(?s).*(About half of people who cut spending|家計簿で支出が減った人の約半数).*"
+- tapOn:
+    text: "(?s).*(Start Premium|プレミアムを始める).*"
+# mock 購入成功のスナックバー
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Premium is active|プレミアムを開始しました).*"
+    timeout: 15000
