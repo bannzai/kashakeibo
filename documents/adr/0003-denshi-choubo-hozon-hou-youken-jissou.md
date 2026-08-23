@@ -1,6 +1,6 @@
 # 0003. 電子帳簿保存法のスキャナ保存要件の基盤は実装し、「電帳法対応」の訴求は別判断とする
 
-- ステータス: 採用 ([ADR 0002](0002-denshi-choubo-hozon-hou-out-of-scope.md) を Supersede する)
+- ステータス: 採用 ([ADR 0002](0002-denshi-choubo-hozon-hou-out-of-scope.md) を Supersede する。決定 1 (訂正削除履歴) の記録方式は [ADR 0004](0004-audit-log-bigquery-extension.md) が置き換え、クライアント書き込みの auditLogs サブコレクションではなく BigQuery extension で記録する)
 - 日付: 2026-08-23
 - 決定の経緯: https://github.com/bannzai/kashakeibo/issues/73 (方針変更の起票。チェック結果の記録は issue #65 / ADR 0002)
 

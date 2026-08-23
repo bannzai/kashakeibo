@@ -3,5 +3,13 @@
     "default": "kashakeibo-dev",
     "dev": "kashakeibo-dev",
     "prod": "kashakeibo-prod"
+  },
+  "targets": {},
+  "etags": {
+    "kashakeibo-dev": {
+      "extensionInstances": {
+        "firestore-bigquery-export": "c77cedef2188d4e82b70f3032c56cc738e49f7d3aa9d0a8114992e6306e103b9"
+      }
+    }
   }
 }
