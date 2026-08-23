@@ -174,7 +174,11 @@ abstract class TransactionFirestoreKeys {
   static const String yearMonth = 'yearMonth';
   static const String type = 'type';
   static const String transactionDate = 'transactionDate';
+  static const String amount = 'amount';
   static const String excludedFromAggregation = 'excludedFromAggregation';
+  static const String sourceImageObjectKey = 'sourceImageObjectKey';
+  static const String confirmedDistinctTransactionIDs =
+      'confirmedDistinctTransactionIDs';
 }
 
 /// 指定日時をローカルタイム基準の "yyyy-MM" 形式へ変換する。

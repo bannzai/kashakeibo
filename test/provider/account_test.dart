@@ -12,12 +12,12 @@ class MockUser extends Mock implements User {}
 
 /// アカウント削除機能のテスト。
 void main() {
-  test('アカウント削除は再認証後に全明細・ユーザードキュメント・Authを削除する', () async {
+  test('アカウント削除は再認証後に全明細・ユーザードキュメント・Authを削除し、操作履歴のパージを依頼する', () async {
     final firebaseFirestore = FakeFirebaseFirestore();
     final firebaseAuth = MockFirebaseAuth();
     final firebaseUser = MockUser();
-    var reauthenticationCount = 0;
-    var imageDeletionCount = 0;
+    // 実行された削除ステップを呼ばれた順に記録する。
+    final accountDeletionSteps = <String>[];
     var currentUserReadCount = 0;
     when(
       () => firebaseAuth.currentUser,
@@ -46,19 +46,38 @@ void main() {
       firebaseAuth: firebaseAuth,
       firebaseFirestore: firebaseFirestore,
       reauthenticateForAccountDeletion: ({required user}) async {
-        reauthenticationCount++;
+        accountDeletionSteps.add('reauthentication');
         return null;
       },
       deleteAllImagesForAccount: ({required user}) async {
-        imageDeletionCount++;
+        accountDeletionSteps.add('imageDeletion');
+        // 明細の削除より前に呼ばれることを、この時点で明細が残っていることで確かめる。
+        expect(
+          (await firebaseFirestore
+                  .collection('users')
+                  .doc('user-id')
+                  .collection('transactions')
+                  .limit(1)
+                  .get())
+              .docs,
+          isNotEmpty,
+        );
+      },
+      deleteAuditLogsForAccount: ({required user}) async {
+        accountDeletionSteps.add('auditLogPurge');
       },
     );
     await deleteAccount.call();
     // 削除済み状態で再実行しても何も起こらない。
     await deleteAccount.call();
 
-    expect(reauthenticationCount, 1);
-    expect(imageDeletionCount, 1);
+    // 履歴の実体は BigQuery にあるため削除は Worker へのパージ依頼で行い、
+    // 非破壊のパージ依頼を復元不能な画像削除より先に済ませる。
+    expect(accountDeletionSteps, [
+      'reauthentication',
+      'auditLogPurge',
+      'imageDeletion',
+    ]);
     expect(
       (await firebaseFirestore
               .collection('users')
@@ -92,6 +111,7 @@ void main() {
       reauthenticateForAccountDeletion: ({required user}) async =>
           'authorization-code',
       deleteAllImagesForAccount: ({required user}) async {},
+      deleteAuditLogsForAccount: ({required user}) async {},
     ).call();
 
     verifyInOrder([
@@ -117,6 +137,7 @@ void main() {
         reauthenticateForAccountDeletion: ({required user}) async =>
             throw FirebaseAuthException(code: 'requires-recent-login'),
         deleteAllImagesForAccount: ({required user}) async {},
+        deleteAuditLogsForAccount: ({required user}) async {},
       ).call(),
       throwsA(isA<FirebaseAuthException>()),
     );
@@ -148,6 +169,7 @@ void main() {
       firebaseFirestore: firebaseFirestore,
       reauthenticateForAccountDeletion: ({required user}) async => null,
       deleteAllImagesForAccount: ({required user}) async {},
+      deleteAuditLogsForAccount: ({required user}) async {},
     ).call();
 
     expect(
@@ -173,6 +195,7 @@ void main() {
         firebaseFirestore: FakeFirebaseFirestore(),
         reauthenticateForAccountDeletion: ({required user}) async => null,
         deleteAllImagesForAccount: ({required user}) async {},
+        deleteAuditLogsForAccount: ({required user}) async {},
       ).call(),
       throwsA(
         isA<FirebaseAuthException>().having(
@@ -203,10 +226,61 @@ void main() {
         reauthenticateForAccountDeletion: ({required user}) async => null,
         deleteAllImagesForAccount: ({required user}) async =>
             throw StateError('画像削除失敗'),
+        deleteAuditLogsForAccount: ({required user}) async {},
       ).call(),
       throwsStateError,
     );
 
+    expect(
+      (await firebaseFirestore.collection('users').doc('user-id').get()).exists,
+      isTrue,
+    );
+    verifyNever(() => firebaseUser.delete());
+  });
+
+  test('操作履歴のパージ依頼が失敗した場合はR2画像・FirestoreとAuthを削除しない', () async {
+    final firebaseFirestore = FakeFirebaseFirestore();
+    final firebaseAuth = MockFirebaseAuth();
+    final firebaseUser = MockUser();
+    when(() => firebaseAuth.currentUser).thenReturn(firebaseUser);
+    when(() => firebaseUser.uid).thenReturn('user-id');
+    await firebaseFirestore.collection('users').doc('user-id').set({
+      'created': true,
+    });
+    await firebaseFirestore
+        .collection('users')
+        .doc('user-id')
+        .collection('transactions')
+        .doc('transaction-id')
+        .set({'index': 0});
+    var imageDeletionCount = 0;
+
+    await expectLater(
+      FirebaseDeleteAccount(
+        firebaseAuth: firebaseAuth,
+        firebaseFirestore: firebaseFirestore,
+        reauthenticateForAccountDeletion: ({required user}) async => null,
+        deleteAllImagesForAccount: ({required user}) async {
+          imageDeletionCount++;
+        },
+        deleteAuditLogsForAccount: ({required user}) async =>
+            throw StateError('操作履歴のパージ依頼失敗'),
+      ).call(),
+      throwsStateError,
+    );
+
+    // パージを登録できないまま先へ進むと、復元不能な画像の削除だけが済んだアカウントが残り、
+    // 明細を消せば履歴だけが残り続ける状態になるため、ここで止める。
+    expect(imageDeletionCount, 0);
+    expect(
+      (await firebaseFirestore
+              .collection('users')
+              .doc('user-id')
+              .collection('transactions')
+              .get())
+          .docs,
+      hasLength(1),
+    );
     expect(
       (await firebaseFirestore.collection('users').doc('user-id').get()).exists,
       isTrue,

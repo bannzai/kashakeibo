@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:kashakeibo/features/audit_log/audit_log_page.dart';
 import 'package:kashakeibo/features/paywall/paywall_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/provider/account.dart';
@@ -228,6 +229,37 @@ class SettingsPage extends HookConsumerWidget {
                           trigger: 'settings_plan',
                           openExternalUri: openExternalUri,
                           logAnalyticsEvent: logAnalyticsEvent,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Material(
+                    color: appColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      minTileHeight: 50,
+                      title: Text(
+                        l10n.settingsAuditLog,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_right,
+                        color: appColors.neutral500,
+                      ),
+                      onTap: () {
+                        unawaited(logAnalyticsEvent(name: 'audit_log_open'));
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (context) => AuditLogPage(
+                              openExternalUri: openExternalUri,
+                              logAnalyticsEvent: logAnalyticsEvent,
+                            ),
+                          ),
                         );
                       },
                     ),

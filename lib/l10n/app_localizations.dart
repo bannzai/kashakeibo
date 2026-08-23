@@ -931,6 +931,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Premium'**
   String get planPremium;
+
+  /// Settings row that opens the history of transaction edits and deletions
+  ///
+  /// In en, this message translates to:
+  /// **'Operation history'**
+  String get settingsAuditLog;
+
+  /// Title of the operation history screen
+  ///
+  /// In en, this message translates to:
+  /// **'Operation history'**
+  String get auditLogTitle;
+
+  /// Explanation shown at the top of the operation history screen
+  ///
+  /// In en, this message translates to:
+  /// **'A record of transactions you added, corrected, or deleted, and of deleted source images.'**
+  String get auditLogDescription;
+
+  /// Placeholder shown when no operation has been recorded
+  ///
+  /// In en, this message translates to:
+  /// **'No operations recorded yet'**
+  String get auditLogEmpty;
+
+  /// Shown instead of a timestamp until the server records the operation time
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing'**
+  String get auditLogSyncing;
+
+  /// Operation label for creating a transaction
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get auditLogOperationTransactionCreated;
+
+  /// Operation label for correcting a transaction
+  ///
+  /// In en, this message translates to:
+  /// **'Corrected'**
+  String get auditLogOperationTransactionUpdated;
+
+  /// Operation label for deleting a transaction
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted'**
+  String get auditLogOperationTransactionDeleted;
+
+  /// Operation label for deleting the source image of a transaction
+  ///
+  /// In en, this message translates to:
+  /// **'Image deleted'**
+  String get auditLogOperationTransactionImageDeleted;
+
+  /// Operation label for a record written by a newer version of the app
+  ///
+  /// In en, this message translates to:
+  /// **'Other operation'**
+  String get auditLogOperationUnknown;
+
+  /// Name of the corrected field: whether the transaction counts toward totals
+  ///
+  /// In en, this message translates to:
+  /// **'Totals inclusion'**
+  String get auditLogChangedFieldExcludedFromAggregation;
+
+  /// Name of the corrected field: link to the source image
+  ///
+  /// In en, this message translates to:
+  /// **'Source image'**
+  String get auditLogChangedFieldSourceImage;
+
+  /// Name of the corrected field: the merge or keep-both decision on duplicates
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate decision'**
+  String get auditLogChangedFieldDuplicateDecision;
+
+  /// Tooltip for the search button in the monthly screen app bar
+  ///
+  /// In en, this message translates to:
+  /// **'Search transactions'**
+  String get transactionSearchOpen;
+
+  /// Title of the transaction search screen
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get transactionSearchTitle;
+
+  /// Section label for the transaction date range
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get transactionSearchPeriod;
+
+  /// Label of the start date field
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get transactionSearchDateFrom;
+
+  /// Label of the end date field
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get transactionSearchDateTo;
+
+  /// Shown on a date field that has no date selected
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get transactionSearchDateUnset;
+
+  /// Section label for the amount range
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get transactionSearchAmount;
+
+  /// Label of the minimum amount field
+  ///
+  /// In en, this message translates to:
+  /// **'Min'**
+  String get transactionSearchMinimumAmount;
+
+  /// Label of the maximum amount field
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get transactionSearchMaximumAmount;
+
+  /// Label of the store name keyword field
+  ///
+  /// In en, this message translates to:
+  /// **'Store'**
+  String get transactionSearchTitleKeyword;
+
+  /// Button that runs the search with the entered conditions
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get transactionSearchSubmit;
+
+  /// Button that clears every search condition
+  ///
+  /// In en, this message translates to:
+  /// **'Clear conditions'**
+  String get transactionSearchClear;
+
+  /// Message shown before any search condition is entered
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one condition'**
+  String get transactionSearchConditionRequired;
+
+  /// Validation message when the end date precedes the start date
+  ///
+  /// In en, this message translates to:
+  /// **'Set the end date to the start date or later'**
+  String get transactionSearchDateRangeInvalid;
+
+  /// Validation message when the maximum amount is below the minimum amount
+  ///
+  /// In en, this message translates to:
+  /// **'Set the maximum to the minimum or more'**
+  String get transactionSearchAmountRangeInvalid;
+
+  /// Placeholder shown when the search returns nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions match your conditions'**
+  String get transactionSearchNoResults;
+
+  /// Number of transactions found by the search
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 transaction} other{{count} transactions}}'**
+  String transactionSearchResultCount(int count);
+
+  /// Notice shown on the search screen to free plan users, explaining that older transactions are out of range
+  ///
+  /// In en, this message translates to:
+  /// **'The free plan searches only the last {monthCount} months'**
+  String transactionSearchFreePlanHistoryLimit(int monthCount);
+
+  /// Notice shown on the operation history screen to free plan users, explaining that older operations are out of range
+  ///
+  /// In en, this message translates to:
+  /// **'The free plan shows only the last {monthCount} months of operations'**
+  String auditLogFreePlanHistoryLimit(int monthCount);
+
+  /// Tappable hint under the free plan history notice that opens the paywall
+  ///
+  /// In en, this message translates to:
+  /// **'See your full history with Premium'**
+  String get freePlanHistoryLimitUpgrade;
 }
 
 class _AppLocalizationsDelegate

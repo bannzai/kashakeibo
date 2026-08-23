@@ -333,5 +333,152 @@
   "paywallSubscriptionNote": "Payment is charged to your store account at confirmation. The subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel it in your store account settings.",
   "settingsPlan": "Plan",
   "planFree": "Free",
-  "planPremium": "Premium"
+  "planPremium": "Premium",
+  "settingsAuditLog": "Operation history",
+  "@settingsAuditLog": {
+    "description": "Settings row that opens the history of transaction edits and deletions"
+  },
+  "auditLogTitle": "Operation history",
+  "@auditLogTitle": {
+    "description": "Title of the operation history screen"
+  },
+  "auditLogDescription": "A record of transactions you added, corrected, or deleted, and of deleted source images.",
+  "@auditLogDescription": {
+    "description": "Explanation shown at the top of the operation history screen"
+  },
+  "auditLogEmpty": "No operations recorded yet",
+  "@auditLogEmpty": {
+    "description": "Placeholder shown when no operation has been recorded"
+  },
+  "auditLogSyncing": "Syncing",
+  "@auditLogSyncing": {
+    "description": "Shown instead of a timestamp until the server records the operation time"
+  },
+  "auditLogOperationTransactionCreated": "Added",
+  "@auditLogOperationTransactionCreated": {
+    "description": "Operation label for creating a transaction"
+  },
+  "auditLogOperationTransactionUpdated": "Corrected",
+  "@auditLogOperationTransactionUpdated": {
+    "description": "Operation label for correcting a transaction"
+  },
+  "auditLogOperationTransactionDeleted": "Deleted",
+  "@auditLogOperationTransactionDeleted": {
+    "description": "Operation label for deleting a transaction"
+  },
+  "auditLogOperationTransactionImageDeleted": "Image deleted",
+  "@auditLogOperationTransactionImageDeleted": {
+    "description": "Operation label for deleting the source image of a transaction"
+  },
+  "auditLogOperationUnknown": "Other operation",
+  "@auditLogOperationUnknown": {
+    "description": "Operation label for a record written by a newer version of the app"
+  },
+  "auditLogChangedFieldExcludedFromAggregation": "Totals inclusion",
+  "@auditLogChangedFieldExcludedFromAggregation": {
+    "description": "Name of the corrected field: whether the transaction counts toward totals"
+  },
+  "auditLogChangedFieldSourceImage": "Source image",
+  "@auditLogChangedFieldSourceImage": {
+    "description": "Name of the corrected field: link to the source image"
+  },
+  "auditLogChangedFieldDuplicateDecision": "Duplicate decision",
+  "@auditLogChangedFieldDuplicateDecision": {
+    "description": "Name of the corrected field: the merge or keep-both decision on duplicates"
+  },
+  "transactionSearchOpen": "Search transactions",
+  "@transactionSearchOpen": {
+    "description": "Tooltip for the search button in the monthly screen app bar"
+  },
+  "transactionSearchTitle": "Search",
+  "@transactionSearchTitle": {
+    "description": "Title of the transaction search screen"
+  },
+  "transactionSearchPeriod": "Date",
+  "@transactionSearchPeriod": {
+    "description": "Section label for the transaction date range"
+  },
+  "transactionSearchDateFrom": "From",
+  "@transactionSearchDateFrom": {
+    "description": "Label of the start date field"
+  },
+  "transactionSearchDateTo": "To",
+  "@transactionSearchDateTo": {
+    "description": "Label of the end date field"
+  },
+  "transactionSearchDateUnset": "Any",
+  "@transactionSearchDateUnset": {
+    "description": "Shown on a date field that has no date selected"
+  },
+  "transactionSearchAmount": "Amount",
+  "@transactionSearchAmount": {
+    "description": "Section label for the amount range"
+  },
+  "transactionSearchMinimumAmount": "Min",
+  "@transactionSearchMinimumAmount": {
+    "description": "Label of the minimum amount field"
+  },
+  "transactionSearchMaximumAmount": "Max",
+  "@transactionSearchMaximumAmount": {
+    "description": "Label of the maximum amount field"
+  },
+  "transactionSearchTitleKeyword": "Store",
+  "@transactionSearchTitleKeyword": {
+    "description": "Label of the store name keyword field"
+  },
+  "transactionSearchSubmit": "Search",
+  "@transactionSearchSubmit": {
+    "description": "Button that runs the search with the entered conditions"
+  },
+  "transactionSearchClear": "Clear conditions",
+  "@transactionSearchClear": {
+    "description": "Button that clears every search condition"
+  },
+  "transactionSearchConditionRequired": "Enter at least one condition",
+  "@transactionSearchConditionRequired": {
+    "description": "Message shown before any search condition is entered"
+  },
+  "transactionSearchDateRangeInvalid": "Set the end date to the start date or later",
+  "@transactionSearchDateRangeInvalid": {
+    "description": "Validation message when the end date precedes the start date"
+  },
+  "transactionSearchAmountRangeInvalid": "Set the maximum to the minimum or more",
+  "@transactionSearchAmountRangeInvalid": {
+    "description": "Validation message when the maximum amount is below the minimum amount"
+  },
+  "transactionSearchNoResults": "No transactions match your conditions",
+  "@transactionSearchNoResults": {
+    "description": "Placeholder shown when the search returns nothing"
+  },
+  "transactionSearchResultCount": "{count, plural, =1{1 transaction} other{{count} transactions}}",
+  "@transactionSearchResultCount": {
+    "description": "Number of transactions found by the search",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transactionSearchFreePlanHistoryLimit": "The free plan searches only the last {monthCount} months",
+  "@transactionSearchFreePlanHistoryLimit": {
+    "description": "Notice shown on the search screen to free plan users, explaining that older transactions are out of range",
+    "placeholders": {
+      "monthCount": {
+        "type": "int"
+      }
+    }
+  },
+  "auditLogFreePlanHistoryLimit": "The free plan shows only the last {monthCount} months of operations",
+  "@auditLogFreePlanHistoryLimit": {
+    "description": "Notice shown on the operation history screen to free plan users, explaining that older operations are out of range",
+    "placeholders": {
+      "monthCount": {
+        "type": "int"
+      }
+    }
+  },
+  "freePlanHistoryLimitUpgrade": "See your full history with Premium",
+  "@freePlanHistoryLimitUpgrade": {
+    "description": "Tappable hint under the free plan history notice that opens the paywall"
+  }
 }

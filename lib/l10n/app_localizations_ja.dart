@@ -445,4 +445,109 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get planPremium => 'プレミアム';
+
+  @override
+  String get settingsAuditLog => '操作履歴';
+
+  @override
+  String get auditLogTitle => '操作履歴';
+
+  @override
+  String get auditLogDescription => '明細の追加・訂正・削除と、元画像の削除の記録です。';
+
+  @override
+  String get auditLogEmpty => '操作の履歴はまだありません';
+
+  @override
+  String get auditLogSyncing => '同期中';
+
+  @override
+  String get auditLogOperationTransactionCreated => '追加';
+
+  @override
+  String get auditLogOperationTransactionUpdated => '訂正';
+
+  @override
+  String get auditLogOperationTransactionDeleted => '削除';
+
+  @override
+  String get auditLogOperationTransactionImageDeleted => '画像を削除';
+
+  @override
+  String get auditLogOperationUnknown => 'その他の操作';
+
+  @override
+  String get auditLogChangedFieldExcludedFromAggregation => '計算対象';
+
+  @override
+  String get auditLogChangedFieldSourceImage => '元画像';
+
+  @override
+  String get auditLogChangedFieldDuplicateDecision => '重複の判定';
+
+  @override
+  String get transactionSearchOpen => '明細を検索';
+
+  @override
+  String get transactionSearchTitle => '検索';
+
+  @override
+  String get transactionSearchPeriod => '取引年月日';
+
+  @override
+  String get transactionSearchDateFrom => '開始日';
+
+  @override
+  String get transactionSearchDateTo => '終了日';
+
+  @override
+  String get transactionSearchDateUnset => '指定なし';
+
+  @override
+  String get transactionSearchAmount => '取引金額';
+
+  @override
+  String get transactionSearchMinimumAmount => '最小';
+
+  @override
+  String get transactionSearchMaximumAmount => '最大';
+
+  @override
+  String get transactionSearchTitleKeyword => '取引先';
+
+  @override
+  String get transactionSearchSubmit => '検索する';
+
+  @override
+  String get transactionSearchClear => '条件をクリア';
+
+  @override
+  String get transactionSearchConditionRequired => '検索条件を1つ以上入力してください';
+
+  @override
+  String get transactionSearchDateRangeInvalid => '終了日は開始日以降にしてください';
+
+  @override
+  String get transactionSearchAmountRangeInvalid => '最大金額は最小金額以上にしてください';
+
+  @override
+  String get transactionSearchNoResults => '条件に一致する明細はありません';
+
+  @override
+  String transactionSearchResultCount(int count) {
+    return '$count件';
+  }
+
+  @override
+  String transactionSearchFreePlanHistoryLimit(int monthCount) {
+    return '無料プランでは直近$monthCountヶ月の明細だけを検索できます';
+  }
+
+  @override
+  String auditLogFreePlanHistoryLimit(int monthCount) {
+    return '無料プランでは直近$monthCountヶ月の操作履歴だけを表示します';
+  }
+
+  @override
+  String get freePlanHistoryLimitUpgrade => 'プレミアムで全期間の履歴を見る';
 }

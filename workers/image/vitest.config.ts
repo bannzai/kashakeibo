@@ -24,6 +24,9 @@ export default defineWorkersConfig({
             APP_CHECK_JWKS_CACHE_KEY: "firebase-app-check-jwks-cache",
             GEMINI_API_KEY: "test-gemini-api-key",
             GEMINI_MODEL: "gemini-test-model",
+            // 監査ログのテストは、実行時に生成した RSA 鍵を持つサービスアカウントキーを env に上書きして使う
+            // (JWT 署名を実際に通すため、固定のダミー鍵は置けない)
+            BIGQUERY_SERVICE_ACCOUNT_KEY: "",
             REVENUECAT_SECRET_API_KEY: "test-revenuecat-secret-api-key",
             REVENUECAT_PROJECT_ID: "projtest",
             REVENUECAT_PREMIUM_ENTITLEMENT_ID: "entltestpremium",

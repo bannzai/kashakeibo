@@ -1,6 +1,6 @@
 # 0002. 電子帳簿保存法への対応はスコープ外とする
 
-- ステータス: 採用
+- ステータス: Superseded ([ADR 0003](0003-denshi-choubo-hozon-hou-youken-jissou.md) により置き換え。スキャナ保存要件の技術基盤は実装し、「電帳法対応」の訴求可否は別判断とする)
 - 日付: 2026-08-23
 - 決定の経緯: https://github.com/bannzai/kashakeibo/issues/65 (電子帳簿保存法に対応しているかのチェック依頼)
 

@@ -3,6 +3,9 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "extensions": {
+    "firestore-bigquery-export": "firebase/firestore-bigquery-export@0.3.3"
+  },
   "emulators": {
     "auth": {
       "port": 9099

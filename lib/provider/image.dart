@@ -112,26 +112,27 @@ Future<Uint8List> storedImage(Ref ref, {required String imageObjectKey}) =>
 Future<String> _currentUserIdToken() async {
   final firebaseIdToken = await FirebaseAuth.instance.currentUser?.getIdToken();
   if (firebaseIdToken == null) {
-    throw StateError('サインイン前に画像 API は利用できない');
+    throw StateError('サインイン前に Worker API は利用できない');
   }
   return firebaseIdToken;
 }
 
 /// 現在のユーザーの ID token・App Check token と使い捨ての HTTP クライアントで Worker API を 1 回呼ぶ。
 /// Worker は全エンドポイントで両 token の検証を要求する (workers/image/README.md)。
-Future<T> _callImageApi<T>({
+/// 画像以外の Worker API (lib/provider/audit_log.dart の操作履歴) も同じ認証のためここを使う。
+Future<T> callWorkerApi<T>({
   required Future<T> Function({
     required String firebaseIdToken,
     required String firebaseAppCheckToken,
     required http.Client httpClient,
   })
-  imageApiCall,
+  workerApiCall,
 }) async {
   final firebaseIdToken = await _currentUserIdToken();
   final firebaseAppCheckToken = await fetchFirebaseAppCheckToken();
   final httpClient = http.Client();
   try {
-    return await imageApiCall(
+    return await workerApiCall(
       firebaseIdToken: firebaseIdToken,
       firebaseAppCheckToken: firebaseAppCheckToken,
       httpClient: httpClient,
@@ -147,8 +148,8 @@ Future<String> uploadCapturedImage({
   required Uint8List imageBytes,
   required String imageContentType,
   required String uploadImageID,
-}) => _callImageApi(
-  imageApiCall:
+}) => callWorkerApi(
+  workerApiCall:
       ({
         required firebaseIdToken,
         required firebaseAppCheckToken,
@@ -167,8 +168,8 @@ Future<String> uploadCapturedImage({
 /// 冪等 (副作用は Worker 側の日次解析回数の加算のみ)。
 Future<image_analysis.ImageAnalysisResult> analyzeUploadedImage({
   required String imageObjectKey,
-}) => _callImageApi(
-  imageApiCall:
+}) => callWorkerApi(
+  workerApiCall:
       ({
         required firebaseIdToken,
         required firebaseAppCheckToken,
@@ -183,8 +184,8 @@ Future<image_analysis.ImageAnalysisResult> analyzeUploadedImage({
 
 /// アップロード済み画像のバイト列を取得する。冪等。
 Future<Uint8List> fetchStoredImage({required String imageObjectKey}) =>
-    _callImageApi(
-      imageApiCall:
+    callWorkerApi(
+      workerApiCall:
           ({
             required firebaseIdToken,
             required firebaseAppCheckToken,
@@ -198,8 +199,8 @@ Future<Uint8List> fetchStoredImage({required String imageObjectKey}) =>
     );
 
 /// 今月のスキャン回数と無料枠を取得する。冪等 (読み取りのみ)。
-Future<image_analysis.ScanQuota> fetchScanQuota() => _callImageApi(
-  imageApiCall:
+Future<image_analysis.ScanQuota> fetchScanQuota() => callWorkerApi(
+  workerApiCall:
       ({
         required firebaseIdToken,
         required firebaseAppCheckToken,
@@ -217,8 +218,8 @@ Future<image_analysis.ScanQuota> fetchScanQuota() => _callImageApi(
 /// (workers/image/src/handler.ts の handleDebugScanCountSet)。冪等。
 Future<image_analysis.ScanQuota> setDebugScanCount({
   required int monthlyScanCount,
-}) => _callImageApi(
-  imageApiCall:
+}) => callWorkerApi(
+  workerApiCall:
       ({
         required firebaseIdToken,
         required firebaseAppCheckToken,
@@ -233,8 +234,8 @@ Future<image_analysis.ScanQuota> setDebugScanCount({
 
 /// アップロード済み画像 1 件を削除する。冪等 (対象が無くても成功する。Worker 側の契約)。
 Future<void> deleteStoredImage({required String imageObjectKey}) =>
-    _callImageApi(
-      imageApiCall:
+    callWorkerApi(
+      workerApiCall:
           ({
             required firebaseIdToken,
             required firebaseAppCheckToken,

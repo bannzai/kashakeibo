@@ -376,4 +376,144 @@ void main() {
       );
     });
   });
+
+  group('AddTransaction', () {
+    test('明細を 1 件作成し、取引日から yearMonth を導出して保存する', () async {
+      final firebaseFirestore = FakeFirebaseFirestore();
+
+      await AddTransaction(
+        userID: 'user-id',
+        firebaseFirestore: firebaseFirestore,
+      ).call(
+        type: TransactionType.expense,
+        source: TransactionSource.manual,
+        amount: 980,
+        category: TransactionCategory.food,
+        title: 'コンビニ',
+        transactionDate: DateTime(2026, 8, 23, 12),
+        excludedFromAggregation: false,
+        sourceImageObjectKey: null,
+        analysisAdjustedByUser: false,
+      );
+
+      final createdTransactions = (await transactionsReference(
+        userID: 'user-id',
+        firebaseFirestore: firebaseFirestore,
+      ).get()).docs.map((doc) => doc.data()).toList();
+      expect(createdTransactions, hasLength(1));
+      expect(createdTransactions.single.title, 'コンビニ');
+      expect(createdTransactions.single.amount, 980);
+      expect(createdTransactions.single.yearMonth, '2026-08');
+      expect(createdTransactions.single.userID, 'user-id');
+    });
+  });
+
+  group('MergeDuplicateTransactions', () {
+    test('残す側に相互の判定を記録し、削除側の明細を削除する', () async {
+      final firebaseFirestore = FakeFirebaseFirestore();
+      final primaryTransaction = buildTransaction(
+        id: 'primary-transaction-id',
+        sourceImageObjectKey: null,
+        excludedFromAggregation: false,
+      );
+      final duplicateTransaction = buildTransaction(
+        id: 'duplicate-transaction-id',
+        sourceImageObjectKey: 'users/user-id/uuid.png',
+        excludedFromAggregation: false,
+      );
+      await saveTransaction(
+        transaction: primaryTransaction,
+        firebaseFirestore: firebaseFirestore,
+      );
+      await saveTransaction(
+        transaction: duplicateTransaction,
+        firebaseFirestore: firebaseFirestore,
+      );
+      final deletedImageObjectKeys = <String>[];
+      final mergeDuplicateTransactions = MergeDuplicateTransactions(
+        firebaseFirestore: firebaseFirestore,
+        deleteStoredImage: ({required imageObjectKey}) async {
+          deletedImageObjectKeys.add(imageObjectKey);
+        },
+      );
+
+      await mergeDuplicateTransactions.call(
+        primaryTransaction: primaryTransaction,
+        duplicateTransaction: duplicateTransaction,
+      );
+      // 削除側が存在しない状態での再実行でも例外にならない (冪等)。
+      await mergeDuplicateTransactions.call(
+        primaryTransaction: primaryTransaction,
+        duplicateTransaction: duplicateTransaction,
+      );
+
+      expect(
+        await readTransaction(
+          transactionID: 'duplicate-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ),
+        isNull,
+      );
+      // 残す側は画像を持たないため、削除側の元画像を引き継ぐ (R2 の画像は消さない)。
+      expect(
+        (await readTransaction(
+          transactionID: 'primary-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.sourceImageObjectKey,
+        'users/user-id/uuid.png',
+      );
+      expect(deletedImageObjectKeys, isEmpty);
+    });
+  });
+
+  group('KeepBothTransactions', () {
+    test('両明細へ相互の ID を記録し、再実行でも結果が変わらない (冪等)', () async {
+      final firebaseFirestore = FakeFirebaseFirestore();
+      final firstTransaction = buildTransaction(
+        id: 'first-transaction-id',
+        sourceImageObjectKey: null,
+        excludedFromAggregation: false,
+      );
+      final secondTransaction = buildTransaction(
+        id: 'second-transaction-id',
+        sourceImageObjectKey: null,
+        excludedFromAggregation: false,
+      );
+      await saveTransaction(
+        transaction: firstTransaction,
+        firebaseFirestore: firebaseFirestore,
+      );
+      await saveTransaction(
+        transaction: secondTransaction,
+        firebaseFirestore: firebaseFirestore,
+      );
+      final keepBothTransactions = KeepBothTransactions(
+        firebaseFirestore: firebaseFirestore,
+      );
+
+      await keepBothTransactions.call(
+        firstTransaction: firstTransaction,
+        secondTransaction: secondTransaction,
+      );
+      await keepBothTransactions.call(
+        firstTransaction: firstTransaction,
+        secondTransaction: secondTransaction,
+      );
+
+      expect(
+        (await readTransaction(
+          transactionID: 'first-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.confirmedDistinctTransactionIDs,
+        ['second-transaction-id'],
+      );
+      expect(
+        (await readTransaction(
+          transactionID: 'second-transaction-id',
+          firebaseFirestore: firebaseFirestore,
+        ))!.confirmedDistinctTransactionIDs,
+        ['first-transaction-id'],
+      );
+    });
+  });
 }

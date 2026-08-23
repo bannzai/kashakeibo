@@ -1,6 +1,7 @@
 // 画像アップロード (POST /images)・取得 (GET /images/{objectKey})・個別削除 (DELETE /images/{objectKey})・
 // アカウント削除時の全消去 (DELETE /images)・Gemini による明細抽出 (POST /analyses)・
 // 今月のスキャン回数と無料枠の取得 (GET /analyses/quota)・
+// 明細の訂正削除履歴の取得 (GET /audit-logs) とアカウント削除時のパージ予約 (DELETE /audit-logs)・
 // DEBUG 用のスキャン回数設定 (POST /debug/scan-count。dev 環境限定) のリクエスト処理本体。
 // Firebase ID token と Firebase App Check token の検証手段を tokenVerifiers として注入する構造にし、
 // テストでは実際の Google JWK / JWKS 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
@@ -8,8 +9,17 @@
 import type { ImageAnalysisResult } from "./analysis";
 import { analyzeImageWithGemini, GeminiRequestError } from "./analysis";
 import type { VerifyFirebaseAppCheckToken } from "./app_check";
+import {
+  fetchAuditLogs,
+  oldestFreePlanAuditLogTimestamp,
+  recordImageDeletionLog,
+  registerAuditLogPurge,
+} from "./audit_log";
+import { BigQueryRequestError } from "./bigquery";
 import type { EntitlementEnv } from "./entitlement";
 import { EntitlementVerificationError, hasPremiumEntitlement } from "./entitlement";
+import type { ImageDimensions } from "./image_dimensions";
+import { judgeScannerColor, judgeScannerResolution, readImageDimensions } from "./image_dimensions";
 import type { UsageCounter } from "./usage_counter";
 import { dailyCounterPurgeDelayMilliseconds, monthlyCounterPurgeDelayMilliseconds } from "./usage_counter";
 
@@ -51,6 +61,8 @@ export interface ImageWorkerEnv extends EntitlementEnv {
   GEMINI_API_KEY: string;
   /** 明細抽出に使う Gemini のモデル ID。 */
   GEMINI_MODEL: string;
+  /** 監査ログ (BigQuery) を読み書きするサービスアカウントの JSON キー (wrangler secret。クライアントへ配布しない)。 */
+  BIGQUERY_SERVICE_ACCOUNT_KEY: string;
   /**
    * DEBUG エンドポイント (POST /debug/scan-count) を有効にするフラグ。
    * dev 環境の wrangler.jsonc にだけ `"true"` を置き、prod では未定義にすることで経路自体を 404 にする。
@@ -111,11 +123,22 @@ export const monthlyFreeScanLimit = 50;
 // 到達時は 429 を返す (プレミアム購入済みのためペイウォール誘導の 402 は使わない)
 export const monthlyPremiumScanLimit = 1000;
 
+// 監査ログ取得 (GET /audit-logs) の日次上限。BigQuery のオンデマンド課金は 1 クエリあたり最低 10MB ぶんが
+// 課金されるため、履歴画面を開くたびに走るクエリを乱用されると費用が青天井になる。
+// uid 別 100 回/日 は履歴画面を開き直す正規の利用が到達しない値で、1 uid あたりの課金対象を 1日 1GB 相当に固定する。
+// 匿名認証の uid 作り直しによる迂回は、アップロード・解析と同じ接続元 IP 別・全体の層で抑える (値の根拠は maxDailyUploadCount* と同じ)
+export const maxDailyAuditLogCountPerUser = 100;
+export const maxDailyAuditLogCountPerIpAddress = maxDailyUploadCountPerIpAddress;
+export const maxDailyAuditLogCountTotal = maxDailyUploadCountTotal;
+
 // Gemini にインラインで渡せるリクエスト全体の上限は 20MB で、base64 化で 4/3 倍になるため、
 // 元画像はその範囲に収まるサイズまでしか解析しない (クライアントは撮影時に長辺を縮小してから送る)
 export const maxAnalysisImageBytes = 14 * 1024 * 1024;
 
 const imageObjectPathPrefix = "/images/";
+
+/** 明細の訂正削除履歴 (監査ログ) のエンドポイントのパス。 */
+export const auditLogsPath = "/audit-logs";
 
 /** DEBUG 用のスキャン回数設定エンドポイントのパス (dev 環境でのみ有効。handleDebugScanCountSet を参照)。 */
 export const debugScanCountPath = "/debug/scan-count";
@@ -123,6 +146,18 @@ export const debugScanCountPath = "/debug/scan-count";
 // X-Upload-Id ヘッダーに要求する UUID 形式。オブジェクトキーの一部になるため、
 // パス区切りや ".." を構造的に含められない形式だけを受け付ける
 const uploadIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// アップロード時に R2 の customMetadata へ記録する画質判定・記録時刻の項目名と、
+// GET のレスポンスヘッダーで返す時のヘッダー名の対応。
+// 画質判定 (issue #73) は基準未満でも保存を拒否しないため、判定結果は保存時に記録しておき、
+// 後から GET のヘッダーで参照できるようにしている
+const imageQualityHeaderNames: Record<string, string> = {
+  imageWidth: "X-Image-Width",
+  imageHeight: "X-Image-Height",
+  scannerResolutionSatisfied: "X-Scanner-Resolution-Satisfied",
+  scannerColorSatisfied: "X-Scanner-Color-Satisfied",
+  uploadedAt: "X-Uploaded-At",
+};
 
 /**
  * 全エンドポイント共通の入口。App Check token と Firebase ID token の両方の検証を通してからルーティングする。
@@ -180,6 +215,12 @@ export async function handleImageRequest(
   }
   if (request.method === "GET" && requestUrl.pathname === "/analyses/quota") {
     return handleScanQuotaGet(env, verifiedFirebaseUser);
+  }
+  if (request.method === "GET" && requestUrl.pathname === auditLogsPath) {
+    return handleAuditLogsGet(request, env, verifiedFirebaseUser);
+  }
+  if (request.method === "DELETE" && requestUrl.pathname === auditLogsPath) {
+    return handleAuditLogsPurgeRegister(env, verifiedFirebaseUser);
   }
   // DEBUG エンドポイントは dev 環境でだけ有効にする。prod では経路自体が存在しない (未知のパスと同じ 404)
   if (
@@ -245,8 +286,9 @@ async function handleImageUpload(
   // 保存済みキーへの再試行 (201 レスポンスだけが消失したケース) は、回数制限より先に判定して
   // カウントせずに成功を返す。制限は新規の X-Upload-Id だけを数えるため、
   // 上限間際の再試行が 429 になって保存済みキーを回収できなくなることがない
-  if ((await env.IMAGE_BUCKET.head(imageObjectKey)) !== null) {
-    return jsonResponse(201, { imageObjectKey });
+  const storedImageObject = await env.IMAGE_BUCKET.head(imageObjectKey);
+  if (storedImageObject !== null) {
+    return jsonResponse(201, { imageObjectKey, ...imageQualityResponseFields(storedImageObject.customMetadata) });
   }
 
   // 日次アップロード回数制限を uid 別・接続元 IP 別・全体の3層で判定する
@@ -263,13 +305,55 @@ async function handleImageUpload(
     return jsonResponse(429, { error: "1日のアップロード回数の上限に達しました" });
   }
 
-  await env.IMAGE_BUCKET.put(imageObjectKey, await uploadedFile.arrayBuffer(), {
+  // 実寸・色の階調はヘッダーを解析しないと分からないため、本文を読んでから判定して customMetadata に残す。
+  // 判定は記録だけを目的とし、基準を満たさない画像 (低解像度・グレースケール) も家計簿としては使えるため保存は拒否しない
+  const uploadedImageBytes = await uploadedFile.arrayBuffer();
+  const uploadedImageCustomMetadata = buildImageQualityCustomMetadata(readImageDimensions(uploadedImageBytes));
+  await env.IMAGE_BUCKET.put(imageObjectKey, uploadedImageBytes, {
     httpMetadata: { contentType: uploadedFile.type },
+    customMetadata: uploadedImageCustomMetadata,
   });
 
   // URL ではなくオブジェクトキーを返す。配信ドメインはデプロイ時に決まるため、
   // Firestore にはキーを保存し、取得 URL はクライアント側で {baseUrl}/images/{key} を組み立てる
-  return jsonResponse(201, { imageObjectKey });
+  return jsonResponse(201, { imageObjectKey, ...imageQualityResponseFields(uploadedImageCustomMetadata) });
+}
+
+/**
+ * 画質判定 (解像度・色の階調) と、サーバー側で記録するアップロード時刻を R2 の customMetadata の形にする。
+ * customMetadata は文字列しか持てないため、実寸は文字列にし、解析できなかった場合は項目自体を載せない。
+ * 時刻はクライアント申告を使わず Worker の時刻で記録する (端末時計のずれ・改変に依存させないため)。
+ */
+function buildImageQualityCustomMetadata(imageDimensions: ImageDimensions | null): Record<string, string> {
+  return {
+    ...(imageDimensions === null
+      ? {}
+      : { imageWidth: String(imageDimensions.imageWidth), imageHeight: String(imageDimensions.imageHeight) }),
+    scannerResolutionSatisfied: judgeScannerResolution(imageDimensions),
+    scannerColorSatisfied: judgeScannerColor(imageDimensions),
+    uploadedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * customMetadata に記録した画質判定・アップロード時刻を 201 レスポンスの項目にする。
+ * 画質判定を記録する前にアップロードされた既存オブジェクトでは、判定が "unknown"・実寸と時刻が null になる。
+ */
+function imageQualityResponseFields(imageObjectCustomMetadata: Record<string, string> | undefined): {
+  imageWidth: number | null;
+  imageHeight: number | null;
+  scannerResolutionSatisfied: string;
+  scannerColorSatisfied: string;
+  uploadedAt: string | null;
+} {
+  return {
+    imageWidth: imageObjectCustomMetadata?.imageWidth === undefined ? null : Number(imageObjectCustomMetadata.imageWidth),
+    imageHeight:
+      imageObjectCustomMetadata?.imageHeight === undefined ? null : Number(imageObjectCustomMetadata.imageHeight),
+    scannerResolutionSatisfied: imageObjectCustomMetadata?.scannerResolutionSatisfied ?? "unknown",
+    scannerColorSatisfied: imageObjectCustomMetadata?.scannerColorSatisfied ?? "unknown",
+    uploadedAt: imageObjectCustomMetadata?.uploadedAt ?? null,
+  };
 }
 
 /** アップロード済み画像の取得。本人の uid 配下のオブジェクトキーだけを許可する。 */
@@ -291,6 +375,12 @@ async function handleImageGet(
   const imageResponseHeaders = new Headers();
   imageObject.writeHttpMetadata(imageResponseHeaders);
   imageResponseHeaders.set("etag", imageObject.httpEtag);
+  // アップロード時に記録した画質判定・記録時刻を参照する経路 (記録前の既存オブジェクトではヘッダーを付けない)
+  for (const [imageQualityMetadataKey, imageQualityHeaderName] of Object.entries(imageQualityHeaderNames)) {
+    if (imageObject.customMetadata?.[imageQualityMetadataKey] !== undefined) {
+      imageResponseHeaders.set(imageQualityHeaderName, imageObject.customMetadata[imageQualityMetadataKey]);
+    }
+  }
   // 認証付き私的コンテンツのため共有キャッシュに載せない
   imageResponseHeaders.set("Cache-Control", "private, max-age=0, must-revalidate");
   return new Response(imageObject.body, { status: 200, headers: imageResponseHeaders });
@@ -300,7 +390,7 @@ async function handleImageGet(
  * アカウント削除時の全画像消去。JWT の uid 配下 (`users/{uid}/`) のオブジェクトを全削除する。
  * docs/AccountDeletion.md の「撮影・アップロードした画像は削除操作と同時に削除される」を満たすため、
  * クライアントは Firebase Auth ユーザーを削除する前 (ID token が有効なうち) に呼ぶ。
- * 冪等: 対象が既に無い場合も 200 を返す。
+ * 冪等: 対象が既に無い場合も 200 を返す (監査ログには呼び出しごとに 1 行残る)。
  */
 async function handleAllImagesDelete(
   env: ImageWorkerEnv,
@@ -312,11 +402,15 @@ async function handleAllImagesDelete(
   for (;;) {
     const listedImageObjects = await env.IMAGE_BUCKET.list({ prefix: userObjectKeyPrefix });
     if (listedImageObjects.objects.length === 0) {
-      return jsonResponse(200, { deletedImageCount: String(deletedImageCount) });
+      break;
     }
     await env.IMAGE_BUCKET.delete(listedImageObjects.objects.map((imageObject) => imageObject.key));
     deletedImageCount += listedImageObjects.objects.length;
   }
+  // 画像だけの削除は Firestore の明細を変えず changelog に痕跡が残らないため、Worker 側で監査ログに記録する。
+  // 全消去はオブジェクトキーを持たない 1 行 (imageObjectKey = null) として残す
+  await recordImageDeletionLog({ env, uid: verifiedFirebaseUser.uid, imageObjectKey: null });
+  return jsonResponse(200, { deletedImageCount: String(deletedImageCount) });
 }
 
 /**
@@ -421,6 +515,73 @@ async function handleScanQuotaGet(env: ImageWorkerEnv, verifiedFirebaseUser: Ver
 }
 
 /**
+ * 明細の訂正削除履歴を新しい順に返す (GET /audit-logs)。
+ * 履歴の実体は Stream Firestore to BigQuery extension が書き出す changelog テーブルで (src/audit_log.ts)、
+ * 本人の uid の変更だけを検証済み ID token から絞り込む (クライアント申告のユーザー ID は受け取らない)。
+ * 無料プランには直近数ヶ月ぶんだけを返し、全期間の履歴をプレミアム特典として成立させる。
+ * 冪等 (副作用は日次カウンターの加算のみ)。
+ */
+async function handleAuditLogsGet(
+  request: Request,
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<Response> {
+  // 上限判定は BigQuery 呼び出し (課金) の直前で行い、超過時にクエリ費用を発生させない
+  const withinAuditLogLimits = await incrementDailyCountIfWithinLimits({
+    request,
+    env,
+    verifiedFirebaseUser,
+    counterKeyPrefix: "auditlogs:",
+    maxDailyCountPerUser: maxDailyAuditLogCountPerUser,
+    maxDailyCountPerIpAddress: maxDailyAuditLogCountPerIpAddress,
+    maxDailyCountTotal: maxDailyAuditLogCountTotal,
+  });
+  if (!withinAuditLogLimits) {
+    return jsonResponse(429, { error: "1日の操作履歴の取得回数の上限に達しました" });
+  }
+
+  let hasPremiumHistoryEntitlement: boolean;
+  try {
+    hasPremiumHistoryEntitlement = await hasPremiumEntitlement({ appUserId: verifiedFirebaseUser.uid, env });
+  } catch (error) {
+    if (!(error instanceof EntitlementVerificationError)) {
+      throw error;
+    }
+    // 課金状態を判定できない一時的な失敗は、履歴を無料プランの範囲に切り詰めて返さず 503 にする (クライアントは再試行できる)
+    console.warn("RevenueCat の entitlement 判定に失敗", error);
+    return jsonResponse(503, { error: error.message });
+  }
+
+  try {
+    return jsonResponse(200, {
+      auditLogs: await fetchAuditLogs({
+        env,
+        uid: verifiedFirebaseUser.uid,
+        oldestTimestamp: hasPremiumHistoryEntitlement ? null : oldestFreePlanAuditLogTimestamp(new Date()),
+      }),
+    });
+  } catch (error) {
+    // 取得失敗の詳細はログに残しつつ、クライアントには 502 として伝える (履歴画面は再読み込みを促す)
+    console.warn("監査ログの取得に失敗", error);
+    return jsonResponse(502, {
+      error: error instanceof BigQueryRequestError ? error.message : `操作履歴の取得に失敗しました: ${String(error)}`,
+    });
+  }
+}
+
+/**
+ * アカウント削除時に、本人の uid の履歴のパージを予約する (DELETE /audit-logs)。
+ * 予約だけを返し、実際の削除は毎時の scheduled (src/index.ts) が行う (理由は src/audit_log.ts)。
+ * 冪等: 何度呼んでも 202 を返し、予約は 1 件に収束する。
+ */
+async function handleAuditLogsPurgeRegister(
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<Response> {
+  return jsonResponse(202, { purgeRequestedAt: await registerAuditLogPurge({ env, uid: verifiedFirebaseUser.uid }) });
+}
+
+/**
  * 今月のスキャン回数を指定値に設定する (POST /debug/scan-count)。DEBUG (dev 環境) 限定。
  *
  * 使用回数は Durable Object の中にしか無く、firebase / gcloud / wrangler のどれからも書き換えられないため、
@@ -500,7 +661,7 @@ function validateOwnImageObjectKey(
 
 /**
  * 画像 1 件の削除 (明細から画像だけを外す・明細ごと削除する時に使う)。本人の uid 配下のキーだけを許可する。
- * 冪等: 対象が既に無い場合も 200 を返す。
+ * 冪等: 対象が既に無い場合も 200 を返す (監査ログには呼び出しごとに 1 行残る)。
  */
 async function handleImageDelete(
   requestUrl: URL,
@@ -512,6 +673,13 @@ async function handleImageDelete(
     return resolvedKey.errorResponse;
   }
   await env.IMAGE_BUCKET.delete(resolvedKey.imageObjectKey);
+  // 明細を残したまま画像だけを消す経路は Firestore の変更を伴わず changelog に痕跡が残らないため、
+  // Worker 側で監査ログに記録する (この経路を直接叩いても記録を迂回できないようにする)
+  await recordImageDeletionLog({
+    env,
+    uid: verifiedFirebaseUser.uid,
+    imageObjectKey: resolvedKey.imageObjectKey,
+  });
   return jsonResponse(200, { imageObjectKey: resolvedKey.imageObjectKey });
 }
 

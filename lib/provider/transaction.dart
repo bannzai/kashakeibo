@@ -108,7 +108,10 @@ AddTransaction addTransaction(Ref ref) {
     // サインイン完了 (SignInResolver) 後の画面からのみ利用される前提。
     throw StateError('サインイン前に AddTransaction は利用できない');
   }
-  return AddTransaction(userID: userID);
+  return AddTransaction(
+    userID: userID,
+    firebaseFirestore: FirebaseFirestore.instance,
+  );
 }
 
 /// 明細の新規作成 (`.claude/rules/coding-conventions.md` の call クラス)。
@@ -116,7 +119,10 @@ class AddTransaction {
   /// 明細の所有ユーザー ID。
   final String userID;
 
-  AddTransaction({required this.userID});
+  /// Firestore クライアント。
+  final FirebaseFirestore firebaseFirestore;
+
+  AddTransaction({required this.userID, required this.firebaseFirestore});
 
   /// 明細を 1 件作成する。
   ///
@@ -139,29 +145,31 @@ class AddTransaction {
     required String? sourceImageObjectKey,
     required bool analysisAdjustedByUser,
   }) async {
-    final documentReference = transactionsReference(userID: userID).doc();
-    final serverWrite = documentReference.set(
-      Transaction(
-        id: documentReference.id,
-        userID: userID,
-        type: type,
-        source: source,
-        amount: amount,
-        category: category,
-        title: title,
-        transactionDate: transactionDate,
-        // yearMonth の導出 (ローカルタイム基準) と後からの表示・グループ化を
-        // 同じカレンダー日に揃えるため、登録時のオフセットを保存する。
-        transactionDateTimeZoneOffsetMinutes: transactionDate
-            .toLocal()
-            .timeZoneOffset
-            .inMinutes,
-        yearMonth: yearMonthFrom(dateTime: transactionDate),
-        excludedFromAggregation: excludedFromAggregation,
-        sourceImageObjectKey: sourceImageObjectKey,
-        analysisAdjustedByUser: analysisAdjustedByUser,
-      ),
+    final documentReference = transactionsReference(
+      userID: userID,
+      firebaseFirestore: firebaseFirestore,
+    ).doc();
+    final createdTransaction = Transaction(
+      id: documentReference.id,
+      userID: userID,
+      type: type,
+      source: source,
+      amount: amount,
+      category: category,
+      title: title,
+      transactionDate: transactionDate,
+      // yearMonth の導出 (ローカルタイム基準) と後からの表示・グループ化を
+      // 同じカレンダー日に揃えるため、登録時のオフセットを保存する。
+      transactionDateTimeZoneOffsetMinutes: transactionDate
+          .toLocal()
+          .timeZoneOffset
+          .inMinutes,
+      yearMonth: yearMonthFrom(dateTime: transactionDate),
+      excludedFromAggregation: excludedFromAggregation,
+      sourceImageObjectKey: sourceImageObjectKey,
+      analysisAdjustedByUser: analysisAdjustedByUser,
     );
+    final serverWrite = documentReference.set(createdTransaction);
     final localWrite = documentReference
         .snapshots(includeMetadataChanges: true)
         .firstWhere((snapshot) => snapshot.exists)
@@ -188,7 +196,7 @@ class UpdateTransactionExclusion {
   ///
   /// 画面が保持する明細ではなく Firestore トランザクションで読み直した最新の明細に
   /// 対して copyWith するため、別端末の変更 (元画像の削除等) を古い値で巻き戻さない。
-  /// 同じ値を書き込む再実行は結果を変えないため冪等。削除済みなら何もしない。
+  /// 同じ値を書き込む再実行は書き込み自体を行わないため冪等。削除済みなら何もしない。
   Future<void> call({
     required Transaction transaction,
     required bool excludedFromAggregation,
@@ -202,7 +210,10 @@ class UpdateTransactionExclusion {
 }
 
 /// [transaction] のドキュメントを Firestore トランザクションで読み直し、最新の明細に
-/// [update] を適用して書き戻す。削除済み (null) の場合は何もしない。
+/// [update] を適用して書き戻す。
+///
+/// 削除済み (null) の場合と、[update] が最新の明細と同じ値を返した場合は何も書き込まない
+/// (BigQuery の changelog に中身の変わらない更新を積まないため)。
 Future<void> _updateLatestTransaction({
   required FirebaseFirestore firebaseFirestore,
   required Transaction transaction,
@@ -219,9 +230,13 @@ Future<void> _updateLatestTransaction({
     if (latestTransaction == null) {
       return;
     }
+    final updatedTransaction = update(latestTransaction);
+    if (updatedTransaction == latestTransaction) {
+      return;
+    }
     firestoreTransaction.set(
       transactionReference,
-      update(latestTransaction),
+      updatedTransaction,
       SetOptions(merge: true),
     );
   });
@@ -242,7 +257,10 @@ Future<bool> _isImageReferencedByOtherTransaction({
               userID: userID,
               firebaseFirestore: firebaseFirestore,
             )
-            .where('sourceImageObjectKey', isEqualTo: imageObjectKey)
+            .where(
+              TransactionFirestoreKeys.sourceImageObjectKey,
+              isEqualTo: imageObjectKey,
+            )
             .limit(2)
             .get())
         .docs
@@ -345,15 +363,22 @@ class DeleteTransaction {
 @riverpod
 MergeDuplicateTransactions mergeDuplicateTransactions(Ref ref) =>
     MergeDuplicateTransactions(
+      firebaseFirestore: FirebaseFirestore.instance,
       deleteStoredImage: ref.watch(deleteStoredImageProvider),
     );
 
 /// 重複候補 2 件を Firestore トランザクションで 1 件へ統合する。
 class MergeDuplicateTransactions {
+  /// Firestore クライアント。
+  final FirebaseFirestore firebaseFirestore;
+
   /// Worker 経由で R2 の画像 1 件を削除する操作。
   final DeleteStoredImage deleteStoredImage;
 
-  const MergeDuplicateTransactions({required this.deleteStoredImage});
+  const MergeDuplicateTransactions({
+    required this.firebaseFirestore,
+    required this.deleteStoredImage,
+  });
 
   /// [primaryTransaction] を残し、[duplicateTransaction] を削除する。
   ///
@@ -373,13 +398,15 @@ class MergeDuplicateTransactions {
     );
     final primaryReference = transactionsReference(
       userID: primaryTransaction.userID,
+      firebaseFirestore: firebaseFirestore,
     ).doc(primaryTransaction.id);
     final duplicateReference = transactionsReference(
       userID: duplicateTransaction.userID,
+      firebaseFirestore: firebaseFirestore,
     ).doc(duplicateTransaction.id);
 
     // 削除側にだけ画像があれば残す側へ引き継ぎ、両方にあれば削除側の画像を消す対象として返す。
-    final orphanedImageObjectKey = await FirebaseFirestore.instance
+    final orphanedImageObjectKey = await firebaseFirestore
         .runTransaction<String?>((firestoreTransaction) async {
           final primarySnapshot = await firestoreTransaction.get(
             primaryReference,
@@ -412,15 +439,16 @@ class MergeDuplicateTransactions {
           final inheritsDuplicateImage =
               latestPrimaryTransaction.sourceImageObjectKey == null &&
               latestDuplicateTransaction.sourceImageObjectKey != null;
+          final mergedPrimaryTransaction = latestPrimaryTransaction.copyWith(
+            confirmedDistinctTransactionIDs:
+                confirmedDistinctTransactionIDs.toList()..sort(),
+            sourceImageObjectKey: inheritsDuplicateImage
+                ? latestDuplicateTransaction.sourceImageObjectKey
+                : latestPrimaryTransaction.sourceImageObjectKey,
+          );
           firestoreTransaction.set(
             primaryReference,
-            latestPrimaryTransaction.copyWith(
-              confirmedDistinctTransactionIDs:
-                  confirmedDistinctTransactionIDs.toList()..sort(),
-              sourceImageObjectKey: inheritsDuplicateImage
-                  ? latestDuplicateTransaction.sourceImageObjectKey
-                  : latestPrimaryTransaction.sourceImageObjectKey,
-            ),
+            mergedPrimaryTransaction,
             SetOptions(merge: true),
           );
           firestoreTransaction.delete(duplicateReference);
@@ -433,7 +461,7 @@ class MergeDuplicateTransactions {
     // 他の明細 (同じスクショから登録した明細) が同じ画像を参照している場合は消さない。
     if (orphanedImageObjectKey != null &&
         !await _isImageReferencedByOtherTransaction(
-          firebaseFirestore: FirebaseFirestore.instance,
+          firebaseFirestore: firebaseFirestore,
           userID: duplicateTransaction.userID,
           imageObjectKey: orphanedImageObjectKey,
           excludedTransactionID: duplicateTransaction.id,
@@ -446,11 +474,14 @@ class MergeDuplicateTransactions {
 /// 重複候補 2 件を別々の明細として残す機能 Provider。
 @riverpod
 KeepBothTransactions keepBothTransactions(Ref ref) =>
-    const KeepBothTransactions();
+    KeepBothTransactions(firebaseFirestore: FirebaseFirestore.instance);
 
 /// 重複候補 2 件へ相互の ID を記録し、同じ候補を再提示しないようにする。
 class KeepBothTransactions {
-  const KeepBothTransactions();
+  /// Firestore クライアント。
+  final FirebaseFirestore firebaseFirestore;
+
+  const KeepBothTransactions({required this.firebaseFirestore});
 
   /// 2 件を「別物として残す」と Firestore トランザクションで確定する。
   ///
@@ -465,14 +496,14 @@ class KeepBothTransactions {
     );
     final firstReference = transactionsReference(
       userID: firstTransaction.userID,
+      firebaseFirestore: firebaseFirestore,
     ).doc(firstTransaction.id);
     final secondReference = transactionsReference(
       userID: secondTransaction.userID,
+      firebaseFirestore: firebaseFirestore,
     ).doc(secondTransaction.id);
 
-    await FirebaseFirestore.instance.runTransaction((
-      firestoreTransaction,
-    ) async {
+    await firebaseFirestore.runTransaction((firestoreTransaction) async {
       final firstSnapshot = await firestoreTransaction.get(firstReference);
       final secondSnapshot = await firestoreTransaction.get(secondReference);
       final latestFirstTransaction = firstSnapshot.data();
@@ -498,24 +529,26 @@ class KeepBothTransactions {
         throw StateError('明細が更新されたため、重複候補ではなくなりました');
       }
 
+      final confirmedFirstTransaction = latestFirstTransaction.copyWith(
+        confirmedDistinctTransactionIDs: <String>{
+          ...latestFirstTransaction.confirmedDistinctTransactionIDs,
+          latestSecondTransaction.id,
+        }.toList()..sort(),
+      );
+      final confirmedSecondTransaction = latestSecondTransaction.copyWith(
+        confirmedDistinctTransactionIDs: <String>{
+          ...latestSecondTransaction.confirmedDistinctTransactionIDs,
+          latestFirstTransaction.id,
+        }.toList()..sort(),
+      );
       firestoreTransaction.set(
         firstReference,
-        latestFirstTransaction.copyWith(
-          confirmedDistinctTransactionIDs: <String>{
-            ...latestFirstTransaction.confirmedDistinctTransactionIDs,
-            latestSecondTransaction.id,
-          }.toList()..sort(),
-        ),
+        confirmedFirstTransaction,
         SetOptions(merge: true),
       );
       firestoreTransaction.set(
         secondReference,
-        latestSecondTransaction.copyWith(
-          confirmedDistinctTransactionIDs: <String>{
-            ...latestSecondTransaction.confirmedDistinctTransactionIDs,
-            latestFirstTransaction.id,
-          }.toList()..sort(),
-        ),
+        confirmedSecondTransaction,
         SetOptions(merge: true),
       );
     });

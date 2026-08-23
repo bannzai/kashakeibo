@@ -464,4 +464,109 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get planPremium => '프리미엄';
+
+  @override
+  String get settingsAuditLog => '작업 기록';
+
+  @override
+  String get auditLogTitle => '작업 기록';
+
+  @override
+  String get auditLogDescription => '추가, 수정 또는 삭제한 내역과 삭제한 원본 이미지의 기록입니다.';
+
+  @override
+  String get auditLogEmpty => '아직 기록된 작업이 없습니다';
+
+  @override
+  String get auditLogSyncing => '동기화 중';
+
+  @override
+  String get auditLogOperationTransactionCreated => '추가됨';
+
+  @override
+  String get auditLogOperationTransactionUpdated => '수정됨';
+
+  @override
+  String get auditLogOperationTransactionDeleted => '삭제';
+
+  @override
+  String get auditLogOperationTransactionImageDeleted => '이미지 삭제';
+
+  @override
+  String get auditLogOperationUnknown => '기타 작업';
+
+  @override
+  String get auditLogChangedFieldExcludedFromAggregation => '합계 포함 여부';
+
+  @override
+  String get auditLogChangedFieldSourceImage => '원본 이미지';
+
+  @override
+  String get auditLogChangedFieldDuplicateDecision => '중복 항목 처리 방식';
+
+  @override
+  String get transactionSearchOpen => '거래 검색';
+
+  @override
+  String get transactionSearchTitle => '검색';
+
+  @override
+  String get transactionSearchPeriod => '날짜';
+
+  @override
+  String get transactionSearchDateFrom => '시작일';
+
+  @override
+  String get transactionSearchDateTo => '종료일';
+
+  @override
+  String get transactionSearchDateUnset => '전체';
+
+  @override
+  String get transactionSearchAmount => '금액';
+
+  @override
+  String get transactionSearchMinimumAmount => '최소';
+
+  @override
+  String get transactionSearchMaximumAmount => '최대';
+
+  @override
+  String get transactionSearchTitleKeyword => '상호';
+
+  @override
+  String get transactionSearchSubmit => '검색';
+
+  @override
+  String get transactionSearchClear => '조건 지우기';
+
+  @override
+  String get transactionSearchConditionRequired => '조건을 하나 이상 입력하십시오';
+
+  @override
+  String get transactionSearchDateRangeInvalid => '종료 날짜는 시작 날짜와 같거나 이후여야 합니다';
+
+  @override
+  String get transactionSearchAmountRangeInvalid => '최댓값은 최솟값 이상으로 설정해야 합니다.';
+
+  @override
+  String get transactionSearchNoResults => '조건에 일치하는 거래가 없습니다';
+
+  @override
+  String transactionSearchResultCount(int count) {
+    return '$count건';
+  }
+
+  @override
+  String transactionSearchFreePlanHistoryLimit(int monthCount) {
+    return '무료 플랜에서는 최근 $monthCount개월만 검색합니다';
+  }
+
+  @override
+  String auditLogFreePlanHistoryLimit(int monthCount) {
+    return '무료 플랜에서는 최근 $monthCount개월의 작업 기록만 표시됩니다';
+  }
+
+  @override
+  String get freePlanHistoryLimitUpgrade => '프리미엄으로 전체 내역 보기';
 }
