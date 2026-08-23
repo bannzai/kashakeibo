@@ -9,6 +9,8 @@ import { analyzeImageWithGemini, GeminiRequestError } from "./analysis";
 import type { VerifyFirebaseAppCheckToken } from "./app_check";
 import type { EntitlementEnv } from "./entitlement";
 import { EntitlementVerificationError, hasPremiumEntitlement } from "./entitlement";
+import type { ImageDimensions } from "./image_dimensions";
+import { judgeScannerColor, judgeScannerResolution, readImageDimensions } from "./image_dimensions";
 import type { UsageCounter } from "./usage_counter";
 import { dailyCounterPurgeDelayMilliseconds, monthlyCounterPurgeDelayMilliseconds } from "./usage_counter";
 
@@ -114,6 +116,18 @@ const imageObjectPathPrefix = "/images/";
 // X-Upload-Id ヘッダーに要求する UUID 形式。オブジェクトキーの一部になるため、
 // パス区切りや ".." を構造的に含められない形式だけを受け付ける
 const uploadIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// アップロード時に R2 の customMetadata へ記録する画質判定・記録時刻の項目名と、
+// GET のレスポンスヘッダーで返す時のヘッダー名の対応。
+// 画質判定 (issue #73) は基準未満でも保存を拒否しないため、判定結果は保存時に記録しておき、
+// 後から GET のヘッダーで参照できるようにしている
+const imageQualityHeaderNames: Record<string, string> = {
+  imageWidth: "X-Image-Width",
+  imageHeight: "X-Image-Height",
+  scannerResolutionSatisfied: "X-Scanner-Resolution-Satisfied",
+  scannerColorSatisfied: "X-Scanner-Color-Satisfied",
+  uploadedAt: "X-Uploaded-At",
+};
 
 /**
  * 全エンドポイント共通の入口。App Check token と Firebase ID token の両方の検証を通してからルーティングする。
@@ -228,8 +242,9 @@ async function handleImageUpload(
   // 保存済みキーへの再試行 (201 レスポンスだけが消失したケース) は、回数制限より先に判定して
   // カウントせずに成功を返す。制限は新規の X-Upload-Id だけを数えるため、
   // 上限間際の再試行が 429 になって保存済みキーを回収できなくなることがない
-  if ((await env.IMAGE_BUCKET.head(imageObjectKey)) !== null) {
-    return jsonResponse(201, { imageObjectKey });
+  const storedImageObject = await env.IMAGE_BUCKET.head(imageObjectKey);
+  if (storedImageObject !== null) {
+    return jsonResponse(201, { imageObjectKey, ...imageQualityResponseFields(storedImageObject.customMetadata) });
   }
 
   // 日次アップロード回数制限を uid 別・接続元 IP 別・全体の3層で判定する
@@ -246,13 +261,55 @@ async function handleImageUpload(
     return jsonResponse(429, { error: "1日のアップロード回数の上限に達しました" });
   }
 
-  await env.IMAGE_BUCKET.put(imageObjectKey, await uploadedFile.arrayBuffer(), {
+  // 実寸・色の階調はヘッダーを解析しないと分からないため、本文を読んでから判定して customMetadata に残す。
+  // 判定は記録だけを目的とし、基準を満たさない画像 (低解像度・グレースケール) も家計簿としては使えるため保存は拒否しない
+  const uploadedImageBytes = await uploadedFile.arrayBuffer();
+  const uploadedImageCustomMetadata = buildImageQualityCustomMetadata(readImageDimensions(uploadedImageBytes));
+  await env.IMAGE_BUCKET.put(imageObjectKey, uploadedImageBytes, {
     httpMetadata: { contentType: uploadedFile.type },
+    customMetadata: uploadedImageCustomMetadata,
   });
 
   // URL ではなくオブジェクトキーを返す。配信ドメインはデプロイ時に決まるため、
   // Firestore にはキーを保存し、取得 URL はクライアント側で {baseUrl}/images/{key} を組み立てる
-  return jsonResponse(201, { imageObjectKey });
+  return jsonResponse(201, { imageObjectKey, ...imageQualityResponseFields(uploadedImageCustomMetadata) });
+}
+
+/**
+ * 画質判定 (解像度・色の階調) と、サーバー側で記録するアップロード時刻を R2 の customMetadata の形にする。
+ * customMetadata は文字列しか持てないため、実寸は文字列にし、解析できなかった場合は項目自体を載せない。
+ * 時刻はクライアント申告を使わず Worker の時刻で記録する (端末時計のずれ・改変に依存させないため)。
+ */
+function buildImageQualityCustomMetadata(imageDimensions: ImageDimensions | null): Record<string, string> {
+  return {
+    ...(imageDimensions === null
+      ? {}
+      : { imageWidth: String(imageDimensions.imageWidth), imageHeight: String(imageDimensions.imageHeight) }),
+    scannerResolutionSatisfied: judgeScannerResolution(imageDimensions),
+    scannerColorSatisfied: judgeScannerColor(imageDimensions),
+    uploadedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * customMetadata に記録した画質判定・アップロード時刻を 201 レスポンスの項目にする。
+ * 画質判定を記録する前にアップロードされた既存オブジェクトでは、判定が "unknown"・実寸と時刻が null になる。
+ */
+function imageQualityResponseFields(imageObjectCustomMetadata: Record<string, string> | undefined): {
+  imageWidth: number | null;
+  imageHeight: number | null;
+  scannerResolutionSatisfied: string;
+  scannerColorSatisfied: string;
+  uploadedAt: string | null;
+} {
+  return {
+    imageWidth: imageObjectCustomMetadata?.imageWidth === undefined ? null : Number(imageObjectCustomMetadata.imageWidth),
+    imageHeight:
+      imageObjectCustomMetadata?.imageHeight === undefined ? null : Number(imageObjectCustomMetadata.imageHeight),
+    scannerResolutionSatisfied: imageObjectCustomMetadata?.scannerResolutionSatisfied ?? "unknown",
+    scannerColorSatisfied: imageObjectCustomMetadata?.scannerColorSatisfied ?? "unknown",
+    uploadedAt: imageObjectCustomMetadata?.uploadedAt ?? null,
+  };
 }
 
 /** アップロード済み画像の取得。本人の uid 配下のオブジェクトキーだけを許可する。 */
@@ -274,6 +331,12 @@ async function handleImageGet(
   const imageResponseHeaders = new Headers();
   imageObject.writeHttpMetadata(imageResponseHeaders);
   imageResponseHeaders.set("etag", imageObject.httpEtag);
+  // アップロード時に記録した画質判定・記録時刻を参照する経路 (記録前の既存オブジェクトではヘッダーを付けない)
+  for (const [imageQualityMetadataKey, imageQualityHeaderName] of Object.entries(imageQualityHeaderNames)) {
+    if (imageObject.customMetadata?.[imageQualityMetadataKey] !== undefined) {
+      imageResponseHeaders.set(imageQualityHeaderName, imageObject.customMetadata[imageQualityMetadataKey]);
+    }
+  }
   // 認証付き私的コンテンツのため共有キャッシュに載せない
   imageResponseHeaders.set("Cache-Control", "private, max-age=0, must-revalidate");
   return new Response(imageObject.body, { status: 200, headers: imageResponseHeaders });

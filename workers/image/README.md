@@ -22,11 +22,14 @@ multipart/form-data の `file` フィールドで画像をアップロードす�
 - オブジェクトキーは `users/{JWTのuid}/{X-Upload-Id}.{拡張子}` を Worker 側で組み立てる。uid プレフィックスは JWT から強制し、クライアント申告のパス・ファイル名は使わない
 - 同じ `X-Upload-Id` での再試行は同じキーへの上書きになる (冪等)。レスポンスが届かなかった再試行でも孤児オブジェクトが残らない
 - 対応 Content-Type・上限サイズ・日次アップロード回数上限 (uid 別・接続元 IP 別・全体の3層。超過は 429) は `src/handler.ts` の `imageContentTypeExtensions` / `maxImageBytes` / `maxDailyUploadCount*` を参照。空ファイルは 400。回数の判定と加算は日次シングルトンの Durable Object (`src/upload_counter.ts`) で直列化し、並行リクエストによる上限すり抜けを防ぐ。保存済みキーへの再試行はカウントを消費しない
-- レスポンス: `201 {"imageObjectKey": "users/{uid}/{X-Upload-Id}.{拡張子}"}`。Firestore の明細にはこのキーを保存する (配信ドメインはデプロイ時に決まるため URL ではなくキーを保存する)
+- 画像のヘッダーを解析して実寸 (px) と色の階調を判定し、アップロード時刻 (Worker の時刻。クライアント申告は使わない) と一緒に R2 の customMetadata に記録する。判定基準と根拠は `src/image_dimensions.ts` の `scannerResolutionMinimumPixelCount` を参照。基準を満たさない画像・実寸を解析できない画像 (判定は `"unknown"`) も保存を拒否しない (家計簿としての利用を阻害しないため)
+- レスポンス: `201 {"imageObjectKey": "users/{uid}/{X-Upload-Id}.{拡張子}", "imageWidth": 3024 | null, "imageHeight": 4032 | null, "scannerResolutionSatisfied": "true" | "false" | "unknown", "scannerColorSatisfied": "true" | "false" | "unknown", "uploadedAt": "2026-08-23T00:00:00.000Z" | null}`。Firestore の明細にはこのキーを保存する (配信ドメインはデプロイ時に決まるため URL ではなくキーを保存する)
 
 ### GET /images/{imageObjectKey}
 
 アップロード済み画像を取得する。オブジェクトキーが JWT の uid 配下 (`users/{uid}/`) でない場合は 403。存在しないキーは 404。
+
+- アップロード時に記録した画質判定とアップロード時刻を `X-Image-Width` / `X-Image-Height` / `X-Scanner-Resolution-Satisfied` / `X-Scanner-Color-Satisfied` / `X-Uploaded-At` ヘッダーで返す (記録前にアップロードされた既存オブジェクトではヘッダーを付けない)
 
 ### DELETE /images/{imageObjectKey}
 

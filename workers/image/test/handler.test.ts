@@ -18,6 +18,7 @@ import {
   monthlyPremiumScanLimit,
 } from "../src/handler";
 import { dailyCounterPurgeDelayMilliseconds } from "../src/usage_counter";
+import { buildPngHeaderBytes } from "./image_fixtures";
 
 declare module "cloudflare:test" {
   interface ProvidedEnv extends ImageWorkerEnv {}
@@ -430,6 +431,127 @@ describe("アップロード", () => {
       stubTokenVerifiers,
     );
     expect(response.status).toBe(400);
+  });
+});
+
+describe("画質判定とアップロード時刻の記録", () => {
+  /** 画質判定 (issue #73) の項目を含む 201 レスポンスの本体。 */
+  interface ImageUploadResponseBody {
+    imageObjectKey: string;
+    imageWidth: number | null;
+    imageHeight: number | null;
+    scannerResolutionSatisfied: string;
+    scannerColorSatisfied: string;
+    uploadedAt: string | null;
+  }
+
+  // A4 を 200dpi で読み取った画素数 (3,870,000) を上回る実寸のカラー画像
+  const highResolutionPngBytes = buildPngHeaderBytes({ imageWidth: 3024, imageHeight: 4032, bitDepth: 8, colorType: 2 });
+
+  async function uploadImageAsQualityUser(
+    fileBytes: Uint8Array,
+    fileContentType = "image/png",
+  ): Promise<ImageUploadResponseBody> {
+    const response = await handleImageRequest(
+      buildUploadRequest({ authorizationHeader: "Bearer valid-token-uid-quality", fileContentType, fileBytes }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(201);
+    return (await response.json()) as ImageUploadResponseBody;
+  }
+
+  it("基準を満たす画像の実寸・判定・サーバー時刻を customMetadata と 201 レスポンスの両方に記録する", async () => {
+    const uploadResponseBody = await uploadImageAsQualityUser(highResolutionPngBytes);
+    expect(uploadResponseBody).toMatchObject({
+      imageWidth: 3024,
+      imageHeight: 4032,
+      scannerResolutionSatisfied: "true",
+      scannerColorSatisfied: "true",
+    });
+    // クライアント申告ではなく Worker の時刻で記録されるため、テスト実行時刻とほぼ一致する
+    expect(Math.abs(Date.parse(uploadResponseBody.uploadedAt ?? "") - Date.now())).toBeLessThan(60_000);
+
+    expect((await env.IMAGE_BUCKET.head(uploadResponseBody.imageObjectKey))?.customMetadata).toEqual({
+      imageWidth: "3024",
+      imageHeight: "4032",
+      scannerResolutionSatisfied: "true",
+      scannerColorSatisfied: "true",
+      uploadedAt: uploadResponseBody.uploadedAt,
+    });
+  });
+
+  it("基準を満たさない低解像度・グレースケールの画像も保存し、判定だけを false で残す", async () => {
+    const uploadResponseBody = await uploadImageAsQualityUser(
+      buildPngHeaderBytes({ imageWidth: 640, imageHeight: 480, bitDepth: 8, colorType: 0 }),
+    );
+    expect(uploadResponseBody).toMatchObject({
+      imageWidth: 640,
+      imageHeight: 480,
+      scannerResolutionSatisfied: "false",
+      scannerColorSatisfied: "false",
+    });
+    expect(await env.IMAGE_BUCKET.head(uploadResponseBody.imageObjectKey)).not.toBeNull();
+  });
+
+  it("実寸を解析できないバイト列も保存し、判定を unknown・実寸を null にする", async () => {
+    const uploadResponseBody = await uploadImageAsQualityUser(
+      // Content-Type は image/jpeg だが、SOI の後ろがマーカーになっていない壊れたバイト列
+      new Uint8Array([0xff, 0xd8, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05]),
+      "image/jpeg",
+    );
+    expect(uploadResponseBody).toMatchObject({
+      imageWidth: null,
+      imageHeight: null,
+      scannerResolutionSatisfied: "unknown",
+      scannerColorSatisfied: "unknown",
+    });
+    expect(typeof uploadResponseBody.uploadedAt).toBe("string");
+    // 解析できなかった実寸は customMetadata に載せない
+    expect((await env.IMAGE_BUCKET.head(uploadResponseBody.imageObjectKey))?.customMetadata).toEqual({
+      scannerResolutionSatisfied: "unknown",
+      scannerColorSatisfied: "unknown",
+      uploadedAt: uploadResponseBody.uploadedAt,
+    });
+  });
+
+  it("取得時のレスポンスヘッダーで画質判定とアップロード時刻を参照できる", async () => {
+    const uploadResponseBody = await uploadImageAsQualityUser(highResolutionPngBytes);
+    const getResponse = await handleImageRequest(
+      buildGetRequest({
+        authorizationHeader: "Bearer valid-token-uid-quality",
+        imageObjectKey: uploadResponseBody.imageObjectKey,
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(getResponse.status).toBe(200);
+    // R2 のオブジェクト本体のストリームを読み切らないとテスト後のストレージ解放に失敗する
+    expect(new Uint8Array(await getResponse.arrayBuffer())).toEqual(highResolutionPngBytes);
+    expect(getResponse.headers.get("X-Image-Width")).toBe("3024");
+    expect(getResponse.headers.get("X-Image-Height")).toBe("4032");
+    expect(getResponse.headers.get("X-Scanner-Resolution-Satisfied")).toBe("true");
+    expect(getResponse.headers.get("X-Scanner-Color-Satisfied")).toBe("true");
+    expect(getResponse.headers.get("X-Uploaded-At")).toBe(uploadResponseBody.uploadedAt);
+  });
+
+  it("同じ X-Upload-Id での再送は、保存済みの画質判定とアップロード時刻をそのまま返す", async () => {
+    const firstUploadResponseBody = await uploadImageAsQualityUser(highResolutionPngBytes);
+    expect(await uploadImageAsQualityUser(highResolutionPngBytes)).toEqual(firstUploadResponseBody);
+  });
+
+  it("画質判定を記録する前にアップロードされた既存オブジェクトへの再送は unknown と null を返す", async () => {
+    await env.IMAGE_BUCKET.put(`users/uid-quality/${testUploadId}.png`, highResolutionPngBytes, {
+      httpMetadata: { contentType: "image/png" },
+    });
+    expect(await uploadImageAsQualityUser(highResolutionPngBytes)).toEqual({
+      imageObjectKey: `users/uid-quality/${testUploadId}.png`,
+      imageWidth: null,
+      imageHeight: null,
+      scannerResolutionSatisfied: "unknown",
+      scannerColorSatisfied: "unknown",
+      uploadedAt: null,
+    });
   });
 });
 
