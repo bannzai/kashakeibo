@@ -129,6 +129,8 @@ manual_entry の QA で 4 件の明細を登録した状態からアプリを終
 - [paywall (プレミアムのペイウォール・課金)](lib/features/paywall/QA.md)
 - [capture (撮影・スクショ取込)](lib/features/capture/QA.md)
 - [share_import (共有 Extension からの取り込み)](lib/features/share_import/QA.md)
+- [transaction_search (明細検索)](lib/features/transaction_search/QA.md)
+- [audit_log (操作履歴)](lib/features/audit_log/QA.md)
 
 ## QA 対象外
 
