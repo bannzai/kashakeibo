@@ -137,5 +137,6 @@
   "paywallSubscriptionNote": "확인 시 스토어 계정으로 요금이 청구됩니다. 현재 구독 기간이 종료되기 최소 24시간 전에 취소하지 않으면 구독이 자동으로 갱신됩니다. 스토어 계정 설정에서 구독을 관리하거나 취소할 수 있습니다.",
   "settingsPlan": "요금제",
   "planFree": "무료",
-  "planPremium": "프리미엄"
+  "planPremium": "프리미엄",
+  "settingsAuditLog": "작업 기록"
 }

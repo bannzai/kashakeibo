@@ -137,5 +137,6 @@
   "paywallSubscriptionNote": "確認後，費用將從您的商店帳號中扣除。除非您在目前訂閱週期結束前至少 24 小時取消訂閱，否則訂閱將自動續訂。您可以在商店帳號設定中管理或取消訂閱。",
   "settingsPlan": "方案",
   "planFree": "免費",
-  "planPremium": "進階版"
+  "planPremium": "進階版",
+  "settingsAuditLog": "操作記錄"
 }
