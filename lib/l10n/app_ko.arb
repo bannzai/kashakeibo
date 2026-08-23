@@ -158,5 +158,6 @@
   "transactionSearchDateTo": "종료일",
   "transactionSearchDateUnset": "전체",
   "transactionSearchAmount": "금액",
-  "transactionSearchMinimumAmount": "최소"
+  "transactionSearchMinimumAmount": "최소",
+  "transactionSearchMaximumAmount": "최대"
 }

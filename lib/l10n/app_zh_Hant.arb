@@ -158,5 +158,6 @@
   "transactionSearchDateTo": "結束日期",
   "transactionSearchDateUnset": "不限",
   "transactionSearchAmount": "金額",
-  "transactionSearchMinimumAmount": "最低"
+  "transactionSearchMinimumAmount": "最低",
+  "transactionSearchMaximumAmount": "最高"
 }
