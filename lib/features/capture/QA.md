@@ -37,11 +37,12 @@ last_verified_at: 2026-08-20
 **確認日: 2026-08-23 (issue #67)**
 
 Simulator kashakeibo-issue-67-iOS26.5 の debug ビルド (kashakeibo-dev + dev Worker) で確認した。
-月ラベル長押し → 開発者メニュー「スキャン残量を使い切る」で今月のスキャン回数を無料枠の上限 (50) に設定すると、月次一覧の残量チップが「スキャン残り0回」になった。その状態で「記録する」→「写真・スクショから選ぶ」をタップするとフォトピッカーは開かずペイウォール (無料枠バー「今月の無料スキャン 50/50」) が開き、✕ で閉じた後もピッカーは開かず月次一覧に戻った。
+新規の匿名 uid では残量チップが「スキャン残り50回」で、月ラベル長押し → 開発者メニュー「スキャン残量を使い切る」を実行すると「スキャン残り0回」に変わった。その状態で「記録する」→「写真・スクショから選ぶ」をタップするとフォトピッカーは開かずペイウォール (無料枠バー「今月の無料スキャン 50/50」) が開き、✕ で閉じた後もピッカーは開かず月次一覧に戻った。
 
-- 開発者メニュー (「スキャン残量を使い切る」): <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/c7416d30-57c2-47d9-8018-4f5fcd1792c0.png" width="240" />
-- 実行後の残量チップ (スキャン残り0回): <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/c932386d-4658-4a88-af0f-546a06686387.png" width="240" />
-- 「写真・スクショから選ぶ」で開いたペイウォール: <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/4f9da0ae-1892-41cd-90da-0201563c8400.png" width="240" />
+- 実行前の残量チップ (スキャン残り50回): <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/40d5a0f7-9f1b-4257-89b7-eb70be46b6a9.png" width="240" />
+- 開発者メニュー (「スキャン残量を使い切る」): <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/a4394962-5c24-4143-a342-18df11d925d0.png" width="240" />
+- 実行後の残量チップ (スキャン残り0回): <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/0bcea9ab-bffa-462c-abcf-595cacc94202.png" width="240" />
+- 「写真・スクショから選ぶ」で開いたペイウォール: <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/2e98e747-ee69-4a6b-aa50-2ff5014812b1.png" width="240" />
 
 </details>
 

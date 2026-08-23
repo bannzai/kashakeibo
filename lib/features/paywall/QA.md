@@ -111,10 +111,10 @@ Simulator の当日は 2026-08-20。無料プランの新規 uid で 2026年8月
 
 **確認日: 2026-08-23** (debug ビルド・kashakeibo-dev・RevenueCat キー未注入)
 
-開発者メニューの「スキャン残量を使い切る」で今月のスキャン回数を無料枠の上限 (50) に設定すると、月次一覧の残量チップが「スキャン残り0回」になった (左)。その状態で「記録する」→「カメラで撮影」をタップするとカメラは起動せずペイウォールが開き、無料枠バーが「今月の無料スキャン 50/50」になった (右)。料金カードが「料金プランを取得できませんでした」なのは RevenueCat の public API key を注入していないビルドのため。
+開発者メニューの「スキャン残量を使い切る」で今月のスキャン回数を無料枠の上限 (50) に設定すると、月次一覧の残量チップが「スキャン残り50回」から「スキャン残り0回」になった (左)。その状態で「記録する」→「カメラで撮影」をタップするとカメラは起動せずペイウォールが開き、無料枠バーが「今月の無料スキャン 50/50」になった (右)。料金カードが「料金プランを取得できませんでした」なのは RevenueCat の public API key を注入していないビルドのため。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/c932386d-4658-4a88-af0f-546a06686387.png" width="300" />
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/8425d184-bf9f-4250-9721-ea2cf04c65e8.png" width="300" />
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/0bcea9ab-bffa-462c-abcf-595cacc94202.png" width="300" />
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260823/a4a2f16a-e7af-41c1-9909-dac518db516a.png" width="300" />
 
 </details>
 
