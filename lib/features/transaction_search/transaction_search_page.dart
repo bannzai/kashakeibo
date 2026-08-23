@@ -69,6 +69,17 @@ class TransactionSearchPage extends HookConsumerWidget {
     final searchCondition = useState(_emptySearchCondition);
     final validationMessage = useState<String?>(null);
     final isPremium = ref.watch(isPremiumProvider);
+    // 画面を開いたまま月をまたいでも無料プランの下限が前月のまま残らないよう、次の月初に再ビルドする。
+    // 依存配列は発火回数だけにして、再ビルドのたびに次の月初へ Timer を張り直す。
+    // isPremium は下限を使うかどうかを変えるだけで月初の時刻を変えないため、依存に含めない。
+    final monthBoundaryPassedCount = useState(0);
+    useEffect(() {
+      final monthBoundaryTimer = Timer(
+        durationUntilNextMonthStart(now: DateTime.now()),
+        () => monthBoundaryPassedCount.value++,
+      );
+      return monthBoundaryTimer.cancel;
+    }, [monthBoundaryPassedCount.value]);
     final searchedTransactionsAsync = ref.watch(
       searchedTransactionsProvider(
         transactionDateFrom: searchCondition.value.transactionDateFrom,
@@ -77,8 +88,9 @@ class TransactionSearchPage extends HookConsumerWidget {
         maximumAmount: searchCondition.value.maximumAmount,
         titleKeyword: searchCondition.value.titleKeyword,
         // 下限は月初の粒度のため、build のたびに DateTime.now() から計算し直しても同じ月の
-        // あいだは同じ値になり、family のインスタンスが使い回される。月をまたいだ時・
-        // 課金状態が変わった時だけ引数が変わり、そのタイミングで検索し直される。
+        // あいだは同じ値になり、family のインスタンスが使い回される。月をまたいだ時
+        // (monthBoundaryPassedCount の Timer が発火した時)・課金状態が変わった時だけ引数が変わり、
+        // そのタイミングで検索し直される。
         oldestSearchableTransactionDate: isPremium
             ? null
             : oldestFreePlanHistoryDateTime(now: DateTime.now()),

@@ -9,7 +9,12 @@
 import type { ImageAnalysisResult } from "./analysis";
 import { analyzeImageWithGemini, GeminiRequestError } from "./analysis";
 import type { VerifyFirebaseAppCheckToken } from "./app_check";
-import { fetchAuditLogs, oldestFreePlanAuditLogTimestamp, registerAuditLogPurge } from "./audit_log";
+import {
+  fetchAuditLogs,
+  oldestFreePlanAuditLogTimestamp,
+  recordImageDeletionLog,
+  registerAuditLogPurge,
+} from "./audit_log";
 import { BigQueryRequestError } from "./bigquery";
 import type { EntitlementEnv } from "./entitlement";
 import { EntitlementVerificationError, hasPremiumEntitlement } from "./entitlement";
@@ -385,7 +390,7 @@ async function handleImageGet(
  * アカウント削除時の全画像消去。JWT の uid 配下 (`users/{uid}/`) のオブジェクトを全削除する。
  * docs/AccountDeletion.md の「撮影・アップロードした画像は削除操作と同時に削除される」を満たすため、
  * クライアントは Firebase Auth ユーザーを削除する前 (ID token が有効なうち) に呼ぶ。
- * 冪等: 対象が既に無い場合も 200 を返す。
+ * 冪等: 対象が既に無い場合も 200 を返す (監査ログには呼び出しごとに 1 行残る)。
  */
 async function handleAllImagesDelete(
   env: ImageWorkerEnv,
@@ -397,11 +402,15 @@ async function handleAllImagesDelete(
   for (;;) {
     const listedImageObjects = await env.IMAGE_BUCKET.list({ prefix: userObjectKeyPrefix });
     if (listedImageObjects.objects.length === 0) {
-      return jsonResponse(200, { deletedImageCount: String(deletedImageCount) });
+      break;
     }
     await env.IMAGE_BUCKET.delete(listedImageObjects.objects.map((imageObject) => imageObject.key));
     deletedImageCount += listedImageObjects.objects.length;
   }
+  // 画像だけの削除は Firestore の明細を変えず changelog に痕跡が残らないため、Worker 側で監査ログに記録する。
+  // 全消去はオブジェクトキーを持たない 1 行 (imageObjectKey = null) として残す
+  await recordImageDeletionLog({ env, uid: verifiedFirebaseUser.uid, imageObjectKey: null });
+  return jsonResponse(200, { deletedImageCount: String(deletedImageCount) });
 }
 
 /**
@@ -652,7 +661,7 @@ function validateOwnImageObjectKey(
 
 /**
  * 画像 1 件の削除 (明細から画像だけを外す・明細ごと削除する時に使う)。本人の uid 配下のキーだけを許可する。
- * 冪等: 対象が既に無い場合も 200 を返す。
+ * 冪等: 対象が既に無い場合も 200 を返す (監査ログには呼び出しごとに 1 行残る)。
  */
 async function handleImageDelete(
   requestUrl: URL,
@@ -664,6 +673,13 @@ async function handleImageDelete(
     return resolvedKey.errorResponse;
   }
   await env.IMAGE_BUCKET.delete(resolvedKey.imageObjectKey);
+  // 明細を残したまま画像だけを消す経路は Firestore の変更を伴わず changelog に痕跡が残らないため、
+  // Worker 側で監査ログに記録する (この経路を直接叩いても記録を迂回できないようにする)
+  await recordImageDeletionLog({
+    env,
+    uid: verifiedFirebaseUser.uid,
+    imageObjectKey: resolvedKey.imageObjectKey,
+  });
   return jsonResponse(200, { imageObjectKey: resolvedKey.imageObjectKey });
 }
 

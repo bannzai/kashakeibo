@@ -37,6 +37,41 @@ void main() {
     });
   });
 
+  group('durationUntilNextMonthStart', () {
+    test('次の月初までの残り時間を返す', () {
+      expect(
+        durationUntilNextMonthStart(now: DateTime(2026, 8, 31, 23, 0)),
+        const Duration(hours: 1),
+      );
+      expect(
+        durationUntilNextMonthStart(now: DateTime(2026, 8, 1)),
+        DateTime(2026, 9).difference(DateTime(2026, 8, 1)),
+      );
+    });
+
+    test('年をまたぐ月末でも翌年 1 月の月初までを返す', () {
+      expect(
+        durationUntilNextMonthStart(now: DateTime(2026, 12, 31, 12)),
+        const Duration(hours: 12),
+      );
+    });
+
+    test('待ち時間の経過後は下限が1ヶ月ぶん新しくなる (月初での再計算で下限が変わる)', () {
+      final beforeMonthBoundary = DateTime(2026, 8, 31, 23, 59);
+      final afterMonthBoundary = beforeMonthBoundary.add(
+        durationUntilNextMonthStart(now: beforeMonthBoundary),
+      );
+      expect(
+        oldestFreePlanHistoryDateTime(now: afterMonthBoundary),
+        isNot(oldestFreePlanHistoryDateTime(now: beforeMonthBoundary)),
+      );
+      expect(
+        oldestFreePlanHistoryDateTime(now: afterMonthBoundary),
+        DateTime(2026, 7),
+      );
+    });
+  });
+
   group('isMonthWithinFreePlanHistory', () {
     test('下限の月は含み、その1ヶ月前は含まない', () {
       expect(

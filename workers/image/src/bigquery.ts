@@ -1,5 +1,6 @@
-// BigQuery REST API (jobs.query) の呼び出し。監査ログの読み取り (GET /audit-logs) と、
-// アカウント削除時のパージ DML (scheduled) の両方がここを通る。
+// BigQuery REST API (jobs.query・tables.insert・tabledata.insertAll) の呼び出しと、
+// Google API 共通の access token の取得。監査ログの読み取り (GET /audit-logs)・画像削除の記録・
+// アカウント削除時のパージ DML (scheduled) と、そのパージ前に行う Firebase Auth のアカウント確認がここを通る。
 // Cloudflare Workers では Google 公式のクライアントライブラリを使えないため、サービスアカウントの JSON キーから
 // RS256 の JWT (WebCrypto) を作り、OAuth2 で access token に交換してから REST API を直接呼ぶ。
 // サービスアカウントキーは Worker の secret (BIGQUERY_SERVICE_ACCOUNT_KEY) にだけ置き、クライアントへ配布しない。
@@ -34,17 +35,26 @@ export interface BigQueryQueryResponse {
 
 /** BigQuery の呼び出し失敗 (認証・HTTP エラー・ジョブのタイムアウト)。 */
 export class BigQueryRequestError extends Error {
-  constructor(message: string) {
+  /** 失敗した応答の HTTP status。HTTP 応答を伴わない失敗 (接続失敗・ジョブのタイムアウト) では undefined。 */
+  readonly httpStatus: number | undefined;
+
+  constructor(message: string, httpStatus?: number) {
     super(message);
     this.name = "BigQueryRequestError";
+    this.httpStatus = httpStatus;
   }
 }
 
 const googleOAuthTokenUrl = "https://oauth2.googleapis.com/token";
 const bigQueryApiBaseUrl = "https://bigquery.googleapis.com/bigquery/v2";
 
-// access token に要求するスコープ。読み取り (SELECT) と DML の実行に必要な BigQuery のスコープ
-const bigQueryOAuthScope = "https://www.googleapis.com/auth/bigquery";
+// access token に要求するスコープ。BigQuery は読み取り (SELECT)・DML・テーブル作成と streaming insert に、
+// identitytoolkit は監査ログのパージ前に Firebase Auth のアカウント削除完了を確かめる accounts:lookup に必要。
+// 1 本の token に両方のスコープを載せ、用途ごとに token を取り直さない
+const googleApiOAuthScopes = [
+  "https://www.googleapis.com/auth/bigquery",
+  "https://www.googleapis.com/auth/identitytoolkit",
+].join(" ");
 
 // クエリを実行するロケーション。jobs.query はデータセットと同じロケーションを指定しないとテーブルを解決できないため、
 // Stream Firestore to BigQuery extension を導入したロケーション (Firestore と同じ asia-northeast1) を固定で渡す
@@ -70,7 +80,7 @@ const bigQueryRequestTimeoutMilliseconds = 45_000;
 
 // 取得済み access token のメモリキャッシュ (サービスアカウントのメールアドレスごと)。
 // Worker インスタンスが生きている間だけ再利用し、リクエストごとの RS256 署名と token 交換を省く
-const cachedBigQueryAccessTokens = new Map<string, { accessToken: string; expiresAtMilliseconds: number }>();
+const cachedGoogleApiAccessTokens = new Map<string, { accessToken: string; expiresAtMilliseconds: number }>();
 
 /** バイト列を JWT が要求する base64url (パディング無し) にする。 */
 function encodeBase64Url(bytes: Uint8Array): string {
@@ -97,11 +107,11 @@ async function importServiceAccountPrivateKey(privateKeyPem: string): Promise<Cr
 }
 
 /**
- * サービスアカウントの JSON キーから BigQuery の access token を得る。
+ * サービスアカウントの JSON キーから Google API (BigQuery・Identity Toolkit) の access token を得る。
  * 有効期限内のキャッシュがあれば再利用し、無ければ RS256 の JWT を署名して OAuth2 で交換する。
  * 冪等 (副作用はメモリキャッシュの更新のみ)。
  */
-async function fetchBigQueryAccessToken(serviceAccountKeyJson: string): Promise<string> {
+export async function fetchGoogleApiAccessToken(serviceAccountKeyJson: string): Promise<string> {
   let serviceAccountKey: BigQueryServiceAccountKey;
   try {
     serviceAccountKey = JSON.parse(serviceAccountKeyJson) as BigQueryServiceAccountKey;
@@ -113,7 +123,7 @@ async function fetchBigQueryAccessToken(serviceAccountKeyJson: string): Promise<
     throw new BigQueryRequestError("BigQuery のサービスアカウントキーに client_email / private_key がありません");
   }
 
-  const cachedAccessToken = cachedBigQueryAccessTokens.get(serviceAccountEmail);
+  const cachedAccessToken = cachedGoogleApiAccessTokens.get(serviceAccountEmail);
   if (cachedAccessToken !== undefined && cachedAccessToken.expiresAtMilliseconds > Date.now()) {
     return cachedAccessToken.accessToken;
   }
@@ -121,7 +131,7 @@ async function fetchBigQueryAccessToken(serviceAccountKeyJson: string): Promise<
   const issuedAtUnixSeconds = Math.floor(Date.now() / 1000);
   const jwtSigningInput = `${encodeBase64UrlJson({ alg: "RS256", typ: "JWT" })}.${encodeBase64UrlJson({
     iss: serviceAccountEmail,
-    scope: bigQueryOAuthScope,
+    scope: googleApiOAuthScopes,
     aud: googleOAuthTokenUrl,
     iat: issuedAtUnixSeconds,
     exp: issuedAtUnixSeconds + serviceAccountJwtLifetimeSeconds,
@@ -149,17 +159,18 @@ async function fetchBigQueryAccessToken(serviceAccountKeyJson: string): Promise<
   if (!accessTokenResponse.ok) {
     // エラー本文にはサービスアカウントの情報が含まれ得るため、詳細はログにだけ残して status だけを返す
     console.warn(
-      `BigQuery の access token の取得に失敗 (status=${accessTokenResponse.status}): ${await accessTokenResponse.text()}`,
+      `Google API の access token の取得に失敗 (status=${accessTokenResponse.status}): ${await accessTokenResponse.text()}`,
     );
     throw new BigQueryRequestError(
-      `BigQuery の access token を取得できませんでした (status=${accessTokenResponse.status})`,
+      `Google API の access token を取得できませんでした (status=${accessTokenResponse.status})`,
+      accessTokenResponse.status,
     );
   }
   const googleAccessToken = (await accessTokenResponse.json()) as { access_token?: unknown; expires_in?: unknown };
   if (typeof googleAccessToken.access_token !== "string") {
-    throw new BigQueryRequestError("BigQuery の access token の応答に access_token がありません");
+    throw new BigQueryRequestError("Google API の access token の応答に access_token がありません");
   }
-  cachedBigQueryAccessTokens.set(serviceAccountEmail, {
+  cachedGoogleApiAccessTokens.set(serviceAccountEmail, {
     accessToken: googleAccessToken.access_token,
     // expires_in が欠けた応答は、要求した JWT と同じ寿命として扱う (Google は常に返すため保険のフォールバック)
     expiresAtMilliseconds:
@@ -171,6 +182,37 @@ async function fetchBigQueryAccessToken(serviceAccountKeyJson: string): Promise<
       accessTokenExpiryMarginMilliseconds,
   });
   return googleAccessToken.access_token;
+}
+
+/**
+ * BigQuery REST API を POST で呼び、応答をそのまま返す。
+ * status ごとの扱い (テーブルが無い 404 で作成へ回す・作成済みの 409 を成功扱いにする) は呼び出し側が決めるため、
+ * HTTP エラーでも例外にせず、接続自体に失敗した場合だけ BigQueryRequestError を投げる。
+ * 冪等性は呼び出すエンドポイント次第。
+ */
+export async function postBigQueryApi({
+  serviceAccountKeyJson,
+  apiPath,
+  requestBody,
+}: {
+  /** サービスアカウントの JSON キー (Worker の secret BIGQUERY_SERVICE_ACCOUNT_KEY)。 */
+  serviceAccountKeyJson: string;
+  /** bigquery/v2 以下のパス (例: `/projects/{projectId}/datasets/{datasetId}/tables`)。 */
+  apiPath: string;
+  /** POST する JSON のリクエスト本体。 */
+  requestBody: object;
+}): Promise<Response> {
+  const googleApiAccessToken = await fetchGoogleApiAccessToken(serviceAccountKeyJson);
+  try {
+    return await fetch(`${bigQueryApiBaseUrl}${apiPath}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${googleApiAccessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(bigQueryRequestTimeoutMilliseconds),
+    });
+  } catch (error) {
+    throw new BigQueryRequestError(`BigQuery への接続に失敗しました: ${String(error)}`);
+  }
 }
 
 /**
@@ -194,30 +236,25 @@ export async function queryBigQuery({
   /** SQL 中の `@name` に対応する名前付きパラメータ。 */
   queryParameters: BigQueryQueryParameter[];
 }): Promise<BigQueryQueryResponse> {
-  const bigQueryAccessToken = await fetchBigQueryAccessToken(serviceAccountKeyJson);
-
-  let queryResponse: Response;
-  try {
-    queryResponse = await fetch(`${bigQueryApiBaseUrl}/projects/${encodeURIComponent(projectId)}/queries`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${bigQueryAccessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        useLegacySql: false,
-        parameterMode: "NAMED",
-        queryParameters,
-        location: bigQueryDatasetLocation,
-        timeoutMs: bigQueryQueryTimeoutMilliseconds,
-      }),
-      signal: AbortSignal.timeout(bigQueryRequestTimeoutMilliseconds),
-    });
-  } catch (error) {
-    throw new BigQueryRequestError(`BigQuery への接続に失敗しました: ${String(error)}`);
-  }
+  const queryResponse = await postBigQueryApi({
+    serviceAccountKeyJson,
+    apiPath: `/projects/${encodeURIComponent(projectId)}/queries`,
+    requestBody: {
+      query,
+      useLegacySql: false,
+      parameterMode: "NAMED",
+      queryParameters,
+      location: bigQueryDatasetLocation,
+      timeoutMs: bigQueryQueryTimeoutMilliseconds,
+    },
+  });
   if (!queryResponse.ok) {
     // エラー本文にはプロジェクト ID・テーブル名などの内部情報が含まれるため、詳細はログにだけ残して status だけを返す
     console.warn(`BigQuery のクエリに失敗 (status=${queryResponse.status}): ${await queryResponse.text()}`);
-    throw new BigQueryRequestError(`BigQuery のクエリに失敗しました (status=${queryResponse.status})`);
+    throw new BigQueryRequestError(
+      `BigQuery のクエリに失敗しました (status=${queryResponse.status})`,
+      queryResponse.status,
+    );
   }
 
   const bigQueryQueryResponse = (await queryResponse.json()) as BigQueryQueryResponse;

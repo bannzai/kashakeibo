@@ -1,11 +1,19 @@
-// 明細 (Firestore の `users/{userId}/transactions`) の訂正・削除履歴 (監査ログ) の読み取りと、
+// 明細 (Firestore の `users/{userId}/transactions`) の訂正・削除履歴 (監査ログ) の読み取り・記録と、
 // アカウント削除時のパージ。
-// 履歴の実体は Firebase Extension「Stream Firestore to BigQuery」が書き出す changelog テーブルで、
-// クライアントは履歴を書き込まない (書き込み経路を持たせないことで、履歴自体の改ざんを構造的に防ぐ)。
-// changelog のスキーマ (timestamp / event_id / document_name / document_id / operation / data / old_data / path_params)
-// は extension が定める標準スキーマで、本 Worker はそのうち表示に使う列だけを読む。
+// 履歴は 2 つのテーブルから成り、どちらもクライアントに書き込み経路が無い (履歴自体の改ざんを構造的に防ぐ):
+// - 明細の変更: Firebase Extension「Stream Firestore to BigQuery」が書き出す changelog テーブル。
+//   スキーマ (timestamp / event_id / document_name / document_id / operation / data / old_data / path_params)
+//   は extension が定める標準スキーマで、本 Worker はそのうち表示に使う列だけを読む
+// - R2 の画像削除: 本 Worker が書き込む image_deletion_logs テーブル。画像だけを消す削除 (DELETE /images 系) は
+//   Firestore の明細を変えないため changelog に痕跡が残らず、Worker 自身が記録しないと監査を迂回できてしまう
 import type { BigQueryQueryParameter } from "./bigquery";
-import { bigQueryRowsByFieldName, queryBigQuery } from "./bigquery";
+import {
+  BigQueryRequestError,
+  bigQueryRowsByFieldName,
+  fetchGoogleApiAccessToken,
+  postBigQueryApi,
+  queryBigQuery,
+} from "./bigquery";
 // 型だけの参照 (実行時には import されないため、handler.ts との循環参照にならない)
 import type { ImageWorkerEnv } from "./handler";
 
@@ -38,6 +46,20 @@ export interface AuditLog {
 // データセット・テーブル名は extension の導入時に指定した設定と一致させる
 const firestoreExportDatasetId = "firestore_export";
 const transactionsChangelogTableId = "transactions_raw_changelog";
+
+// 本 Worker が R2 の画像削除を書き込むテーブル。changelog と同じデータセットに置き、
+// アカウント削除時のパージが 2 つのテーブルを同じ手順 (同じ location・同じ DML) で消せるようにする
+const imageDeletionLogTableId = "image_deletion_logs";
+
+/**
+ * image_deletion_logs のスキーマ (tables.insert に渡す定義)。
+ * 削除したユーザー・削除した画像のオブジェクトキー (全画像の削除では NULL)・Worker が記録した削除時刻を持つ。
+ */
+const imageDeletionLogTableSchemaFields = [
+  { name: "uid", type: "STRING", mode: "REQUIRED" },
+  { name: "image_object_key", type: "STRING", mode: "NULLABLE" },
+  { name: "deleted_at", type: "TIMESTAMP", mode: "REQUIRED" },
+] as const;
 
 // 一度に返す監査ログの件数上限。履歴画面が一度に表示する上限であり、全期間を遡る導線 (ページング) を
 // 持たない設計のためこれ以上は返さない (従来の Firestore subcollection 実装と同じ値)
@@ -80,8 +102,25 @@ export const auditLogPurgeMinimumWaitMilliseconds = 60 * 60 * 1000;
 // この間の毎時の再実行で後着の行まで消し切る
 export const auditLogPurgeRequestRetentionMilliseconds = 24 * 60 * 60 * 1000;
 
+// Firebase Auth のアカウントが残ったままのパージ要求を取り下げるまでの期間。
+// クライアントは DELETE /audit-logs → 明細・画像の削除 → Firebase Auth ユーザーの削除の順に呼ぶため、
+// 削除が完了した要求では登録から数分で uid が消える。7 日は、通信断・アプリの終了で削除フローが中断した
+// ユーザーが削除をやり直すのに十分な猶予で、これを過ぎても残っている要求は削除が完了しなかったものとして扱う
+// (残し続けると毎時の cron が消えない要求の lookup を無期限に繰り返す)
+export const auditLogPurgeAbandonedRequestExpiryMilliseconds = 7 * 24 * 60 * 60 * 1000;
+
+// Firebase Auth のアカウントの有無を問い合わせる Identity Toolkit のエンドポイント。
+// 本番の Firebase Auth を直接見るため、パージの可否をクライアントの申告に依存させない
+const identityToolkitApiBaseUrl = "https://identitytoolkit.googleapis.com/v1";
+
+// accounts:lookup の fetch タイムアウト。Workers の fetch サブリクエストには既定のタイムアウトが無く、
+// Identity Toolkit の応答遅延で毎時の scheduled 全体がハングするのを防ぐ。
+// uid を 1 件引くだけの軽い呼び出しのため、BigQuery のクエリ (bigquery.ts) より短い値で足りる
+const firebaseAuthUserLookupTimeoutMilliseconds = 10_000;
+
 /**
- * 監査ログを新しい順に取得する。
+ * 監査ログを新しい順に取得する。明細の変更 (changelog) と画像の削除 (image_deletion_logs) の
+ * 両方を同じ uid・同じ期間で読み、時刻の新しい順に統合して返す。
  * uid は呼び出し側が検証済み ID token から取り出したものを渡す (クライアント申告のユーザー ID は使わない)。
  * 冪等 (読み取りのみ)。
  */
@@ -96,7 +135,7 @@ export async function fetchAuditLogs({
   /** これより古い変更を返さない下限 (無料プランの履歴制限)。制限しない場合は null。 */
   oldestTimestamp: Date | null;
 }): Promise<AuditLog[]> {
-  return bigQueryRowsByFieldName(
+  const transactionChangelogAuditLogs = bigQueryRowsByFieldName(
     await queryBigQuery({
       projectId: env.FIREBASE_PROJECT_ID,
       serviceAccountKeyJson: env.BIGQUERY_SERVICE_ACCOUNT_KEY,
@@ -110,20 +149,95 @@ export async function fetchAuditLogs({
         "ORDER BY timestamp DESC",
         `LIMIT ${maxAuditLogCount}`,
       ].join("\n"),
-      queryParameters: [
-        { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } },
-        ...(oldestTimestamp === null
-          ? []
-          : [
-              {
-                name: "oldestTimestamp",
-                parameterType: { type: "TIMESTAMP" },
-                parameterValue: { value: oldestTimestamp.toISOString() },
-              } satisfies BigQueryQueryParameter,
-            ]),
-      ],
+      queryParameters: auditLogQueryParameters({ uid, oldestTimestamp }),
     }),
   ).map(toAuditLog);
+
+  return [...transactionChangelogAuditLogs, ...(await fetchImageDeletionAuditLogs({ env, uid, oldestTimestamp }))]
+    // 2 つのテーブルの行を 1 本の履歴にする。occurredAt は同じ形式の UTC の ISO 8601 のため文字列比較で並ぶ
+    .sort((leftAuditLog, rightAuditLog) => rightAuditLog.occurredAt.localeCompare(leftAuditLog.occurredAt))
+    .slice(0, maxAuditLogCount);
+}
+
+/** changelog・image_deletion_logs に共通の絞り込みパラメータ (対象ユーザーと期間の下限)。 */
+function auditLogQueryParameters({
+  uid,
+  oldestTimestamp,
+}: {
+  uid: string;
+  oldestTimestamp: Date | null;
+}): BigQueryQueryParameter[] {
+  return [
+    { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } },
+    ...(oldestTimestamp === null
+      ? []
+      : [
+          {
+            name: "oldestTimestamp",
+            parameterType: { type: "TIMESTAMP" },
+            parameterValue: { value: oldestTimestamp.toISOString() },
+          } satisfies BigQueryQueryParameter,
+        ]),
+  ];
+}
+
+/**
+ * image_deletion_logs から画像削除の履歴を読む。
+ * テーブルはこの Worker が最初の画像削除を記録する時に作るため、まだ削除が一度も起きていない環境では
+ * 存在せず 404 になる。その場合は履歴なしとして扱い、明細の変更履歴まで 502 にしない。
+ * 冪等 (読み取りのみ)。
+ */
+async function fetchImageDeletionAuditLogs({
+  env,
+  uid,
+  oldestTimestamp,
+}: {
+  env: ImageWorkerEnv;
+  uid: string;
+  oldestTimestamp: Date | null;
+}): Promise<AuditLog[]> {
+  try {
+    return bigQueryRowsByFieldName(
+      await queryBigQuery({
+        projectId: env.FIREBASE_PROJECT_ID,
+        serviceAccountKeyJson: env.BIGQUERY_SERVICE_ACCOUNT_KEY,
+        query: [
+          "SELECT image_object_key, deleted_at",
+          `FROM \`${env.FIREBASE_PROJECT_ID}.${firestoreExportDatasetId}.${imageDeletionLogTableId}\``,
+          "WHERE uid = @uid",
+          ...(oldestTimestamp === null ? [] : ["  AND deleted_at >= @oldestTimestamp"]),
+          "ORDER BY deleted_at DESC",
+          `LIMIT ${maxAuditLogCount}`,
+        ].join("\n"),
+        queryParameters: auditLogQueryParameters({ uid, oldestTimestamp }),
+      }),
+    ).map(toImageDeletionAuditLog);
+  } catch (error) {
+    if (!isMissingBigQueryTableError(error)) {
+      throw error;
+    }
+    return [];
+  }
+}
+
+/** テーブルがまだ作られていない (BigQuery が 404 を返した) 失敗かどうか。 */
+function isMissingBigQueryTableError(error: unknown): boolean {
+  return error instanceof BigQueryRequestError && error.httpStatus === 404;
+}
+
+/**
+ * image_deletion_logs の 1 行を監査ログにする。
+ * R2 のオブジェクト単位の削除で明細のドキュメントに紐付かないため、明細の情報 (ID・表示名・金額) は持たない。
+ */
+function toImageDeletionAuditLog(imageDeletionLogRow: Record<string, string | null>): AuditLog {
+  return {
+    occurredAt: toIsoDateTimeText(imageDeletionLogRow.deleted_at),
+    operation: "transactionImageDeleted",
+    transactionID: "",
+    transactionTitle: null,
+    transactionAmount: null,
+    changedFieldNames: [],
+  };
 }
 
 /**
@@ -261,6 +375,98 @@ function toIsoDateTimeText(bigQueryTimestamp: string | null): string {
 }
 
 /**
+ * R2 の画像削除を監査ログに記録する (DELETE /images/{objectKey} と DELETE /images の成功時)。
+ *
+ * 記録に失敗しても例外にせず警告だけを残す。画像削除の応答を BigQuery 障害に巻き込まないためのベストエフォートで、
+ * 呼び出し側は記録の成否によらず削除の成功を返す。
+ * 冪等ではない: 同じ画像の削除を 2 回呼べば 2 行増える (削除操作が行われた回数をそのまま履歴に残すため)。
+ */
+export async function recordImageDeletionLog({
+  env,
+  uid,
+  imageObjectKey,
+}: {
+  env: ImageWorkerEnv;
+  /** 削除を行ったユーザーの Firebase Auth uid (検証済み ID token の uid)。 */
+  uid: string;
+  /** 削除した画像のオブジェクトキー。アカウント削除時の全画像の削除は null。 */
+  imageObjectKey: string | null;
+}): Promise<void> {
+  try {
+    let insertResponse = await insertImageDeletionLogRow({ env, uid, imageObjectKey });
+    if (insertResponse.status === 404) {
+      // テーブルがまだ無い環境 (新しい環境の最初の画像削除) では、作ってから入れ直す
+      await createImageDeletionLogTable(env);
+      insertResponse = await insertImageDeletionLogRow({ env, uid, imageObjectKey });
+    }
+    const insertFailureText = await imageDeletionLogInsertFailureText(insertResponse);
+    if (insertFailureText !== null) {
+      console.warn(`画像削除の監査ログを記録できませんでした (画像の削除自体は成功しています): ${insertFailureText}`);
+    }
+  } catch (error) {
+    console.warn("画像削除の監査ログを記録できませんでした (画像の削除自体は成功しています)", error);
+  }
+}
+
+/** image_deletion_logs に 1 行を streaming insert する (tabledata.insertAll)。時刻はクライアント申告を使わず Worker の時刻で記録する。 */
+function insertImageDeletionLogRow({
+  env,
+  uid,
+  imageObjectKey,
+}: {
+  env: ImageWorkerEnv;
+  uid: string;
+  imageObjectKey: string | null;
+}): Promise<Response> {
+  return postBigQueryApi({
+    serviceAccountKeyJson: env.BIGQUERY_SERVICE_ACCOUNT_KEY,
+    apiPath: `/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}/datasets/${firestoreExportDatasetId}/tables/${imageDeletionLogTableId}/insertAll`,
+    requestBody: {
+      rows: [{ json: { uid, image_object_key: imageObjectKey, deleted_at: new Date().toISOString() } }],
+    },
+  });
+}
+
+/**
+ * image_deletion_logs テーブルを作る (tables.insert)。既に作られている場合 (409) は成功として扱う。
+ * 冪等: 何度呼んでもテーブルが 1 つある状態に収束する。
+ */
+async function createImageDeletionLogTable(env: ImageWorkerEnv): Promise<void> {
+  const createTableResponse = await postBigQueryApi({
+    serviceAccountKeyJson: env.BIGQUERY_SERVICE_ACCOUNT_KEY,
+    apiPath: `/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}/datasets/${firestoreExportDatasetId}/tables`,
+    requestBody: {
+      tableReference: {
+        projectId: env.FIREBASE_PROJECT_ID,
+        datasetId: firestoreExportDatasetId,
+        tableId: imageDeletionLogTableId,
+      },
+      schema: { fields: imageDeletionLogTableSchemaFields },
+    },
+  });
+  if (!createTableResponse.ok && createTableResponse.status !== 409) {
+    throw new BigQueryRequestError(
+      `image_deletion_logs テーブルを作成できませんでした (status=${createTableResponse.status}): ${await createTableResponse.text()}`,
+      createTableResponse.status,
+    );
+  }
+}
+
+/**
+ * insertAll の応答から失敗の理由を読む (成功なら null)。
+ * 行ごとの失敗は HTTP 200 の本文 (insertErrors) で返るため、status だけでは成否を判定できない。
+ */
+async function imageDeletionLogInsertFailureText(insertResponse: Response): Promise<string | null> {
+  if (!insertResponse.ok) {
+    return `status=${insertResponse.status}: ${await insertResponse.text()}`;
+  }
+  const insertResult = (await insertResponse.json()) as { insertErrors?: unknown[] };
+  return insertResult.insertErrors === undefined || insertResult.insertErrors.length === 0
+    ? null
+    : JSON.stringify(insertResult.insertErrors);
+}
+
+/**
  * アカウント削除時の履歴パージを予約する (DELETE /audit-logs)。登録した時刻を返す。
  *
  * 即時に DML を実行しない理由は [auditLogPurgeMinimumWaitMilliseconds] を参照。
@@ -274,7 +480,8 @@ export async function registerAuditLogPurge({ env, uid }: { env: ImageWorkerEnv;
 
 /**
  * 予約済みの履歴パージをまとめて実行する (毎時の scheduled から呼ぶ)。
- * 待ち時間に満たない要求はスキップし、DML に失敗した要求と猶予期間中の要求は KV に残して次回の実行で消し直す。
+ * 待ち時間に満たない要求と、Firebase Auth のアカウントがまだ残っている要求はスキップし、
+ * DML に失敗した要求と猶予期間中の要求は KV に残して次回の実行で消し直す。
  * 冪等: 同じ状態で何度実行しても、消えるべき履歴が消えた状態に収束する。
  */
 export async function purgeRequestedAuditLogs(env: ImageWorkerEnv): Promise<void> {
@@ -291,7 +498,10 @@ export async function purgeRequestedAuditLogs(env: ImageWorkerEnv): Promise<void
   } while (purgeRequestListCursor !== undefined);
 }
 
-/** パージ要求 1 件を処理する。DML が成功し、かつ猶予期間を過ぎている場合だけ KV の要求を消す。 */
+/**
+ * パージ要求 1 件を処理する。Firebase Auth のアカウントが消えていることを確かめてから DML を実行し、
+ * DML が成功し、かつ猶予期間を過ぎている場合だけ KV の要求を消す。
+ */
 async function purgeAuditLogsOfPurgeRequest({
   env,
   purgeRequestKeyName,
@@ -312,6 +522,26 @@ async function purgeAuditLogsOfPurgeRequest({
   }
 
   const uid = purgeRequestKeyName.slice(auditLogPurgeKeyPrefix.length);
+  let firebaseAuthUserExists: boolean;
+  try {
+    firebaseAuthUserExists = await existsFirebaseAuthUser({ env, uid });
+  } catch (error) {
+    // 一時的な失敗と履歴が消える判断を取り違えないよう、確認できない間はパージしない
+    console.warn("Firebase Auth のアカウント削除の確認に失敗しました (次回の scheduled で再試行します)", error);
+    return;
+  }
+  if (firebaseAuthUserExists) {
+    // アカウントが残っている = 利用中のユーザーの要求 (有効な token での DELETE /audit-logs の直接呼び出しを含む)。
+    // 監査証跡を本人の操作で消せてしまわないよう、アカウントの削除が完了するまでパージしない
+    if (purgeRequestElapsedMilliseconds >= auditLogPurgeAbandonedRequestExpiryMilliseconds) {
+      console.warn(
+        "アカウントが削除されないまま予約の期限を過ぎたため、監査ログのパージ予約を取り下げます (履歴は残ります)",
+      );
+      await env.PUBLIC_JWK_CACHE_KV.delete(purgeRequestKeyName);
+    }
+    return;
+  }
+
   try {
     await queryBigQuery({
       projectId: env.FIREBASE_PROJECT_ID,
@@ -322,9 +552,11 @@ async function purgeAuditLogsOfPurgeRequest({
       ].join("\n"),
       queryParameters: [{ name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } }],
     });
+    await purgeImageDeletionLogs({ env, uid });
   } catch (error) {
     // ストリーミングバッファに残った行は DML で削除できないため、この段階の失敗は異常ではない。
     // 要求を KV に残し、次回 (1時間後) 以降の実行で再試行する
+    // (2 つのテーブルのうち片方だけ成功した場合も、次回に両方を消し直す)
     console.warn("監査ログのパージに失敗しました (次回の scheduled で再試行します)", error);
     return;
   }
@@ -334,4 +566,60 @@ async function purgeAuditLogsOfPurgeRequest({
     return;
   }
   await env.PUBLIC_JWK_CACHE_KV.delete(purgeRequestKeyName);
+}
+
+/**
+ * image_deletion_logs から uid の行を消す (アカウント削除時のパージ)。
+ * 画像削除が一度も起きておらずテーブルが無い環境では消す行も無いため、404 は成功として扱う。
+ * 冪等: 同じ uid で何度実行しても、行が無い状態に収束する。
+ */
+async function purgeImageDeletionLogs({ env, uid }: { env: ImageWorkerEnv; uid: string }): Promise<void> {
+  try {
+    await queryBigQuery({
+      projectId: env.FIREBASE_PROJECT_ID,
+      serviceAccountKeyJson: env.BIGQUERY_SERVICE_ACCOUNT_KEY,
+      query: [
+        `DELETE FROM \`${env.FIREBASE_PROJECT_ID}.${firestoreExportDatasetId}.${imageDeletionLogTableId}\``,
+        "WHERE uid = @uid",
+      ].join("\n"),
+      queryParameters: [{ name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } }],
+    });
+  } catch (error) {
+    if (!isMissingBigQueryTableError(error)) {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Firebase Auth に uid のアカウントがまだ存在するかを Identity Toolkit の accounts:lookup で確かめる。
+ * 一時的な失敗 (HTTP エラー・接続失敗) は例外にし、呼び出し側が「削除済み」と取り違えないようにする。
+ * 冪等 (読み取りのみ)。
+ */
+async function existsFirebaseAuthUser({ env, uid }: { env: ImageWorkerEnv; uid: string }): Promise<boolean> {
+  let accountsLookupResponse: Response;
+  try {
+    accountsLookupResponse = await fetch(
+      `${identityToolkitApiBaseUrl}/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}/accounts:lookup`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${await fetchGoogleApiAccessToken(env.BIGQUERY_SERVICE_ACCOUNT_KEY)}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ localId: [uid] }),
+        signal: AbortSignal.timeout(firebaseAuthUserLookupTimeoutMilliseconds),
+      },
+    );
+  } catch (error) {
+    throw new Error(`Firebase Auth の accounts:lookup への接続に失敗しました: ${String(error)}`);
+  }
+  if (!accountsLookupResponse.ok) {
+    throw new Error(
+      `Firebase Auth の accounts:lookup に失敗しました (status=${accountsLookupResponse.status}): ${await accountsLookupResponse.text()}`,
+    );
+  }
+  // 削除済みの uid では users 自体が返らない (Identity Toolkit は空配列ではなく項目の省略で表す)
+  const accountsLookupResult = (await accountsLookupResponse.json()) as { users?: unknown[] };
+  return Array.isArray(accountsLookupResult.users) && accountsLookupResult.users.length > 0;
 }

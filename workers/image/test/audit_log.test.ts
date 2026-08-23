@@ -1,12 +1,13 @@
-// 監査ログ (GET /audit-logs・DELETE /audit-logs・毎時の scheduled パージ) のテスト。
+// 監査ログ (GET /audit-logs・DELETE /audit-logs・画像削除の記録・毎時の scheduled パージ) のテスト。
 // Firebase ID token / App Check token の検証は handler.test.ts と同じスタブ検証器で置き換え、
 // KV と Durable Object は vitest-pool-workers (miniflare) の実 binding を使う。
-// BigQuery と Google の token エンドポイントは fetchMock で応答を差し替え、
+// BigQuery・Identity Toolkit と Google の token エンドポイントは fetchMock で応答を差し替え、
 // JWT の署名はテスト内で生成した RSA 鍵を持つサービスアカウントキーで実際に通す。
 import { env, fetchMock } from "cloudflare:test";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { VerifyFirebaseAppCheckToken } from "../src/app_check";
 import {
+  auditLogPurgeAbandonedRequestExpiryMilliseconds,
   auditLogPurgeMinimumWaitMilliseconds,
   auditLogPurgeRequestRetentionMilliseconds,
   freePlanAuditLogHistoryMonthCount,
@@ -51,6 +52,10 @@ const workerBaseUrl = "https://image-worker.test";
 const googleOAuthOrigin = "https://oauth2.googleapis.com";
 const bigQueryApiOrigin = "https://bigquery.googleapis.com";
 const bigQueryQueriesPath = `/bigquery/v2/projects/${env.FIREBASE_PROJECT_ID}/queries`;
+const imageDeletionLogInsertAllPath = `/bigquery/v2/projects/${env.FIREBASE_PROJECT_ID}/datasets/firestore_export/tables/image_deletion_logs/insertAll`;
+const imageDeletionLogTablesPath = `/bigquery/v2/projects/${env.FIREBASE_PROJECT_ID}/datasets/firestore_export/tables`;
+const identityToolkitApiOrigin = "https://identitytoolkit.googleapis.com";
+const accountsLookupPath = `/v1/projects/${env.FIREBASE_PROJECT_ID}/accounts:lookup`;
 const revenueCatApiOrigin = "https://api.revenuecat.com";
 
 let testServiceAccountPrivateKeyPem: string;
@@ -143,6 +148,76 @@ function buildChangelogQueryResponse(
       f: changelogFieldNames.map((fieldName) => ({ v: transactionChangelogRow[fieldName] })),
     })),
   };
+}
+
+/** image_deletion_logs の SELECT 結果 (BigQuery REST API の QueryResponse) を組み立てる。 */
+function buildImageDeletionLogQueryResponse(
+  imageDeletionLogRows: { image_object_key: string | null; deleted_at: string }[],
+): object {
+  const imageDeletionLogFieldNames = ["image_object_key", "deleted_at"] as const;
+  return {
+    jobComplete: true,
+    schema: { fields: imageDeletionLogFieldNames.map((fieldName) => ({ name: fieldName })) },
+    rows: imageDeletionLogRows.map((imageDeletionLogRow) => ({
+      f: imageDeletionLogFieldNames.map((fieldName) => ({ v: imageDeletionLogRow[fieldName] })),
+    })),
+  };
+}
+
+/** image_deletion_logs への streaming insert (tabledata.insertAll) を 1 回ぶん受け付け、受け取った行を記録する。 */
+function interceptImageDeletionLogInsert({
+  status = 200,
+}: { status?: number } = {}): { rows?: { json: { uid: string; image_object_key: string | null; deleted_at: string } }[] }[] {
+  const capturedInsertRequests: {
+    rows?: { json: { uid: string; image_object_key: string | null; deleted_at: string } }[];
+  }[] = [];
+  fetchMock
+    .get(bigQueryApiOrigin)
+    .intercept({ path: imageDeletionLogInsertAllPath, method: "POST" })
+    .reply(status, (request) => {
+      capturedInsertRequests.push(JSON.parse(String(request.body)));
+      return JSON.stringify(status === 200 ? {} : { error: { message: "insert error" } });
+    });
+  return capturedInsertRequests;
+}
+
+/** image_deletion_logs テーブルの作成 (tables.insert) を 1 回ぶん受け付け、受け取った定義を記録する。 */
+function interceptImageDeletionLogTableCreate(): { tableReference?: { tableId: string }; schema?: unknown }[] {
+  const capturedCreateTableRequests: { tableReference?: { tableId: string }; schema?: unknown }[] = [];
+  fetchMock
+    .get(bigQueryApiOrigin)
+    .intercept({ path: imageDeletionLogTablesPath, method: "POST" })
+    .reply(200, (request) => {
+      capturedCreateTableRequests.push(JSON.parse(String(request.body)));
+      return JSON.stringify({});
+    });
+  return capturedCreateTableRequests;
+}
+
+/**
+ * Firebase Auth の accounts:lookup を 1 回ぶん受け付ける。
+ * 削除済みの uid に Identity Toolkit が返す応答には users 自体が含まれないため、存在しない場合はそれを再現する。
+ */
+function interceptFirebaseAuthAccountsLookup({
+  firebaseAuthUserExists,
+  status = 200,
+}: {
+  firebaseAuthUserExists: boolean;
+  status?: number;
+}): { localId?: string[] }[] {
+  const capturedLookupRequests: { localId?: string[] }[] = [];
+  fetchMock
+    .get(identityToolkitApiOrigin)
+    .intercept({ path: accountsLookupPath, method: "POST" })
+    .reply(status, (request) => {
+      capturedLookupRequests.push(JSON.parse(String(request.body)));
+      return JSON.stringify(
+        firebaseAuthUserExists
+          ? { kind: "identitytoolkit#GetAccountInfoResponse", users: [{ localId: "existing-user" }] }
+          : { kind: "identitytoolkit#GetAccountInfoResponse" },
+      );
+    });
+  return capturedLookupRequests;
 }
 
 /** BigQuery の TIMESTAMP 列の返り値 (Unix 秒の文字列)。 */
@@ -264,6 +339,7 @@ describe("監査ログの取得 (GET /audit-logs)", () => {
         },
       ]),
     });
+    interceptBigQueryQuery({ responseBody: buildImageDeletionLogQueryResponse([]) });
 
     const response = await handleImageRequest(
       buildAuditLogsRequest({ uid: "uid-audit-convert" }),
@@ -322,6 +398,9 @@ describe("監査ログの取得 (GET /audit-logs)", () => {
   it("無料プランのクエリは直近数ヶ月の月初 (UTC) で絞り込む", async () => {
     interceptGoogleAccessToken();
     const capturedQueryRequests = interceptBigQueryQuery({ responseBody: buildChangelogQueryResponse([]) });
+    const capturedImageDeletionQueryRequests = interceptBigQueryQuery({
+      responseBody: buildImageDeletionLogQueryResponse([]),
+    });
 
     const response = await handleImageRequest(
       buildAuditLogsRequest({ uid: "uid-audit-free" }),
@@ -330,19 +409,117 @@ describe("監査ログの取得 (GET /audit-logs)", () => {
     );
     expect(response.status).toBe(200);
     expect(capturedQueryRequests[0].query).toContain("AND timestamp >= @oldestTimestamp");
+    const oldestFreePlanTimestampParameter = {
+      name: "oldestTimestamp",
+      parameterType: { type: "TIMESTAMP" },
+      parameterValue: {
+        value: new Date(
+          Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - (freePlanAuditLogHistoryMonthCount - 1), 1),
+        ).toISOString(),
+      },
+    };
     // uid はクライアント申告ではなく検証済み token の uid で、SQL への埋め込みではなくパラメータで渡す
     expect(capturedQueryRequests[0].queryParameters).toEqual([
       { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: "uid-audit-free" } },
-      {
-        name: "oldestTimestamp",
-        parameterType: { type: "TIMESTAMP" },
-        parameterValue: {
-          value: new Date(
-            Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - (freePlanAuditLogHistoryMonthCount - 1), 1),
-          ).toISOString(),
-        },
-      },
+      oldestFreePlanTimestampParameter,
     ]);
+    // 画像削除の履歴 (image_deletion_logs) にも同じユーザー・同じ期間の下限を適用する
+    expect(capturedImageDeletionQueryRequests[0].query).toContain("AND deleted_at >= @oldestTimestamp");
+    expect(capturedImageDeletionQueryRequests[0].queryParameters).toEqual([
+      { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: "uid-audit-free" } },
+      oldestFreePlanTimestampParameter,
+    ]);
+  });
+
+  it("changelog と image_deletion_logs の履歴を時刻の新しい順に統合して返す", async () => {
+    interceptGoogleAccessToken();
+    interceptBigQueryQuery({
+      responseBody: buildChangelogQueryResponse([
+        {
+          timestamp: toBigQueryTimestampValue("2026-08-23T03:00:00.000Z"),
+          document_id: "transaction-newest",
+          operation: "CREATE",
+          data: JSON.stringify({ title: "カフェ", amount: 520 }),
+          old_data: null,
+        },
+        {
+          timestamp: toBigQueryTimestampValue("2026-08-23T01:00:00.000Z"),
+          document_id: "transaction-oldest",
+          operation: "DELETE",
+          data: null,
+          old_data: JSON.stringify({ title: "書店", amount: 1980 }),
+        },
+      ]),
+    });
+    interceptBigQueryQuery({
+      responseBody: buildImageDeletionLogQueryResponse([
+        {
+          image_object_key: "users/uid-audit-merge/11111111-2222-4333-8444-555555555555.png",
+          deleted_at: toBigQueryTimestampValue("2026-08-23T02:00:00.000Z"),
+        },
+      ]),
+    });
+
+    const response = await handleImageRequest(
+      buildAuditLogsRequest({ uid: "uid-audit-merge" }),
+      buildAuditLogEnv({ serviceAccountName: "merge" }),
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()) as { auditLogs: unknown[] }).toEqual({
+      auditLogs: [
+        {
+          occurredAt: "2026-08-23T03:00:00.000Z",
+          operation: "transactionCreated",
+          transactionID: "transaction-newest",
+          transactionTitle: "カフェ",
+          transactionAmount: 520,
+          changedFieldNames: [],
+        },
+        {
+          occurredAt: "2026-08-23T02:00:00.000Z",
+          operation: "transactionImageDeleted",
+          // 画像削除は明細のドキュメントに紐付かないため、明細の情報を持たない
+          transactionID: "",
+          transactionTitle: null,
+          transactionAmount: null,
+          changedFieldNames: [],
+        },
+        {
+          occurredAt: "2026-08-23T01:00:00.000Z",
+          operation: "transactionDeleted",
+          transactionID: "transaction-oldest",
+          transactionTitle: "書店",
+          transactionAmount: 1980,
+          changedFieldNames: [],
+        },
+      ],
+    });
+  });
+
+  it("image_deletion_logs テーブルがまだ無い環境 (404) でも明細の履歴を返す", async () => {
+    interceptGoogleAccessToken();
+    interceptBigQueryQuery({
+      responseBody: buildChangelogQueryResponse([
+        {
+          timestamp: toBigQueryTimestampValue("2026-08-23T01:00:00.000Z"),
+          document_id: "transaction-created",
+          operation: "CREATE",
+          data: JSON.stringify({ title: "カフェ", amount: 520 }),
+          old_data: null,
+        },
+      ]),
+    });
+    // テーブルは最初の画像削除の記録時に作られるため、それまでは Not found (404) になる
+    interceptBigQueryQuery({ responseBody: { error: { message: "Not found: Table" } }, status: 404 });
+
+    const response = await handleImageRequest(
+      buildAuditLogsRequest({ uid: "uid-audit-no-image-table" }),
+      buildAuditLogEnv({ serviceAccountName: "no-image-table" }),
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { auditLogs: unknown[] }).auditLogs).toHaveLength(1);
   });
 
   it("プレミアム entitlement を持つユーザーのクエリは期間で絞り込まない", async () => {
@@ -368,6 +545,9 @@ describe("監査ログの取得 (GET /audit-logs)", () => {
       );
     interceptGoogleAccessToken();
     const capturedQueryRequests = interceptBigQueryQuery({ responseBody: buildChangelogQueryResponse([]) });
+    const capturedImageDeletionQueryRequests = interceptBigQueryQuery({
+      responseBody: buildImageDeletionLogQueryResponse([]),
+    });
 
     const response = await handleImageRequest(
       buildAuditLogsRequest({ uid }),
@@ -379,6 +559,7 @@ describe("監査ログの取得 (GET /audit-logs)", () => {
     expect(capturedQueryRequests[0].queryParameters).toEqual([
       { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } },
     ]);
+    expect(capturedImageDeletionQueryRequests[0].query).not.toContain("@oldestTimestamp");
   });
 
   it("uid の日次取得回数が上限に達している場合は 429 を返し、BigQuery を呼ばない", async () => {
@@ -407,6 +588,95 @@ describe("監査ログの取得 (GET /audit-logs)", () => {
     const responseBody = (await response.json()) as { error: string };
     expect(responseBody.error).toContain("status=403");
     expect(responseBody.error).not.toContain("Access Denied");
+  });
+});
+
+describe("画像削除の監査ログ記録 (DELETE /images)", () => {
+  /** 画像 1 件の削除、または uid 配下の全消去のリクエスト。 */
+  function buildImageDeleteRequest({ uid, imageObjectKey }: { uid: string; imageObjectKey?: string }): Request {
+    return new Request(`${workerBaseUrl}/images${imageObjectKey === undefined ? "" : `/${imageObjectKey}`}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer valid-token-${uid}`,
+        [firebaseAppCheckHeaderName]: validAppCheckToken,
+      },
+    });
+  }
+
+  it("画像 1 件の削除で uid とオブジェクトキーを記録する", async () => {
+    const uid = "uid-image-deletion-single";
+    const imageObjectKey = `users/${uid}/11111111-2222-4333-8444-555555555555.png`;
+    interceptGoogleAccessToken();
+    const capturedInsertRequests = interceptImageDeletionLogInsert();
+
+    const response = await handleImageRequest(
+      buildImageDeleteRequest({ uid, imageObjectKey }),
+      buildAuditLogEnv({ serviceAccountName: "image-deletion-single" }),
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect(capturedInsertRequests[0].rows).toHaveLength(1);
+    expect(capturedInsertRequests[0].rows?.[0].json.uid).toBe(uid);
+    expect(capturedInsertRequests[0].rows?.[0].json.image_object_key).toBe(imageObjectKey);
+    // 削除時刻は端末時計ではなく Worker の時刻で記録する
+    expect(Date.parse(capturedInsertRequests[0].rows?.[0].json.deleted_at ?? "")).not.toBeNaN();
+  });
+
+  it("全消去はオブジェクトキーを持たない 1 行として記録する", async () => {
+    const uid = "uid-image-deletion-all";
+    interceptGoogleAccessToken();
+    const capturedInsertRequests = interceptImageDeletionLogInsert();
+
+    const response = await handleImageRequest(
+      buildImageDeleteRequest({ uid }),
+      buildAuditLogEnv({ serviceAccountName: "image-deletion-all" }),
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect(capturedInsertRequests[0].rows?.[0].json).toMatchObject({ uid, image_object_key: null });
+  });
+
+  it("テーブルが無い環境 (404) ではテーブルを作ってから記録し直す", async () => {
+    const uid = "uid-image-deletion-create-table";
+    interceptGoogleAccessToken();
+    interceptImageDeletionLogInsert({ status: 404 });
+    const capturedCreateTableRequests = interceptImageDeletionLogTableCreate();
+    const capturedInsertRequests = interceptImageDeletionLogInsert();
+
+    const response = await handleImageRequest(
+      buildImageDeleteRequest({ uid, imageObjectKey: `users/${uid}/11111111-2222-4333-8444-555555555555.png` }),
+      buildAuditLogEnv({ serviceAccountName: "image-deletion-create-table" }),
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect(capturedCreateTableRequests[0].tableReference?.tableId).toBe("image_deletion_logs");
+    expect(capturedInsertRequests[0].rows?.[0].json.uid).toBe(uid);
+  });
+
+  it("記録に失敗しても画像の削除は成功として返す (ベストエフォート)", async () => {
+    const uid = "uid-image-deletion-insert-error";
+    interceptGoogleAccessToken();
+    // 500 はテーブルの有無と関係ない BigQuery 側の障害。テーブル作成へは回さず、記録だけを諦める
+    interceptImageDeletionLogInsert({ status: 500 });
+
+    const response = await handleImageRequest(
+      buildImageDeleteRequest({ uid, imageObjectKey: `users/${uid}/11111111-2222-4333-8444-555555555555.png` }),
+      buildAuditLogEnv({ serviceAccountName: "image-deletion-insert-error" }),
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it("他人の uid 配下のキーの削除 (403) は記録しない", async () => {
+    const response = await handleImageRequest(
+      buildImageDeleteRequest({
+        uid: "uid-image-deletion-forbidden",
+        imageObjectKey: "users/uid-image-deletion-other/11111111-2222-4333-8444-555555555555.png",
+      }),
+      buildAuditLogEnv({ serviceAccountName: "image-deletion-forbidden" }),
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(403);
   });
 });
 
@@ -465,16 +735,25 @@ describe("予約済みパージの実行 (scheduled)", () => {
     });
   }
 
-  it("待ち時間を過ぎた予約は DELETE の DML を実行するが、猶予期間中は予約が残る", async () => {
+  it("待ち時間を過ぎた予約は 2 つのテーブルへ DELETE の DML を実行するが、猶予期間中は予約が残る", async () => {
     const uid = "uid-audit-purge-retained";
     await seedPurgeRequest(uid, auditLogPurgeMinimumWaitMilliseconds + 60_000);
     interceptGoogleAccessToken();
+    const capturedLookupRequests = interceptFirebaseAuthAccountsLookup({ firebaseAuthUserExists: false });
     const capturedQueryRequests = interceptBigQueryQuery({ responseBody: { jobComplete: true } });
+    const capturedImageDeletionQueryRequests = interceptBigQueryQuery({ responseBody: { jobComplete: true } });
 
     await runScheduled(buildAuditLogEnv({ serviceAccountName: "purge-retained" }));
 
+    // パージ前に、その uid の Firebase Auth アカウントが消えていることをサーバー側で確かめる
+    expect(capturedLookupRequests[0].localId).toEqual([uid]);
     expect(capturedQueryRequests[0].query).toContain("DELETE FROM");
     expect(capturedQueryRequests[0].queryParameters).toEqual([
+      { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } },
+    ]);
+    // 画像削除の履歴 (image_deletion_logs) も同じ uid で消す
+    expect(capturedImageDeletionQueryRequests[0].query).toContain("image_deletion_logs");
+    expect(capturedImageDeletionQueryRequests[0].queryParameters).toEqual([
       { name: "uid", parameterType: { type: "STRING" }, parameterValue: { value: uid } },
     ]);
     // 最初の DML より後に届いた削除イベントを消し切るため、猶予期間が過ぎるまでは毎時の実行を続ける
@@ -485,7 +764,9 @@ describe("予約済みパージの実行 (scheduled)", () => {
     const uid = "uid-audit-purge-done";
     await seedPurgeRequest(uid, auditLogPurgeRequestRetentionMilliseconds + 60_000);
     interceptGoogleAccessToken();
+    interceptFirebaseAuthAccountsLookup({ firebaseAuthUserExists: false });
     const capturedQueryRequests = interceptBigQueryQuery({ responseBody: { jobComplete: true } });
+    interceptBigQueryQuery({ responseBody: { jobComplete: true } });
 
     await runScheduled(buildAuditLogEnv({ serviceAccountName: "purge-done" }));
 
@@ -493,10 +774,50 @@ describe("予約済みパージの実行 (scheduled)", () => {
     expect(await env.PUBLIC_JWK_CACHE_KV.get(`audit-log-purge:${uid}`)).toBeNull();
   });
 
+  it("Firebase Auth のアカウントが残っている予約は DML を実行せず、予約を残す", async () => {
+    const uid = "uid-audit-purge-account-alive";
+    await seedPurgeRequest(uid, auditLogPurgeRequestRetentionMilliseconds + 60_000);
+    interceptGoogleAccessToken();
+    // 有効な token を持つ利用中のユーザーが DELETE /audit-logs を直接呼んだ状況
+    interceptFirebaseAuthAccountsLookup({ firebaseAuthUserExists: true });
+    // BigQuery の interceptor を置かないため、DML を試みればその失敗が警告に残る。
+    // 「実行しなかった」ことを「実行して失敗した」と取り違えないよう、警告の有無まで見る
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await runScheduled(buildAuditLogEnv({ serviceAccountName: "purge-account-alive" }));
+
+    expect(consoleWarnSpy.mock.calls.flat().join(" ")).not.toContain("監査ログのパージに失敗");
+    consoleWarnSpy.mockRestore();
+    expect(await env.PUBLIC_JWK_CACHE_KV.get(`audit-log-purge:${uid}`)).not.toBeNull();
+  });
+
+  it("アカウントが残ったまま予約の期限を過ぎた予約は、履歴を消さずに予約だけが消える", async () => {
+    const uid = "uid-audit-purge-abandoned";
+    await seedPurgeRequest(uid, auditLogPurgeAbandonedRequestExpiryMilliseconds + 60_000);
+    interceptGoogleAccessToken();
+    interceptFirebaseAuthAccountsLookup({ firebaseAuthUserExists: true });
+
+    await runScheduled(buildAuditLogEnv({ serviceAccountName: "purge-abandoned" }));
+
+    expect(await env.PUBLIC_JWK_CACHE_KV.get(`audit-log-purge:${uid}`)).toBeNull();
+  });
+
+  it("アカウント削除の確認に失敗した予約は DML を実行せず、次回の実行で再試行できる", async () => {
+    const uid = "uid-audit-purge-lookup-failed";
+    await seedPurgeRequest(uid, auditLogPurgeRequestRetentionMilliseconds + 60_000);
+    interceptGoogleAccessToken();
+    interceptFirebaseAuthAccountsLookup({ firebaseAuthUserExists: false, status: 503 });
+
+    await runScheduled(buildAuditLogEnv({ serviceAccountName: "purge-lookup-failed" }));
+
+    expect(await env.PUBLIC_JWK_CACHE_KV.get(`audit-log-purge:${uid}`)).not.toBeNull();
+  });
+
   it("DML に失敗した予約は猶予期間を過ぎていても残り、次回の実行で再試行できる", async () => {
     const uid = "uid-audit-purge-failed";
     await seedPurgeRequest(uid, auditLogPurgeRequestRetentionMilliseconds + 60_000);
     interceptGoogleAccessToken();
+    interceptFirebaseAuthAccountsLookup({ firebaseAuthUserExists: false });
     // ストリーミングバッファ中の行を DML で消せない時に BigQuery が返すエラーに相当する
     interceptBigQueryQuery({ responseBody: { error: { message: "streaming buffer" } }, status: 400 });
 

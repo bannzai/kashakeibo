@@ -21,6 +21,14 @@ const freePlanHistoryMonthCount = 3;
 DateTime oldestFreePlanHistoryDateTime({required DateTime now}) =>
     DateTime(now.year, now.month - (freePlanHistoryMonthCount - 1));
 
+/// [now] から次の月初 (端末ローカル) までの残り時間。
+///
+/// [oldestFreePlanHistoryDateTime] の下限が変わるのは月初のため、画面を開いたまま月をまたぐと
+/// build 時に計算した下限が前月のまま残る。画面はこの時間で Timer を張り、
+/// 発火時に下限を計算し直す (features/transaction_search)。
+Duration durationUntilNextMonthStart({required DateTime now}) =>
+    DateTime(now.year, now.month + 1).difference(now);
+
 /// [month] が無料プランで表示できる範囲 (今日 [now] の月を含む直近 [freePlanHistoryMonthCount] ヶ月) 内かどうか。
 /// 未来の月は制限しない (先の月へ送ってもプレミアム特典を先取りしない)。
 bool isMonthWithinFreePlanHistory({

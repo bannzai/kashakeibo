@@ -6,10 +6,11 @@
 (issue #73 の訂正削除履歴)。履歴は「いつ・どの操作が・何に対して行われたか」を残すためのもので、
 削除された明細の店名・金額も履歴に残るため、明細が消えた後も何を消したのかを確認できる。
 
-履歴の正は「Stream Firestore to BigQuery extension」が `users/{userID}/transactions` の変更から
-自動生成する BigQuery の changelog で、アプリは履歴を書き込まない。Worker がその changelog を
-読んで整形した結果を、アプリは API から取得して表示するだけ (読み取り専用で、履歴から明細を
-復元する導線は持たない)。
+履歴の正は BigQuery にあり、アプリは履歴を書き込まない。明細の変更は「Stream Firestore to BigQuery
+extension」が `users/{userID}/transactions` の変更から自動生成する changelog に、画像 (R2) の削除は
+Worker が画像削除の成功時に記録する `image_deletion_logs` に残る (明細を変えない画像削除は changelog に
+現れないため、Worker 側で記録して監査の抜けを作らない)。Worker がその 2 つを読んで新しい順に統合した
+結果を、アプリは API から取得して表示するだけ (読み取り専用で、履歴から明細を復元する導線は持たない)。
 
 ## 画面
 
@@ -34,6 +35,8 @@
   (lib/features/audit_log/audit_log_client.dart の `AuditLog`。API スキーマが SSOT)
 - 操作種別 (`operation`): `transactionCreated` / `transactionUpdated` / `transactionDeleted` /
   `transactionImageDeleted`。未知の値は `unknown` として読む
+- Worker が記録した画像削除は `transactionImageDeleted` で返るが、明細のドキュメントに紐付かないため
+  店名・金額を持たない (時刻と操作種別だけの行として表示される)
 - 訂正で変わったフィールド (`changedFieldNames`) は Transaction の Firestore フィールド名
   (`TransactionFirestoreKeys`)
 - 「いつ」は `occurredAt` (ISO 8601 の日時文字列)。一覧はこの降順で返る
