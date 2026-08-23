@@ -144,5 +144,6 @@
   "auditLogEmpty": "尚無操作記錄",
   "auditLogSyncing": "正在同步",
   "auditLogOperationTransactionCreated": "已新增",
-  "auditLogOperationTransactionUpdated": "已更正"
+  "auditLogOperationTransactionUpdated": "已更正",
+  "auditLogOperationTransactionDeleted": "已刪除"
 }

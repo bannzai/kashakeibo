@@ -144,5 +144,6 @@
   "auditLogEmpty": "아직 기록된 작업이 없습니다",
   "auditLogSyncing": "동기화 중",
   "auditLogOperationTransactionCreated": "추가됨",
-  "auditLogOperationTransactionUpdated": "수정됨"
+  "auditLogOperationTransactionUpdated": "수정됨",
+  "auditLogOperationTransactionDeleted": "삭제"
 }
