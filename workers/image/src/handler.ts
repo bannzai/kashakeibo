@@ -1,6 +1,7 @@
 // 画像アップロード (POST /images)・取得 (GET /images/{objectKey})・個別削除 (DELETE /images/{objectKey})・
 // アカウント削除時の全消去 (DELETE /images)・Gemini による明細抽出 (POST /analyses)・
 // 今月のスキャン回数と無料枠の取得 (GET /analyses/quota)・
+// 明細の訂正削除履歴の取得 (GET /audit-logs) とアカウント削除時のパージ予約 (DELETE /audit-logs)・
 // DEBUG 用のスキャン回数設定 (POST /debug/scan-count。dev 環境限定) のリクエスト処理本体。
 // Firebase ID token と Firebase App Check token の検証手段を tokenVerifiers として注入する構造にし、
 // テストでは実際の Google JWK / JWKS 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
@@ -8,6 +9,8 @@
 import type { ImageAnalysisResult } from "./analysis";
 import { analyzeImageWithGemini, GeminiRequestError } from "./analysis";
 import type { VerifyFirebaseAppCheckToken } from "./app_check";
+import { fetchAuditLogs, oldestFreePlanAuditLogTimestamp, registerAuditLogPurge } from "./audit_log";
+import { BigQueryRequestError } from "./bigquery";
 import type { EntitlementEnv } from "./entitlement";
 import { EntitlementVerificationError, hasPremiumEntitlement } from "./entitlement";
 import type { ImageDimensions } from "./image_dimensions";
@@ -53,6 +56,8 @@ export interface ImageWorkerEnv extends EntitlementEnv {
   GEMINI_API_KEY: string;
   /** 明細抽出に使う Gemini のモデル ID。 */
   GEMINI_MODEL: string;
+  /** 監査ログ (BigQuery) を読み書きするサービスアカウントの JSON キー (wrangler secret。クライアントへ配布しない)。 */
+  BIGQUERY_SERVICE_ACCOUNT_KEY: string;
   /**
    * DEBUG エンドポイント (POST /debug/scan-count) を有効にするフラグ。
    * dev 環境の wrangler.jsonc にだけ `"true"` を置き、prod では未定義にすることで経路自体を 404 にする。
@@ -113,11 +118,22 @@ export const monthlyFreeScanLimit = 50;
 // 到達時は 429 を返す (プレミアム購入済みのためペイウォール誘導の 402 は使わない)
 export const monthlyPremiumScanLimit = 1000;
 
+// 監査ログ取得 (GET /audit-logs) の日次上限。BigQuery のオンデマンド課金は 1 クエリあたり最低 10MB ぶんが
+// 課金されるため、履歴画面を開くたびに走るクエリを乱用されると費用が青天井になる。
+// uid 別 100 回/日 は履歴画面を開き直す正規の利用が到達しない値で、1 uid あたりの課金対象を 1日 1GB 相当に固定する。
+// 匿名認証の uid 作り直しによる迂回は、アップロード・解析と同じ接続元 IP 別・全体の層で抑える (値の根拠は maxDailyUploadCount* と同じ)
+export const maxDailyAuditLogCountPerUser = 100;
+export const maxDailyAuditLogCountPerIpAddress = maxDailyUploadCountPerIpAddress;
+export const maxDailyAuditLogCountTotal = maxDailyUploadCountTotal;
+
 // Gemini にインラインで渡せるリクエスト全体の上限は 20MB で、base64 化で 4/3 倍になるため、
 // 元画像はその範囲に収まるサイズまでしか解析しない (クライアントは撮影時に長辺を縮小してから送る)
 export const maxAnalysisImageBytes = 14 * 1024 * 1024;
 
 const imageObjectPathPrefix = "/images/";
+
+/** 明細の訂正削除履歴 (監査ログ) のエンドポイントのパス。 */
+export const auditLogsPath = "/audit-logs";
 
 /** DEBUG 用のスキャン回数設定エンドポイントのパス (dev 環境でのみ有効。handleDebugScanCountSet を参照)。 */
 export const debugScanCountPath = "/debug/scan-count";
@@ -194,6 +210,12 @@ export async function handleImageRequest(
   }
   if (request.method === "GET" && requestUrl.pathname === "/analyses/quota") {
     return handleScanQuotaGet(env, verifiedFirebaseUser);
+  }
+  if (request.method === "GET" && requestUrl.pathname === auditLogsPath) {
+    return handleAuditLogsGet(request, env, verifiedFirebaseUser);
+  }
+  if (request.method === "DELETE" && requestUrl.pathname === auditLogsPath) {
+    return handleAuditLogsPurgeRegister(env, verifiedFirebaseUser);
   }
   // DEBUG エンドポイントは dev 環境でだけ有効にする。prod では経路自体が存在しない (未知のパスと同じ 404)
   if (
@@ -481,6 +503,73 @@ async function handleScanQuotaGet(env: ImageWorkerEnv, verifiedFirebaseUser: Ver
     monthlyScanCount: await monthlyUsageCounter(env).getCount(monthlyScanCounterKey(verifiedFirebaseUser)),
     monthlyFreeScanLimit,
   });
+}
+
+/**
+ * 明細の訂正削除履歴を新しい順に返す (GET /audit-logs)。
+ * 履歴の実体は Stream Firestore to BigQuery extension が書き出す changelog テーブルで (src/audit_log.ts)、
+ * 本人の uid の変更だけを検証済み ID token から絞り込む (クライアント申告のユーザー ID は受け取らない)。
+ * 無料プランには直近数ヶ月ぶんだけを返し、全期間の履歴をプレミアム特典として成立させる。
+ * 冪等 (副作用は日次カウンターの加算のみ)。
+ */
+async function handleAuditLogsGet(
+  request: Request,
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<Response> {
+  // 上限判定は BigQuery 呼び出し (課金) の直前で行い、超過時にクエリ費用を発生させない
+  const withinAuditLogLimits = await incrementDailyCountIfWithinLimits({
+    request,
+    env,
+    verifiedFirebaseUser,
+    counterKeyPrefix: "auditlogs:",
+    maxDailyCountPerUser: maxDailyAuditLogCountPerUser,
+    maxDailyCountPerIpAddress: maxDailyAuditLogCountPerIpAddress,
+    maxDailyCountTotal: maxDailyAuditLogCountTotal,
+  });
+  if (!withinAuditLogLimits) {
+    return jsonResponse(429, { error: "1日の操作履歴の取得回数の上限に達しました" });
+  }
+
+  let hasPremiumHistoryEntitlement: boolean;
+  try {
+    hasPremiumHistoryEntitlement = await hasPremiumEntitlement({ appUserId: verifiedFirebaseUser.uid, env });
+  } catch (error) {
+    if (!(error instanceof EntitlementVerificationError)) {
+      throw error;
+    }
+    // 課金状態を判定できない一時的な失敗は、履歴を無料プランの範囲に切り詰めて返さず 503 にする (クライアントは再試行できる)
+    console.warn("RevenueCat の entitlement 判定に失敗", error);
+    return jsonResponse(503, { error: error.message });
+  }
+
+  try {
+    return jsonResponse(200, {
+      auditLogs: await fetchAuditLogs({
+        env,
+        uid: verifiedFirebaseUser.uid,
+        oldestTimestamp: hasPremiumHistoryEntitlement ? null : oldestFreePlanAuditLogTimestamp(new Date()),
+      }),
+    });
+  } catch (error) {
+    // 取得失敗の詳細はログに残しつつ、クライアントには 502 として伝える (履歴画面は再読み込みを促す)
+    console.warn("監査ログの取得に失敗", error);
+    return jsonResponse(502, {
+      error: error instanceof BigQueryRequestError ? error.message : `操作履歴の取得に失敗しました: ${String(error)}`,
+    });
+  }
+}
+
+/**
+ * アカウント削除時に、本人の uid の履歴のパージを予約する (DELETE /audit-logs)。
+ * 予約だけを返し、実際の削除は毎時の scheduled (src/index.ts) が行う (理由は src/audit_log.ts)。
+ * 冪等: 何度呼んでも 202 を返し、予約は 1 件に収束する。
+ */
+async function handleAuditLogsPurgeRegister(
+  env: ImageWorkerEnv,
+  verifiedFirebaseUser: VerifiedFirebaseUser,
+): Promise<Response> {
+  return jsonResponse(202, { purgeRequestedAt: await registerAuditLogPurge({ env, uid: verifiedFirebaseUser.uid }) });
 }
 
 /**

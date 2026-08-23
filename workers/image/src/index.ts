@@ -5,6 +5,7 @@
 import type { EmulatorEnv } from "firebase-auth-cloudflare-workers";
 import { Auth, WorkersKVStoreSingle } from "firebase-auth-cloudflare-workers";
 import { createFirebaseAppCheckTokenVerifier } from "./app_check";
+import { purgeRequestedAuditLogs } from "./audit_log";
 import type { ImageWorkerEnv } from "./handler";
 import { handleImageRequest } from "./handler";
 
@@ -34,5 +35,11 @@ export default {
         jwksCache: { kvNamespace: env.PUBLIC_JWK_CACHE_KV, cacheKey: env.APP_CHECK_JWKS_CACHE_KEY },
       }),
     });
+  },
+
+  // アカウント削除で予約された監査ログのパージを実行する (wrangler.jsonc の triggers.crons で毎時起動)。
+  // 予約から実行までを分ける理由と、失敗した予約の再試行は src/audit_log.ts を参照
+  async scheduled(_scheduledController: ScheduledController, env: ImageWorkerBindings): Promise<void> {
+    await purgeRequestedAuditLogs(env);
   },
 } satisfies ExportedHandler<ImageWorkerBindings>;

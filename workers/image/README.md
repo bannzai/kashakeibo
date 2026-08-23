@@ -9,6 +9,8 @@ Firebase Auth の ID token を [firebase-auth-cloudflare-workers](https://github
 
 設計の決定は `documents/adr/0001-tech-stack.md` の「画像ストレージ」「画像解析」を参照。
 
+明細の訂正・削除履歴 (監査ログ) の読み取りも本 Worker が担う (`GET /audit-logs`)。履歴の実体は Firebase Extension「Stream Firestore to BigQuery」が BigQuery へ流す changelog テーブルで、クライアントには履歴の書き込み経路が無く、読み取りもサービスアカウント権限を持つ Worker 経由に限られる。アカウント削除時の履歴パージ (`DELETE /audit-logs` の予約と毎時の cron 実行) も同じ経路で扱う (`src/audit_log.ts` / `src/bigquery.ts`)。
+
 AI 画像解析 (Gemini) は、スキャン無料枠 (uid ごとの月次回数・entitlement 判定) をサーバー側で強制するため本 Worker の解析エンドポイント (`POST /analyses`) が担う。Gemini の API キーは Worker の secret にだけ置き、クライアントへ配布しない。無料枠 (月50スキャン。documents/PROJECT.md の課金設計) を超えた解析は、RevenueCat のプレミアム entitlement をサーバー側で確認したユーザーだけに許可する (`src/entitlement.ts`。クライアント申告のプレミアム状態は信用しない)。
 
 ## API
@@ -53,6 +55,26 @@ multipart/form-data の `file` フィールドで画像をアップロードす�
 ### GET /analyses/quota
 
 今月のスキャン (解析) 回数と無料枠の上限を返す: `200 {"monthlyScanCount": 3, "monthlyFreeScanLimit": 50}`。クライアントは残量チップの表示 (`monthlyFreeScanLimit - monthlyScanCount`) と、残量 0 でのペイウォール表示判定に使う。プレミアムかどうかはクライアントが RevenueCat SDK (`CustomerInfo`) から直接得るため含めない。
+
+### GET /audit-logs
+
+明細 (`users/{uid}/transactions`) の訂正・削除履歴を新しい順に返す。履歴の実体は Firebase Extension「Stream Firestore to BigQuery」が BigQuery (`{FIREBASE_PROJECT_ID}.firestore_export.transactions_raw_changelog`、ロケーション asia-northeast1) へ流す changelog テーブルで、クライアントには履歴の書き込み経路が無い (履歴自体の改ざんを構造的に防ぐ)。
+
+- 対象は検証済み ID token の uid の変更だけ (`path_params` の `userId` で絞り込む。クライアント申告のユーザー ID は受け取らない)。extension の導入時に既存ドキュメントを取り込んだ行 (`operation = 'IMPORT'`) はユーザーの操作ではないため返さない
+- 無料プランは今月を含む直近 `freePlanAuditLogHistoryMonthCount` (3) ヶ月の先頭 (UTC の月初) より古い履歴を返さない。プレミアム entitlement (`src/entitlement.ts`) を持つユーザーは期間で絞り込まない。月数はアプリ側 `lib/features/paywall/free_plan_history_limit.dart` の `freePlanHistoryMonthCount` と同じ値で、月境界がアプリの端末ローカルと Worker の UTC で最大数時間ずれる近似 (`src/audit_log.ts`)。RevenueCat の判定に失敗した場合は履歴を切り詰めず 503 を返す (再試行可)
+- 件数は `src/audit_log.ts` の `maxAuditLogCount` (200) 件まで。日次取得回数上限 (uid 別 100・接続元 IP 別・全体の3層。超過は 429) は `src/handler.ts` の `maxDailyAuditLogCount*` を参照。BigQuery のオンデマンド課金は 1 クエリあたり最低 10MB ぶんが課金されるため、上限判定は BigQuery 呼び出しの直前に行う
+- レスポンス: `200 {"auditLogs": [{"occurredAt": "2026-08-23T01:23:45.678Z", "operation": "transactionCreated" | "transactionUpdated" | "transactionDeleted" | "transactionImageDeleted", "transactionID": "abc123", "transactionTitle": "スーパーマーケット" | null, "transactionAmount": 3480 | null, "changedFieldNames": ["excludedFromAggregation"]}]}`
+- `operation` は changelog の `operation` 列から導く。CREATE → `transactionCreated`、DELETE → `transactionDeleted` (表示する明細の内容は削除直前の `old_data` から読む)、UPDATE → `transactionUpdated`。UPDATE のうち `sourceImageObjectKey` が非 null から null になった更新だけは `transactionImageDeleted` にする
+- `changedFieldNames` は UPDATE の `data` と `old_data` のトップレベルフィールドを値で比較した差分。更新のたびに必ず変わる `serverCreatedDateTime` / `serverUpdatedDateTime` は除く
+- `data` / `old_data` の JSON を読めなかった行も落とさず、`operation` はそのままに `transactionTitle` / `transactionAmount` を null、`changedFieldNames` を空配列にして返す (履歴の件数が実際の操作回数と食い違わないようにする)
+- BigQuery の失敗 (HTTP エラー・ジョブのタイムアウト) は 502。エラー本文にはテーブル名等の内部情報が含まれるためクライアントへは返さず、ログにだけ残して status を伝える
+
+### DELETE /audit-logs
+
+アカウント削除時に、JWT の uid の履歴のパージを予約する。レスポンスは `202 {"purgeRequestedAt": "2026-08-23T01:23:45.678Z"}`。冪等 (何度呼んでも予約は 1 件に収束する)。
+
+- 即時に DML を実行しない。明細の一括削除で生まれる DELETE イベントが changelog に届くのは非同期 (数秒〜数分) で、さらに extension のストリーミング挿入でバッファに乗っている行は DML で削除できない (最大 90 分程度) ため、即時実行では必ず取りこぼす
+- 予約は KV (`PUBLIC_JWK_CACHE_KV`) の `audit-log-purge:{uid}` に登録時刻として置き、実際の `DELETE FROM ... WHERE path_params.userId = @uid` は毎時の scheduled (`wrangler.jsonc` の `triggers.crons`、`src/index.ts`) が実行する。登録から `auditLogPurgeMinimumWaitMilliseconds` (1時間) 未満の予約はスキップして次回に回し、DML に失敗した予約は KV に残して次回以降に再試行する
 
 ### POST /debug/scan-count (dev 環境限定)
 
@@ -150,9 +172,14 @@ npx wrangler secret put GEMINI_API_KEY --env dev    # 値は Google AI Studio �
 npx wrangler secret put GEMINI_API_KEY --env prod
 npx wrangler secret put REVENUECAT_SECRET_API_KEY --env dev    # 値は RevenueCat の v2 secret API key (sk_...)
 npx wrangler secret put REVENUECAT_SECRET_API_KEY --env prod
+npx wrangler secret put BIGQUERY_SERVICE_ACCOUNT_KEY --env dev    # 値はサービスアカウントの JSON キーの中身 (1行に貼り付ける)
+npx wrangler secret put BIGQUERY_SERVICE_ACCOUNT_KEY --env prod
 npx wrangler deploy --env dev    # → kashakeibo-image-worker-dev
 npx wrangler deploy --env prod   # → kashakeibo-image-worker-prod
 ```
+
+- 監査ログ (`GET /audit-logs` と毎時のパージ) は BigQuery の REST API を直接呼ぶため、環境ごとにサービスアカウントの JSON キーを `BIGQUERY_SERVICE_ACCOUNT_KEY` として登録する。必要な権限は、クエリを実行する権限 (プロジェクトの `roles/bigquery.jobUser`) と changelog テーブルの読み取り・DML の権限 (`firestore_export` データセットの `roles/bigquery.dataEditor`)。キーはリポジトリに置かず wrangler secret にだけ置く
+- 毎時の cron トリガー (`triggers.crons`) は deploy 時に登録される。アカウント削除時の履歴パージがこのトリガーで実行されるため、cron を外すとパージが実行されなくなる
 
 - dev / prod とも 2026-08-19 に初回デプロイ済み。デプロイ後に表示される `*.workers.dev` URL が変わった場合は、Flutter の `lib/features/image_upload/image_upload_client.dart` にある既定値を更新する
 - 画像は機微情報のため、R2 バケットの公開アクセス (r2.dev ドメイン・カスタムドメイン直結) は有効化しない
