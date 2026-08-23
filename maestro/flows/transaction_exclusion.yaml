@@ -2,13 +2,14 @@
 # 「計算対象外」の表示を確認する。
 # セレクタは Semantics の結合 (title+subtitle が 1 ノード) とロケール差 (en / ja) を
 # 吸収するため、(?s) 付きの部分一致正規表現にする。
-# 金額は実行ごとにランダム生成する (過去の実行で登録済み・除外済みの同額行を
+# 金額と店名は実行ごとに一意な値を生成する (過去の実行で登録済み・除外済みの同額行を
 # タップするとトグルが OFF になり検証にならないため)。
 appId: com.bannzai.kashakeibo.dev
 ---
 - launchApp
 - evalScript: ${output.amount = String(1000 + Math.floor(Math.random() * 9000))}
 - evalScript: ${output.amountDisplay = output.amount[0] + ',' + output.amount.substring(1)}
+- evalScript: ${output.storeName = 'excl-' + output.amount}
 - extendedWaitUntil:
     visible:
       text: "(?s).*(Add a record|記録する).*"
@@ -19,6 +20,9 @@ appId: com.bannzai.kashakeibo.dev
     text: "(?s).*(Enter manually|手動で入力).*"
 # 金額フィールドは autofocus のため、そのまま数字を入力する
 - inputText: ${output.amount}
+- tapOn:
+    text: "(?s).*(Store or note|店名・メモ).*"
+- inputText: ${output.storeName}
 # iOS の数字キーボードは hideKeyboard で閉じられないため、シートをスクロールして
 # キーボードの上に登録ボタンを出してからタップする
 - scrollUntilVisible:
@@ -27,14 +31,14 @@ appId: com.bannzai.kashakeibo.dev
     direction: DOWN
 - tapOn:
     text: "(?s).*(Add transaction|登録する).*"
-# 支出サマリー・カテゴリ内訳にも同じ金額文字列が現れるため、支出行に固有の
-# マイナス付き表記 (-¥N,NNN) で明細行だけを一意に指定する
+# 支出サマリー・カテゴリ内訳にも同じ金額文字列が現れ、過去実行の同額行とも衝突する
+# ため、この実行で登録した店名で明細行だけを一意に指定する
 - extendedWaitUntil:
     visible:
-      text: ${'(?s).*-¥' + output.amountDisplay + '.*'}
+      text: ${'(?s).*' + output.storeName + '.*'}
     timeout: 15000
 - tapOn:
-    text: ${'(?s).*-¥' + output.amountDisplay + '.*'}
+    text: ${'(?s).*' + output.storeName + '.*'}
 - extendedWaitUntil:
     visible:
       text: "(?s).*(Exclude from totals|計算対象から除外).*"

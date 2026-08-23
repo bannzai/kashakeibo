@@ -207,13 +207,15 @@ class MonthlyPage extends HookConsumerWidget {
                       if (duplicateCandidateList.isNotEmpty)
                         _DuplicateCandidateBanner(
                           candidateCount: duplicateCandidateList.length,
-                          onTap: () {
+                          // キャンセルの記録は dismiss 経路 (背景タップ・スワイプ・
+                          // システム戻る) によらず、ここで一度だけ行う。
+                          onTap: () async {
                             unawaited(
                               logAnalyticsEvent(
                                 name: 'duplicate_candidate_open',
                               ),
                             );
-                            showModalBottomSheet<void>(
+                            final resolved = await showModalBottomSheet<bool>(
                               context: context,
                               useSafeArea: true,
                               isScrollControlled: true,
@@ -222,6 +224,13 @@ class MonthlyPage extends HookConsumerWidget {
                                 logAnalyticsEvent: logAnalyticsEvent,
                               ),
                             );
+                            if (resolved != true) {
+                              unawaited(
+                                logAnalyticsEvent(
+                                  name: 'duplicate_candidate_cancel',
+                                ),
+                              );
+                            }
                           },
                         ),
                       _CategoryBreakdownSection(transactions: transactions),
@@ -695,7 +704,7 @@ class _DuplicateCandidateSheet extends HookConsumerWidget {
       try {
         await operation();
         if (context.mounted) {
-          Navigator.of(context).pop();
+          Navigator.of(context).pop(true);
         }
       } catch (error) {
         if (context.mounted) {

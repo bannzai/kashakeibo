@@ -677,6 +677,72 @@ void main() {
       'primaryTransactionID': 'receipt-transaction',
       'duplicateTransactionID': 'card-transaction',
     });
+    expect(
+      analyticsEvents.map((event) => event.name),
+      isNot(contains('duplicate_candidate_cancel')),
+    );
+  });
+
+  testWidgets('月次一覧: 重複候補シートを背景タップで閉じると duplicate_candidate_cancel を1回だけ記録する', (
+    tester,
+  ) async {
+    final analyticsEvents = <String>[];
+    final transactions = [
+      buildTransaction(
+        id: 'receipt-transaction',
+        type: TransactionType.expense,
+        amount: 4230,
+        category: TransactionCategory.eatingOut,
+        title: '鳥貴族 三軒茶屋店',
+        excludedFromAggregation: false,
+      ),
+      buildTransaction(
+        id: 'card-transaction',
+        type: TransactionType.expense,
+        amount: 4230,
+        category: TransactionCategory.eatingOut,
+        title: '鳥貴族　三軒茶屋店',
+        excludedFromAggregation: false,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          monthlyTransactionsProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith((ref) => Stream.value(transactions)),
+          monthlyDuplicateCandidatesProvider(
+            yearMonth: yearMonthFrom(dateTime: DateTime.now()),
+          ).overrideWith(
+            (ref) => duplicateCandidates(transactions: transactions),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MonthlyPage(
+            logAnalyticsEvent: ({required name, parameters}) async {
+              analyticsEvents.add(name);
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.text(AppLocalizationsEn().duplicateCandidateReviewHint),
+    );
+    await tester.pumpAndSettle();
+    expect(analyticsEvents, ['duplicate_candidate_open']);
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(analyticsEvents, [
+      'duplicate_candidate_open',
+      'duplicate_candidate_cancel',
+    ]);
   });
 
   testWidgets('月次一覧: 下側の候補を選んでマージすると残す側・削除する側が入れ替わる', (tester) async {
