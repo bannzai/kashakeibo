@@ -162,5 +162,6 @@
   "transactionSearchMaximumAmount": "최대",
   "transactionSearchTitleKeyword": "상호",
   "transactionSearchSubmit": "검색",
-  "transactionSearchClear": "조건 지우기"
+  "transactionSearchClear": "조건 지우기",
+  "transactionSearchConditionRequired": "조건을 하나 이상 입력하십시오"
 }
