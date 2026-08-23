@@ -468,4 +468,107 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planPremium => 'Premium';
+
+  @override
+  String get settingsAuditLog => 'Operation history';
+
+  @override
+  String get auditLogTitle => 'Operation history';
+
+  @override
+  String get auditLogDescription =>
+      'A record of transactions you added, corrected, or deleted, and of deleted source images.';
+
+  @override
+  String get auditLogEmpty => 'No operations recorded yet';
+
+  @override
+  String get auditLogSyncing => 'Syncing';
+
+  @override
+  String get auditLogOperationTransactionCreated => 'Added';
+
+  @override
+  String get auditLogOperationTransactionUpdated => 'Corrected';
+
+  @override
+  String get auditLogOperationTransactionDeleted => 'Deleted';
+
+  @override
+  String get auditLogOperationTransactionImageDeleted => 'Image deleted';
+
+  @override
+  String get auditLogOperationUnknown => 'Other operation';
+
+  @override
+  String get auditLogChangedFieldExcludedFromAggregation => 'Totals inclusion';
+
+  @override
+  String get auditLogChangedFieldSourceImage => 'Source image';
+
+  @override
+  String get auditLogChangedFieldDuplicateDecision => 'Duplicate decision';
+
+  @override
+  String get transactionSearchOpen => 'Search transactions';
+
+  @override
+  String get transactionSearchTitle => 'Search';
+
+  @override
+  String get transactionSearchPeriod => 'Date';
+
+  @override
+  String get transactionSearchDateFrom => 'From';
+
+  @override
+  String get transactionSearchDateTo => 'To';
+
+  @override
+  String get transactionSearchDateUnset => 'Any';
+
+  @override
+  String get transactionSearchAmount => 'Amount';
+
+  @override
+  String get transactionSearchMinimumAmount => 'Min';
+
+  @override
+  String get transactionSearchMaximumAmount => 'Max';
+
+  @override
+  String get transactionSearchTitleKeyword => 'Store';
+
+  @override
+  String get transactionSearchSubmit => 'Search';
+
+  @override
+  String get transactionSearchClear => 'Clear conditions';
+
+  @override
+  String get transactionSearchConditionRequired =>
+      'Enter at least one condition';
+
+  @override
+  String get transactionSearchDateRangeInvalid =>
+      'Set the end date to the start date or later';
+
+  @override
+  String get transactionSearchAmountRangeInvalid =>
+      'Set the maximum to the minimum or more';
+
+  @override
+  String get transactionSearchNoResults =>
+      'No transactions match your conditions';
+
+  @override
+  String transactionSearchResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions',
+      one: '1 transaction',
+    );
+    return '$_temp0';
+  }
 }

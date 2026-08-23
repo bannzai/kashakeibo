@@ -187,5 +187,42 @@
   "paywallSubscriptionNote": "購入の確認時にストアのアカウントに課金されます。期間終了の24時間前までに解約しない限り自動更新されます。解約・管理はストアのアカウント設定から行えます。",
   "settingsPlan": "プラン",
   "planFree": "無料",
-  "planPremium": "プレミアム"
+  "planPremium": "プレミアム",
+  "settingsAuditLog": "操作履歴",
+  "auditLogTitle": "操作履歴",
+  "auditLogDescription": "明細の追加・訂正・削除と、元画像の削除の記録です。",
+  "auditLogEmpty": "操作の履歴はまだありません",
+  "auditLogSyncing": "同期中",
+  "auditLogOperationTransactionCreated": "追加",
+  "auditLogOperationTransactionUpdated": "訂正",
+  "auditLogOperationTransactionDeleted": "削除",
+  "auditLogOperationTransactionImageDeleted": "画像を削除",
+  "auditLogOperationUnknown": "その他の操作",
+  "auditLogChangedFieldExcludedFromAggregation": "計算対象",
+  "auditLogChangedFieldSourceImage": "元画像",
+  "auditLogChangedFieldDuplicateDecision": "重複の判定",
+  "transactionSearchOpen": "明細を検索",
+  "transactionSearchTitle": "検索",
+  "transactionSearchPeriod": "取引年月日",
+  "transactionSearchDateFrom": "開始日",
+  "transactionSearchDateTo": "終了日",
+  "transactionSearchDateUnset": "指定なし",
+  "transactionSearchAmount": "取引金額",
+  "transactionSearchMinimumAmount": "最小",
+  "transactionSearchMaximumAmount": "最大",
+  "transactionSearchTitleKeyword": "取引先",
+  "transactionSearchSubmit": "検索する",
+  "transactionSearchClear": "条件をクリア",
+  "transactionSearchConditionRequired": "検索条件を1つ以上入力してください",
+  "transactionSearchDateRangeInvalid": "終了日は開始日以降にしてください",
+  "transactionSearchAmountRangeInvalid": "最大金額は最小金額以上にしてください",
+  "transactionSearchNoResults": "条件に一致する明細はありません",
+  "transactionSearchResultCount": "{count}件",
+  "@transactionSearchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
