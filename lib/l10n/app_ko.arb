@@ -169,5 +169,6 @@
   "transactionSearchNoResults": "조건에 일치하는 거래가 없습니다",
   "transactionSearchResultCount": "{count}건",
   "transactionSearchFreePlanHistoryLimit": "무료 플랜에서는 최근 {monthCount}개월만 검색합니다",
-  "auditLogFreePlanHistoryLimit": "무료 플랜에서는 최근 {monthCount}개월의 작업 기록만 표시됩니다"
+  "auditLogFreePlanHistoryLimit": "무료 플랜에서는 최근 {monthCount}개월의 작업 기록만 표시됩니다",
+  "freePlanHistoryLimitUpgrade": "프리미엄으로 전체 내역 보기"
 }

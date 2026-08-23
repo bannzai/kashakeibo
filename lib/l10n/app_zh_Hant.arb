@@ -169,5 +169,6 @@
   "transactionSearchNoResults": "沒有符合條件的交易",
   "transactionSearchResultCount": "{count} 筆",
   "transactionSearchFreePlanHistoryLimit": "免費版僅搜尋最近 {monthCount} 個月的紀錄",
-  "auditLogFreePlanHistoryLimit": "免費方案僅顯示最近 {monthCount} 個月的操作記錄"
+  "auditLogFreePlanHistoryLimit": "免費方案僅顯示最近 {monthCount} 個月的操作記錄",
+  "freePlanHistoryLimitUpgrade": "使用進階版查看完整記錄"
 }
