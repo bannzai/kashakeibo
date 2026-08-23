@@ -153,5 +153,6 @@
   "auditLogChangedFieldDuplicateDecision": "重复项处理方式",
   "transactionSearchOpen": "搜索交易记录",
   "transactionSearchTitle": "搜索",
-  "transactionSearchPeriod": "日期"
+  "transactionSearchPeriod": "日期",
+  "transactionSearchDateFrom": "开始日期"
 }
