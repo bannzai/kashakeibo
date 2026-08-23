@@ -82,9 +82,7 @@ class DebugSheet extends HookConsumerWidget {
             leading: const Icon(Icons.battery_alert_outlined),
             enabled: !exhaustScanQuotaInProgress.value,
             title: const Text('スキャン残量を使い切る'),
-            subtitle: const Text(
-              '今月のスキャン回数を無料枠の上限に設定し、残量 0 (ペイウォールが開く状態) を作る',
-            ),
+            subtitle: const Text('今月のスキャン回数を無料枠の上限に設定し、残量 0 (ペイウォールが開く状態) を作る'),
             onTap: () async {
               exhaustScanQuotaInProgress.value = true;
               try {
