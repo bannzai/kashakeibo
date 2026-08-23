@@ -1,8 +1,8 @@
 ---
 feature: manual_entry
 verification: mobile-mcp
-last_verified_commit: dca0b5fd2326250fe1ec3033832f2bb370d631f0
-last_verified_at: 2026-08-19
+last_verified_commit: f492e1566dfd2fae08cfc3a15b79e1cc469e1e1e
+last_verified_at: 2026-08-22
 ---
 
 # manual_entry QA
@@ -16,7 +16,7 @@ last_verified_at: 2026-08-19
 
 | ID | 期待挙動 | 対応項目 |
 |----|---------|---------|
-| S1 | 金額・日付・店名・カテゴリ・収支種別を入力して明細を登録できる | 支出の登録 / 収入の登録 / 日付の変更 / 非既定カテゴリの登録 (未実施) / 前月・翌月の日付で登録 (未実施) |
+| S1 | 金額・日付・店名・カテゴリ・収支種別を入力して明細を登録できる | 支出の登録 / 収入の登録 / 日付の変更 / 非既定カテゴリの登録 / 前月・翌月の日付で登録 (前月側のみ確認) |
 | S2 | 出所記録が「手動」で保存される | 支出の登録 (一覧の行に出所「手動」が表示されることで確認) |
 | S3 | 登録した明細が月次一覧と集計に即時反映される | 支出の登録 / 収入の登録 |
 
@@ -28,19 +28,17 @@ last_verified_at: 2026-08-19
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **カテゴリの切替**: 収支種別を支出から収入へ切り替えると選択可能カテゴリが切り替わる (支出: 食費・外食・日用品・交通・サブスク・その他 / 収入: 給与・その他)。切替時の初期選択は支出=食費、収入=給与
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [ ] **収入から支出への戻し**: 収入へ切り替えた後に支出へ戻すと、カテゴリが支出の 6 件に戻り食費が再選択される (給与が残らない)
+- [x] **収入から支出への戻し**: 収入へ切り替えた後に支出へ戻すと、カテゴリが支出の 6 件に戻り食費が再選択される (給与が残らない)
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-  - ⏭️ スキップ: 2026-08-19 の実行では支出→収入の 1 方向のみ確認。次回 run-qa で往復操作を確認する
 - [x] **日付の変更**: 日付ボタンからデートピッカーで過去日を選ぶと、選んだ日付で登録され一覧の該当日グループに表示される。日付の初期値は今日
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
 - [x] **店名の省略**: 店名を空のまま登録すると、既定タイトル「現金支出」(l10n の manualEntryDefaultTitle) で登録される
   - 自動化: maestro (maestro/flows/manual_entry.yaml。金額のみ入力 → 登録 → 一覧反映まで)
-- [ ] **非既定カテゴリの登録**: 初期選択以外のカテゴリ (例: 支出の「外食」、収入の「その他」) を選んで登録すると、一覧の行にそのカテゴリが表示される
+- [x] **非既定カテゴリの登録**: 初期選択以外のカテゴリ (例: 支出の「外食」、収入の「その他」) を選んで登録すると、一覧の行にそのカテゴリが表示される
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-  - ⏭️ スキップ: 2026-08-19 の実行では未実施 (登録したのは初期選択の食費・給与のみ)。次回 run-qa で ChoiceChip を切り替えて登録し、行のカテゴリ表示で確認する
 - [ ] **前月・翌月の日付で登録**: デートピッカーで前月または翌月の日付を選んで登録すると、明細は登録月ではなく選んだ日付の月にだけ表示される (yearMonth が transactionDate から導出される)
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-  - ⏭️ スキップ: 2026-08-19 の実行では未実施 (同月内の過去日への変更のみ)。次回 run-qa で前月の日付で登録し、月切替で表示月を確認する
+  - 前月側のみ確認した (翌月の日付は未確認)
 
 #### 動作確認
 <details>
@@ -50,13 +48,16 @@ last_verified_at: 2026-08-19
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した (「登録する」= "Add transaction"、登録完了のスナックバー = "Transaction added"、出所「手動」= "Manual")。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-¥1200 / 店名 "Lawson QA" を入力して "Add transaction" をタップした結果。シートが閉じ、"Transaction added" のスナックバーが表示され、Spending が ¥0 → ¥1,200 に増え、"Tue, Aug 18" グループに `Lawson QA / Food · Manual / -¥1,200` の行が即時反映された。
+左: ¥1200 / 店名「ローソン QA」/ カテゴリ 日用品 を入力した状態。右: 「登録する」をタップした直後。シートが閉じてスナックバー「明細を登録しました」が表示され、支出が ¥0 → ¥1,200 に増え、「8月22日(土)」グループに `ローソン QA / 日用品 · 手動 / -¥1,200` の行が即時反映された。出所が「手動」で保存されていることも行の 2 段目で確認できる。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/d724b514-26a4-4d40-8fbd-be2885e38326.jpg" width="320">
+スナックバーは数秒で消えるため、タップと撮影を 1 つのシェルコマンドにまとめて撮る (root QA.md の実行ナレッジ)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/18c9c173-e2e9-4b6a-ba45-c3f5f019909f.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/1b1a3c3f-e2bf-4bf2-94c3-bd711be6a8bf.png" width="320">
 
 </details>
 
@@ -64,13 +65,13 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した (「収入」= "Income"、給与 = "Salary")。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-¥300000 / 店名 "Salary August" を入力し Income に切り替えて登録した結果。カテゴリが Salary / Other に切り替わった状態で登録され、一覧に `Salary August / Salary · Manual / +¥300,000` の行がセージ色で表示され、サマリーの Income が ¥0 → ¥300,000、Balance が ¥-1,200 → ¥298,800 になった。
+¥300000 / 店名「8月給与」を入力し「収入」に切り替えて登録した結果。カテゴリが給与 / その他に切り替わった状態で登録され、一覧に `8月給与 / 給与 · 手動 / +¥300,000` の行がセージ色の `+¥` で表示され、サマリーの収入が ¥0 → ¥300,000、残りが ¥-1,200 → ¥298,800 になった。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/ae0bffd8-d2b3-4da6-89e5-b2080f74ad70.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/6a987815-d8cc-4bf7-90a3-6300aca08d18.png" width="320">
 
 </details>
 
@@ -78,14 +79,14 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した (支出カテゴリ = Food / Eating out / Daily goods / Transport / Subscriptions / Other、収入カテゴリ = Salary / Other)。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-左: シートを開いた直後の支出 (Spending 選択)。カテゴリは 6 件で Food がチェック付きで初期選択。右: Income に切り替えた後。カテゴリが Salary / Other の 2 件に切り替わり、Salary がチェック付きで初期選択になった。
+左: シートを開いた直後の支出。収支種別は「支出」がチェック付きで、カテゴリは食費 / 外食 / 日用品 / 交通 / サブスク / その他の 6 件、食費が塗りつぶしで初期選択。右: 「収入」に切り替えた後。カテゴリが給与 / その他の 2 件に切り替わり、給与が塗りつぶしで初期選択になった。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/a87defd6-1a0f-4bbe-a3e4-f8961390c2eb.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/89de375c-f5da-4981-a294-8fbec3c28c7f.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/622d7015-1abc-4592-95d6-2597f396660a.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/09025b90-5336-4591-a309-ea5f71921a08.png" width="320">
 
 </details>
 
@@ -93,7 +94,13 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+
+収入 (カテゴリ = 給与 / その他、給与が選択済み) の状態から「支出」をタップして戻した結果。カテゴリが食費 / 外食 / 日用品 / 交通 / サブスク / その他の 6 件に戻り、食費が塗りつぶしで再選択された。収入側の給与・その他のチップは残っていない。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/e0d89dc8-3c6e-4a9e-b960-bc6184c48c73.png" width="320">
 
 </details>
 
@@ -101,14 +108,15 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した (デートピッカーは Material の "Select date"、確定は "OK")。runner の Simulator の当日は 2026-08-18 (UTC) で、ホストマシンの日付 (JST 2026-08-19) とは 1 日ずれる。日付の初期値の判定はホストではなく Simulator の当日を基準にする。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。ローカル Simulator はホストと同じ JST で動くため、当日は 2026-08-22。
 
-左: 日付ボタン (初期値 "Aug 18, 2026") からデートピッカーを開き Aug 10 を選択した状態。18 に "Today" の枠線が付いており、初期値が Simulator の当日と一致していることも同時に確認できる。右: ¥4500 / "Past Date Cafe" を Aug 10 で登録した結果。一覧に "Mon, Aug 10" の日付グループが新設され、`Past Date Cafe / Food · Manual / -¥4,500` が入った。
+左: 日付ボタン (初期値「2026年8月22日」) から開いたデートピッカー。22 のセルだけがアクセシビリティラベル「22, 2026年8月22日土曜日, 今日」を持ち、初期値が当日と一致している。中: 20 を選択した状態。右: ¥3480 /「スーパーマーケット」を 8月20日で登録した結果。一覧に「8月20日(木)」の日付グループが新設され、`スーパーマーケット / 食費 · 手動 / -¥3,480` が入り、既存の「8月22日(土)」グループの下 (降順) に並んだ。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/1bf59282-4cb9-403a-95ba-072371e493e4.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/f72577df-5285-4445-b939-0b4ec3372456.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/e539db71-1594-49b0-9b1b-a515ffd6460a.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/5a481e26-4466-4be0-8a8b-27f0681277fc.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/3196fa52-c43a-49eb-a478-39ac1c878b7f.png" width="320">
 
 </details>
 
@@ -116,13 +124,13 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した (manualEntryDefaultTitle の en 値 = "Cash expense")。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。日本語ロケールなので manualEntryDefaultTitle は「現金支出」。
 
-金額 ¥780 のみ入力し店名 ("Store or note") を空のまま登録した結果。一覧に `Cash expense / Food · Manual / -¥780` の行が入り、既定タイトルが適用された。
+金額 ¥780 のみ入力し店名・メモを空のまま登録した結果。一覧に `現金支出 / 食費 · 手動 / -¥780` の行が入り、既定タイトルが適用された。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/97059259-3eb8-40d4-a7cb-f3365f3e4d18.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/2a760f12-3895-402e-98ea-b70bf0a7ee1d.png" width="320">
 
 </details>
 
@@ -130,7 +138,14 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+
+左: 初期選択の食費ではなく「日用品」を選んだ状態 (日用品のチップだけが塗りつぶし)。右: 登録後の一覧。行の 2 段目が `日用品 · 手動` になり、カテゴリ内訳にも「日用品 ¥1,200」の横棒が現れた。同様に「外食」を選んだ ¥500 のカフェ 2 件も、カテゴリ内訳に「外食 ¥1,000」として集計されている (「日付ずれ・店名の表記揺れの重複候補」のスクショ)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/18c9c173-e2e9-4b6a-ba45-c3f5f019909f.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/1b1a3c3f-e2bf-4bf2-94c3-bd711be6a8bf.png" width="320">
 
 </details>
 
@@ -138,7 +153,16 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+
+2026 年 8 月を表示したまま、デートピッカーの「前月」で 7 月へ移動して 15 日を選び、¥250000 /「7月給与」/ 収入 / 給与 を登録した。左: 登録直後の 2026 年 8 月。収入は ¥300,000 のままで 7月給与の行は現れず、明細一覧にも入っていない。右: 前月ボタンで移動した 2026 年 7 月。`7月給与 / 給与 · 手動 / +¥250,000` が「7月15日(水)」グループに入り、収入 ¥250,000 / 残り ¥250,000 として集計された。登録操作をした 8 月ではなく、選んだ日付の月にだけ入っている。
+
+翌月側は当月 (8 月) より先の月がデートピッカーで選べる範囲にあるかを含めて未確認だが、月の導出は同じ transactionDate 由来のため前月側の確認で代表させた。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/fd3ae051-0875-4e12-b53e-e8a1356c86b4.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/0a819f38-bbfc-43b7-ba64-d40a818c1b96.png" width="320">
 
 </details>
 
@@ -150,9 +174,8 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 - [x] **金額のバリデーション**: 金額が空・0 のまま登録しようとするとエラーメッセージが表示され、登録されない
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-- [ ] **金額欄の非数字入力**: 金額欄に文字・小数点・符号を入力 (貼り付け) しても除去され、数字だけが残る (FilteringTextInputFormatter.digitsOnly)
+- [x] **金額欄の非数字入力**: 金額欄に文字・小数点・符号を入力 (貼り付け) しても除去され、数字だけが残る (FilteringTextInputFormatter.digitsOnly)
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
-  - ⏭️ スキップ: 2026-08-19 の実行では未実施。WDA の `keys` で `12a.5-` のような文字列を送り、残る値が `125` になることを確認する
 - [x] **キャンセル**: 閉じるボタンまたはシート外タップで閉じると、明細が登録されずスナックバーも出ない
   - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
   - シート外タップは、キーボードが出ている間は scrim が画面上端の 62pt 分しか無く、ステータスバー領域と重なってタップが届かない。先に店名欄で改行を送ってキーボードを閉じると scrim が 222pt に広がり、その領域 (例: 中央 y=150pt) のタップでシートが閉じる
@@ -167,16 +190,18 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した (manualEntryAmountRequired の en 値 = "Enter an amount of at least 1 yen")。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。日本語ロケールなので manualEntryAmountRequired は「1円以上の金額を入力してください」で表示される。
 
-左: 金額を空のまま "Add transaction" をタップ。金額欄が赤枠になり "Enter an amount of at least 1 yen" が表示され、シートは開いたまま。右: 金額に 0 を入れて再度タップしても同じエラーで登録されない。どちらもシート背後のサマリー Spending は ¥6,480 のまま増えておらず、スナックバーも出ていない。
+左: 金額を空のまま「登録する」をタップ。金額欄の下にエラー「1円以上の金額を入力してください」が出て、シートは開いたまま。右: 金額に 0 を入れて再度タップしても同じエラーで登録されない。どちらもシート背後のサマリーは支出 ¥0 のまま増えておらず、スナックバーも出ていない。
 
-0 円明細が保存されていないことは、この直後に同じシートを閉じるボタンで閉じた「キャンセル」項目のスクショ (明細 4 件: Salary August / Cash expense / Lawson QA / Past Date Cafe のまま、0 円の行が無い) で確認した。
+0 円明細が保存されていないことは、この直後に同じシートを閉じるボタンで閉じた「キャンセル」項目のスクショ (月次一覧が「今月の明細はまだありません」・支出 ¥0 のまま) で確認した。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/653496a2-92ec-4c8d-8344-86ed7256d631.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/89d476fc-2eed-45a8-9dcc-428cd632ed31.jpg" width="320">
+金額欄は autofocus で数字キーボードが出るため「登録する」ボタンがキーボードの裏に入る。店名・メモ欄をタップしてから改行だけを送るとキーボードが閉じ、ボタンがタップできる (root QA.md の実行ナレッジ)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/771b4a05-a9fa-44c8-a27b-b3563ee26be5.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/f7324e67-a1d3-4367-bff7-8231bab8a985.png" width="320">
 
 </details>
 
@@ -184,7 +209,15 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-08-22**
+
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
+
+金額欄に `12a.5-` を送信した結果、欄に残ったのは `¥ 125` で、英字 `a`・小数点 `.`・符号 `-` がいずれも除去された。UI ツリー上の金額 TextField の value も `125` だった。
+
+数字キーボードからは英字・記号を打てないため、キー入力ではなく mobilecli の文字列送信 (`mobilecli io text --device <UDID> "12a.5-"`) で入力する。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/c98fb978-23bd-4a64-919f-de055d69c209.png" width="320">
 
 </details>
 
@@ -192,14 +225,14 @@ runner の Simulator が英語ロケールのため、英語表示で確認し�
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
+**確認日: 2026-08-22**
 
-runner の Simulator が英語ロケールのため、英語表示で確認した (閉じるボタンの accessibility label = "Close")。
+ローカル Simulator (iPhone 16 Pro / iOS 26.5、日本語ロケール) の debug ビルド。
 
-左: 金額 0 を入れた状態で右上の閉じる (×) ボタンをタップして閉じた直後。右: 金額 9999 を入れた状態でシート外 (scrim) をタップして閉じた直後。どちらもスナックバーは出ず、Spending ¥6,480 / Income ¥300,000 / Balance ¥293,520 と明細 4 件がキャンセル前から変化していない (入力した 0・9999 の明細は追加されていない)。
+左: 金額 0 を入れた状態で右上の閉じる (×) ボタンをタップして閉じた直後。右: 金額 125 を入れた状態でシート外 (scrim) をタップして閉じた直後。どちらもスナックバーは出ず、月次一覧は支出 ¥0 / 収入 ¥0 / 残り ¥0・「今月の明細はまだありません」のままで、入力した 0・125 の明細は追加されていない。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/bbb08a3d-7eb0-4aad-803c-968e6f5f1afe.jpg" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/4993a3bf-456f-48e7-8217-e568eaca33d5.jpg" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/dd62f56e-8efd-406e-9e20-a762d9f7dd90.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/0584f2bc-564c-4c2f-9ac4-d1b4655bed03.png" width="320">
 
 </details>
 
