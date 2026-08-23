@@ -145,5 +145,6 @@
   "auditLogSyncing": "正在同步",
   "auditLogOperationTransactionCreated": "已新增",
   "auditLogOperationTransactionUpdated": "已更正",
-  "auditLogOperationTransactionDeleted": "已刪除"
+  "auditLogOperationTransactionDeleted": "已刪除",
+  "auditLogOperationTransactionImageDeleted": "已刪除圖片"
 }

@@ -145,5 +145,6 @@
   "auditLogSyncing": "동기화 중",
   "auditLogOperationTransactionCreated": "추가됨",
   "auditLogOperationTransactionUpdated": "수정됨",
-  "auditLogOperationTransactionDeleted": "삭제"
+  "auditLogOperationTransactionDeleted": "삭제",
+  "auditLogOperationTransactionImageDeleted": "이미지 삭제"
 }
