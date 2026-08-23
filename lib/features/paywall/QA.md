@@ -1,7 +1,7 @@
 ---
 feature: paywall
 verification: mobile-mcp
-last_verified_commit: b206e640dc1b7813e803135e99bd27dc6e0ee75f
+last_verified_commit: 6d52bff401a276c2d26db531f700c004d51b2e89
 last_verified_at: 2026-08-23
 ---
 
