@@ -77,11 +77,16 @@ jobs:
             # REVERSED_CLIENT_ID が無い plist だと Google サインインが実行時に
             # PlatformException(missing support for the following URL schemes) で失敗するため、
             # ビルド前に落とす (issue #66。Firebase の iOS OAuth クライアント構成前に取得した古い secret を検出する)
-            REVERSED_CLIENT_ID=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" "$f" 2>/dev/null || true)
-            if [ -z "$REVERSED_CLIENT_ID" ]; then
-              echo "::error::$f の REVERSED_CLIENT_ID が空、またはキー自体がありません。firebase apps:sdkconfig IOS <App ID> --project <プロジェクトID> で取得し直した plist で Secret $SECRET_NAME を更新してください。"
-              exit 1
-            fi
+            # CLIENT_ID は Info.plist の GIDClientID に、REVERSED_CLIENT_ID は URL スキームになる。
+            # どちらが欠けても Runner のビルドフェーズは warning を出すだけで続行するため、
+            # Google サインインが動かない IPA が無言で配布される。ここで両方を検査して落とす
+            for KEY in CLIENT_ID REVERSED_CLIENT_ID; do
+              VALUE=$(/usr/libexec/PlistBuddy -c "Print :$KEY" "$f" 2>/dev/null || true)
+              if [ -z "$VALUE" ]; then
+                echo "::error::$f の $KEY が空、またはキー自体がありません。firebase apps:sdkconfig IOS <App ID> --project <プロジェクトID> で取得し直した plist で Secret $SECRET_NAME を更新してください。"
+                exit 1
+              fi
+            done
           done
 
       - run: flutter pub get
@@ -174,7 +179,22 @@ jobs:
       # REVENUECAT_PUBLIC_API_KEY_IOS_PROD は RevenueCat prod プロジェクトの App Store 用 public API key (appl_...)。
       # public リポジトリのためソースに置かず secret から注入する (lib/utils/purchase/purchase.dart)。
       # dev flavor の配布レーンを作る時は同じ形で REVENUECAT_PUBLIC_API_KEY_IOS_DEV を渡す。
-      # 未登録 (空) でもビルドは通り、課金機能だけが初期化されない
+      - name: Verify RevenueCat public API key
+        env:
+          REVENUECAT_PUBLIC_API_KEY_IOS_PROD: ${{ secrets.REVENUECAT_PUBLIC_API_KEY_IOS_PROD }}
+        # 空のまま配布すると lib/utils/purchase/purchase.dart が SDK を初期化せず、
+        # 料金プランの取得も購入もできない IPA が無言で TestFlight に上がる。
+        # 配布レーンでは課金が動かないビルドを出さないため、ここで落とす
+        run: |
+          if [ -z "$REVENUECAT_PUBLIC_API_KEY_IOS_PROD" ]; then
+            echo "::error::Secret REVENUECAT_PUBLIC_API_KEY_IOS_PROD が未登録または空です。RevenueCat prod プロジェクトの App Store 用 public API key (appl_...) を登録してください。"
+            exit 1
+          fi
+          case "$REVENUECAT_PUBLIC_API_KEY_IOS_PROD" in
+            appl_*) ;;
+            *) echo "::error::Secret REVENUECAT_PUBLIC_API_KEY_IOS_PROD が App Store 用の public API key (appl_ で始まる) ではありません。" ; exit 1 ;;
+          esac
+
       - name: Prebuild iOS
         run: |
           flutter build ios --release --no-codesign \
