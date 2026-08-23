@@ -540,9 +540,12 @@ class _MonthlySummaryCard extends StatelessWidget {
                       TextSpan(
                         text: '¥',
                         style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                           color: appColors.textMuted,
+                          // 金額側の詰め (letterSpacing -0.42) を打ち消し、
+                          // 記号と数字がくっついて見えないよう余白を空ける。
+                          letterSpacing: 2,
                         ),
                       ),
                       TextSpan(text: formatAmountNumber(amount: expenseTotal)),
