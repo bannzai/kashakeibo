@@ -328,9 +328,7 @@ class PaywallPage extends HookConsumerWidget {
                                   analyticsEventName: 'paywall_purchase',
                                   purchaseAction: () async {
                                     final storeProductIdentifier =
-                                        selectedPackage
-                                            .storeProduct
-                                            .identifier;
+                                        selectedPackage.storeProduct.identifier;
                                     final premiumPeriodType =
                                         await purchasePremiumPackage(
                                           package: selectedPackage,

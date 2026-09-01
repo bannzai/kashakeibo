@@ -155,8 +155,7 @@ void main() {
     (tester) async {
       Package? purchasedPackage;
       bool? paywallResult;
-      final loggedEvents =
-          <({String name, Map<String, Object>? parameters})>[];
+      final loggedEvents = <({String name, Map<String, Object>? parameters})>[];
       await pumpPaywall(
         tester,
         isPremium: false,
