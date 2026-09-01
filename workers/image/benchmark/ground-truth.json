@@ -168,5 +168,31 @@
       "type": "expense",
       "category": "transportation"
     }
+  ],
+  "blurred_long_supermarket.jpg": [
+    {
+      "title": "",
+      "amount": 9402,
+      "transactionDate": null,
+      "type": "expense",
+      "category": "food"
+    }
+  ],
+  "amazon_jp_order_dashboard.jpg": [
+    {
+      "title": "マミーポコ パンツ サンリオキャラクターズデザイン オムツ (9~15kg) 186枚",
+      "titleAliases": [
+        "マミーポコ パンツ",
+        "オムツ",
+        "Amazon.co.jp"
+      ],
+      "amount": 4911,
+      "transactionDate": "2026-06-08",
+      "type": "expense",
+      "category": "dailyGoods",
+      "categoryAliases": [
+        "other"
+      ]
+    }
   ]
 }
