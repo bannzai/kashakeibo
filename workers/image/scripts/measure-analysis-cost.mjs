@@ -16,7 +16,7 @@ import { buildGeminiAnalysisRequestBody, toImageAnalysisResult } from "../src/an
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDirectory = process.env.FIXTURES_DIR ?? path.join(scriptDirectory, "..", "tmp", "analysis-fixtures");
 
-// 単価 (USD / 100万トークン、standard tier)。出典: https://ai.google.dev/gemini-api/docs/pricing (2026-08-22 取得)。
+// 単価 (USD / 100万トークン、standard tier)。出典: https://ai.google.dev/gemini-api/docs/pricing (2026-09-01 取得)。
 // gemini-3.7-flash は 2026-12-31 までの単価で、2027-01-01 から input $1.50 / output $7.50 に倍増する。
 // thinking トークンは output 単価で課金される
 const modelPricesUsdPerMillionTokens = {
@@ -40,6 +40,7 @@ const measurementConfigs = {
     model: "gemini-3.7-flash",
     costTuningConfig: { thinkingLevel: "low", mediaResolution: "MEDIA_RESOLUTION_MEDIUM" },
   },
+  "3.5-flash-lite-baseline": { model: "gemini-3.5-flash-lite", costTuningConfig: {} },
   "3.5-flash-lite-think-low": { model: "gemini-3.5-flash-lite", costTuningConfig: { thinkingLevel: "low" } },
   "3.1-flash-lite-baseline": { model: "gemini-3.1-flash-lite", costTuningConfig: {} },
   "3.1-flash-lite-media-low": { model: "gemini-3.1-flash-lite", costTuningConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW" } },
@@ -126,20 +127,21 @@ function scoreAgainstGroundTruth({ expectedTransactions, analysisResult }) {
       const normalizedExtractedTitle = normalizeTitle(extractedTransaction?.title);
       const titleMatched =
         extractedTransaction !== undefined &&
-        [expectedTransaction.title, ...(expectedTransaction.titleAliases ?? [])].some((candidateTitle) => {
-          const normalizedCandidateTitle = normalizeTitle(candidateTitle);
-          if (normalizedCandidateTitle === "" || normalizedExtractedTitle === "") {
-            return false;
-          }
-          if (normalizedExtractedTitle.includes(normalizedCandidateTitle)) {
-            return true;
-          }
-          return (
-            normalizedCandidateTitle.includes(normalizedExtractedTitle) &&
-            normalizedExtractedTitle.length >= 4 &&
-            normalizedExtractedTitle.length * 2 >= normalizedCandidateTitle.length
-          );
-        });
+        ((expectedTransaction.title === "" && normalizedExtractedTitle === "") ||
+          [expectedTransaction.title, ...(expectedTransaction.titleAliases ?? [])].some((candidateTitle) => {
+            const normalizedCandidateTitle = normalizeTitle(candidateTitle);
+            if (normalizedCandidateTitle === "" || normalizedExtractedTitle === "") {
+              return false;
+            }
+            if (normalizedExtractedTitle.includes(normalizedCandidateTitle)) {
+              return true;
+            }
+            return (
+              normalizedCandidateTitle.includes(normalizedExtractedTitle) &&
+              normalizedExtractedTitle.length >= 4 &&
+              normalizedExtractedTitle.length * 2 >= normalizedCandidateTitle.length
+            );
+          }));
       return {
         expectedTitle: expectedTransaction.title,
         amountMatched: extractedTransaction !== undefined,
