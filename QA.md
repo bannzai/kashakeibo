@@ -1,8 +1,8 @@
 ---
 feature: _root
 verification: mobile-mcp
-last_verified_commit: dca0b5fd2326250fe1ec3033832f2bb370d631f0
-last_verified_at: 2026-08-19
+last_verified_commit: cd9dbad802effa2adefc8f309f88c7cce80bf5aa
+last_verified_at: 2026-09-01
 ---
 
 # QA 全体ガイド
@@ -58,7 +58,7 @@ last_verified_at: 2026-08-19
 
 ## 1. 起動・サインイン
 
-- [ ] **初回起動の匿名サインイン**: 初回起動 (アプリ削除後の再インストール直後) に登録操作なしで匿名サインインが完了し、オンボーディングが表示される
+- [x] **初回起動の匿名サインイン**: 初回起動 (アプリ削除後の再インストール直後) に登録操作なしで匿名サインインが完了し、オンボーディングが表示される
   - 自動化: auto (maestro/flows/onboarding.yaml)
 - [ ] **初回サインイン中のローディング表示**: 匿名サインインが完了するまで SignInResolver がローディングを表示し、未認証のまま月次一覧が出ない
   - 自動化: todo (匿名サインインを遅延させる状態の作り込み手段が未整備。ネットワークを低速化できるローカル Simulator (Network Link Conditioner) なら観測できる見込み)
@@ -77,7 +77,11 @@ last_verified_at: 2026-08-19
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-09-01**
+
+アプリ状態を消去した専用Simulatorで起動し、登録操作なしでSignInResolverの後段にあるオンボーディングが表示された。オンボーディング完了後の再起動では同じ匿名ユーザーの月次画面が表示されることもMaestroで確認した。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260901/565dabe3-469b-4ecb-a896-31a4573baee2.png" width="320">
 
 </details>
 

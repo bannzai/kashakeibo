@@ -1,8 +1,8 @@
 ---
 feature: paywall
 verification: mobile-mcp
-last_verified_commit: 6d52bff401a276c2d26db531f700c004d51b2e89
-last_verified_at: 2026-08-23
+last_verified_commit: cd9dbad802effa2adefc8f309f88c7cce80bf5aa
+last_verified_at: 2026-09-01
 ---
 
 # paywall QA
@@ -164,7 +164,7 @@ Simulator の当日は 2026-08-20。無料プランの新規 uid で 2026年8月
 
 ## 2. 購入・復元
 
-- [ ] **購入開始のAnalyticsイベント**: 購入後のentitlementがtrialならtrial_startだけを、paidならpurchase_completeだけを記録する
+- [x] **購入開始のAnalyticsイベント**: 購入後のentitlementがtrialならtrial_startだけを、paidならpurchase_completeだけを記録する
   - 自動化: auto (test/features/paywall/paywall_page_test.dart)
 - [x] **mock 購入の成功**: 「プレミアムを始める」で RevenueCat Test Store の購入モーダルが開き、「Test valid purchase」で購入が成立するとペイウォールが閉じて完了メッセージ「プレミアムを開始しました。スキャンし放題です!」が表示される
   - 自動化: manual (Test Store の mock 購入モーダルは Maestro で flaky の実績があるため agent のシミュレータ操作で確認する)
@@ -327,7 +327,11 @@ Simulator 消去後の新規 uid (無料プラン) で「プレミアムを始�
 
 <details><summary>動作確認スクショ</summary>
 
-（未実行）
+**確認日: 2026-09-01**
+
+`flutter test test/features/paywall/paywall_page_test.dart`を実行し、trialの購入結果ではtrial_startだけを記録し、paidの購入結果ではpurchase_completeを記録するテストが通過した。オンボーディング完了後に同じペイウォールが表示されることもSimulatorで確認した。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260901/f3b2bb1f-4d22-4a6b-bcc5-189b2c3b6ed6.png" width="320">
 
 </details>
 
