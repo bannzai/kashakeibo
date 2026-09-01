@@ -327,6 +327,10 @@ class PaywallPage extends HookConsumerWidget {
                               : () => runPurchaseAction(
                                   analyticsEventName: 'paywall_purchase',
                                   purchaseAction: () async {
+                                    final storeProductIdentifier =
+                                        selectedPackage
+                                            .storeProduct
+                                            .identifier;
                                     final premiumPeriodType =
                                         await purchasePremiumPackage(
                                           package: selectedPackage,
@@ -336,6 +340,10 @@ class PaywallPage extends HookConsumerWidget {
                                         unawaited(
                                           logAnalyticsEvent(
                                             name: 'trial_start',
+                                            parameters: {
+                                              'storeProductIdentifier':
+                                                  storeProductIdentifier,
+                                            },
                                           ),
                                         );
                                       case PeriodType.intro:
@@ -344,6 +352,10 @@ class PaywallPage extends HookConsumerWidget {
                                         unawaited(
                                           logAnalyticsEvent(
                                             name: 'purchase_complete',
+                                            parameters: {
+                                              'storeProductIdentifier':
+                                                  storeProductIdentifier,
+                                            },
                                           ),
                                         );
                                       case PeriodType.unknown:

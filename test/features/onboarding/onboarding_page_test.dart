@@ -176,6 +176,37 @@ void main() {
     expect(find.textContaining('計測できませんでした'), findsNothing);
   });
 
+  testWidgets('1画面目のシステム戻る操作では閉じた操作を記録する', (tester) async {
+    final loggedEvents = <({String name, Map<String, Object>? parameters})>[];
+    await pumpOnboardingResolver(
+      tester,
+      loadOnboardingCompletion: () async => false,
+      saveOnboardingCompletion: () async {},
+      openOnboardingPaywall: ({required context}) async {},
+      logAnalyticsEvent: ({required name, parameters}) async {
+        loggedEvents.add((name: name, parameters: parameters));
+      },
+      locale: const Locale('ja'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('1/7'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(
+      loggedEvents,
+      contains(
+        isA<({String name, Map<String, Object>? parameters})>()
+            .having((event) => event.name, 'name', 'onboarding_close')
+            .having((event) => event.parameters, 'parameters', <String, Object>{
+              'step': 'welcome',
+              'funnel_variant': 'short',
+            }),
+      ),
+    );
+  });
+
   testWidgets('2画面目以降のシステム戻る操作で1つ前の画面へ戻る', (tester) async {
     await pumpOnboardingResolver(
       tester,

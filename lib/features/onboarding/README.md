@@ -28,7 +28,7 @@
 
 - 完了状態は `SharedPreferencesAsync` の `onboarding_completed_v1` に保存する
 - 質問回答は結果画面と Analytics にだけ使い、個人データとして永続化しない
-- Firebase Analytics の自動収集イベント `first_open` に加えて、開始、各ステップ表示、回答、完了を記録する
+- Firebase Analytics の自動収集イベント `first_open` に加えて、開始、各ステップ表示、回答、完了、1画面目のシステム戻るで閉じた操作を記録する
 - ペイウォールの表示・閉じる・購入は `features/paywall` のイベントを使用する
 
 ## 制約

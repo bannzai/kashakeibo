@@ -70,6 +70,7 @@
 | 各ステップ表示 | `onboarding_step_view` |
 | 回答 | `onboarding_answer` |
 | オンボーディング完了 | `onboarding_complete` |
+| 1画面目のシステム戻るで閉じる | `onboarding_close` |
 | ペイウォール表示 | `paywall_open` |
 | ペイウォールを閉じる | `paywall_close` |
 | トライアル開始 | RevenueCatの購入結果がtrialの時に `trial_start` |

@@ -155,7 +155,8 @@ void main() {
     (tester) async {
       Package? purchasedPackage;
       bool? paywallResult;
-      final loggedEventNames = <String>[];
+      final loggedEvents =
+          <({String name, Map<String, Object>? parameters})>[];
       await pumpPaywall(
         tester,
         isPremium: false,
@@ -170,7 +171,7 @@ void main() {
         restorePurchases: () async => false,
         onPaywallClosed: (result) => paywallResult = result,
         logAnalyticsEvent: ({required name, parameters}) async {
-          loggedEventNames.add(name);
+          loggedEvents.add((name: name, parameters: parameters));
         },
       );
 
@@ -204,7 +205,20 @@ void main() {
       await tester.pumpAndSettle();
       expect(purchasedPackage, annualPackage);
       expect(paywallResult, isTrue);
-      expect(loggedEventNames, contains('purchase_complete'));
+      expect(
+        loggedEvents,
+        contains(
+          isA<({String name, Map<String, Object>? parameters})>()
+              .having((event) => event.name, 'name', 'purchase_complete')
+              .having(
+                (event) => event.parameters,
+                'parameters',
+                <String, Object>{
+                  'storeProductIdentifier': 'kashakeibo_premium_annual_3800yen',
+                },
+              ),
+        ),
+      );
       expect(find.byType(PaywallPage), findsNothing);
     },
   );
@@ -236,7 +250,7 @@ void main() {
   });
 
   testWidgets('無料トライアルが有効になった購入では trial_start を記録する', (tester) async {
-    final loggedEventNames = <String>[];
+    final loggedEvents = <({String name, Map<String, Object>? parameters})>[];
     await pumpPaywall(
       tester,
       isPremium: false,
@@ -245,14 +259,26 @@ void main() {
       restorePurchases: () async => false,
       onPaywallClosed: (_) {},
       logAnalyticsEvent: ({required name, parameters}) async {
-        loggedEventNames.add(name);
+        loggedEvents.add((name: name, parameters: parameters));
       },
     );
 
     await tapStartPremium(tester);
 
-    expect(loggedEventNames, contains('trial_start'));
-    expect(loggedEventNames, isNot(contains('purchase_complete')));
+    expect(
+      loggedEvents,
+      contains(
+        isA<({String name, Map<String, Object>? parameters})>()
+            .having((event) => event.name, 'name', 'trial_start')
+            .having((event) => event.parameters, 'parameters', <String, Object>{
+              'storeProductIdentifier': 'kashakeibo_premium_annual_3800yen',
+            }),
+      ),
+    );
+    expect(
+      loggedEvents.map((event) => event.name),
+      isNot(contains('purchase_complete')),
+    );
   });
 
   testWidgets('課金期間が不明な購入ではトライアル・購入完了を記録しない', (tester) async {

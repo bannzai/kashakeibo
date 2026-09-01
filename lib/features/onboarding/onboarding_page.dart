@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/style/app_theme.dart';
@@ -299,17 +300,31 @@ class OnboardingPage extends HookWidget {
     }
 
     return PopScope(
-      canPop:
-          currentPageIndex.value == 0 &&
-          !pageTransitionInProgress.value &&
-          !completionInProgress.value,
+      // 1画面目はルートルートで pop が発生せずコールバックへ委譲した記録ができないため、
+      // 常に pop を止めて自前で閉じる操作の記録とアプリ終了を行う。
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop &&
-            currentPageIndex.value > 0 &&
-            !pageTransitionInProgress.value &&
-            !completionInProgress.value) {
-          goBack();
+        if (didPop ||
+            pageTransitionInProgress.value ||
+            completionInProgress.value) {
+          return;
         }
+        if (currentPageIndex.value == 0) {
+          // 開始直後の離脱を通常の中断と区別して調査できるよう閉じた操作を記録してから、
+          // 元のシステム戻る (Android のアプリ終了・バックグラウンド化) を再現する。
+          unawaited(
+            logAnalyticsEvent(
+              name: 'onboarding_close',
+              parameters: {
+                'step': currentOnboardingStep.name,
+                'funnel_variant': funnelVariant,
+              },
+            ),
+          );
+          unawaited(SystemNavigator.pop());
+          return;
+        }
+        goBack();
       },
       child: Scaffold(
         body: SafeArea(
