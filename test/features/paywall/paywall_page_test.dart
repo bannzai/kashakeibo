@@ -165,7 +165,7 @@ void main() {
         ),
         purchasePremiumPackage: ({required package}) async {
           purchasedPackage = package;
-          return PremiumPurchaseActivation.paid;
+          return PeriodType.normal;
         },
         restorePurchases: () async => false,
         onPaywallClosed: (result) => paywallResult = result,
@@ -220,7 +220,7 @@ void main() {
       ),
       purchasePremiumPackage: ({required package}) async {
         purchasedPackage = package;
-        return PremiumPurchaseActivation.paid;
+        return PeriodType.normal;
       },
       restorePurchases: () async => false,
       onPaywallClosed: (_) {},
@@ -241,8 +241,7 @@ void main() {
       tester,
       isPremium: false,
       scanQuota: const ScanQuota(monthlyScanCount: 0, monthlyFreeScanLimit: 50),
-      purchasePremiumPackage: ({required package}) async =>
-          PremiumPurchaseActivation.trial,
+      purchasePremiumPackage: ({required package}) async => PeriodType.trial,
       restorePurchases: () async => false,
       onPaywallClosed: (_) {},
       logAnalyticsEvent: ({required name, parameters}) async {
@@ -253,6 +252,26 @@ void main() {
     await tapStartPremium(tester);
 
     expect(loggedEventNames, contains('trial_start'));
+    expect(loggedEventNames, isNot(contains('purchase_complete')));
+  });
+
+  testWidgets('課金期間が不明な購入ではトライアル・購入完了を記録しない', (tester) async {
+    final loggedEventNames = <String>[];
+    await pumpPaywall(
+      tester,
+      isPremium: false,
+      scanQuota: const ScanQuota(monthlyScanCount: 0, monthlyFreeScanLimit: 50),
+      purchasePremiumPackage: ({required package}) async => PeriodType.unknown,
+      restorePurchases: () async => false,
+      onPaywallClosed: (_) {},
+      logAnalyticsEvent: ({required name, parameters}) async {
+        loggedEventNames.add(name);
+      },
+    );
+
+    await tapStartPremium(tester);
+
+    expect(loggedEventNames, isNot(contains('trial_start')));
     expect(loggedEventNames, isNot(contains('purchase_complete')));
   });
 
@@ -350,8 +369,7 @@ void main() {
         monthlyScanCount: 25,
         monthlyFreeScanLimit: 50,
       ),
-      purchasePremiumPackage: ({required package}) async =>
-          PremiumPurchaseActivation.paid,
+      purchasePremiumPackage: ({required package}) async => PeriodType.normal,
       restorePurchases: () async => true,
       onPaywallClosed: (_) {},
       logAnalyticsEvent: discardAnalyticsEvent,
@@ -372,8 +390,7 @@ void main() {
       tester,
       isPremium: false,
       scanQuota: const ScanQuota(monthlyScanCount: 0, monthlyFreeScanLimit: 50),
-      purchasePremiumPackage: ({required package}) async =>
-          PremiumPurchaseActivation.paid,
+      purchasePremiumPackage: ({required package}) async => PeriodType.normal,
       restorePurchases: () async => false,
       onPaywallClosed: (_) {},
       logAnalyticsEvent: discardAnalyticsEvent,

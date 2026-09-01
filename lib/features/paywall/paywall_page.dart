@@ -327,24 +327,29 @@ class PaywallPage extends HookConsumerWidget {
                               : () => runPurchaseAction(
                                   analyticsEventName: 'paywall_purchase',
                                   purchaseAction: () async {
-                                    final premiumPurchaseActivation =
+                                    final premiumPeriodType =
                                         await purchasePremiumPackage(
                                           package: selectedPackage,
                                         );
-                                    if (premiumPurchaseActivation ==
-                                        PremiumPurchaseActivation.trial) {
-                                      unawaited(
-                                        logAnalyticsEvent(name: 'trial_start'),
-                                      );
-                                    } else if (premiumPurchaseActivation ==
-                                        PremiumPurchaseActivation.paid) {
-                                      unawaited(
-                                        logAnalyticsEvent(
-                                          name: 'purchase_complete',
-                                        ),
-                                      );
+                                    switch (premiumPeriodType) {
+                                      case PeriodType.trial:
+                                        unawaited(
+                                          logAnalyticsEvent(
+                                            name: 'trial_start',
+                                          ),
+                                        );
+                                      case PeriodType.intro:
+                                      case PeriodType.normal:
+                                      case PeriodType.prepaid:
+                                        unawaited(
+                                          logAnalyticsEvent(
+                                            name: 'purchase_complete',
+                                          ),
+                                        );
+                                      case PeriodType.unknown:
+                                      case null:
                                     }
-                                    return premiumPurchaseActivation != null;
+                                    return premiumPeriodType != null;
                                   },
                                   premiumUnlockedMessage: l10n.paywallPurchased,
                                   notUnlockedMessage:

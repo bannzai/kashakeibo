@@ -122,14 +122,19 @@ class OnboardingResolver extends HookWidget {
   }
 }
 
+/// ユーザーが家計管理で解消したい課題。
 enum _OnboardingPain { recordingEffort, spendingVisibility, reviewTime }
 
+/// ユーザーが記録したい明細の取得元。
 enum _OnboardingSource { receipt, onlineStatement, both }
 
+/// ユーザーが家計簿で達成したい目標。
 enum _OnboardingGoal { spendLess, understandSpending, saveTime }
 
+/// ユーザーが現在支出を記録している頻度。
 enum _OnboardingFrequency { daily, weekly, occasionally }
 
+/// オンボーディングで提示する画面の種別。
 enum _OnboardingStep {
   welcome,
   valueDetails,
@@ -210,6 +215,7 @@ class OnboardingPage extends HookWidget {
       _ => true,
     };
 
+    /// 指定したオンボーディング画面へ移動する。
     Future<void> goToPage({required int pageIndex}) async {
       currentPageIndex.value = pageIndex;
       await pageController.animateToPage(
@@ -226,6 +232,21 @@ class OnboardingPage extends HookWidget {
       );
     }
 
+    /// 現在の画面から1つ前のオンボーディング画面へ戻る。
+    void goBack() {
+      unawaited(
+        logAnalyticsEvent(
+          name: 'onboarding_back',
+          parameters: {
+            'step': currentOnboardingStep.name,
+            'funnel_variant': funnelVariant,
+          },
+        ),
+      );
+      unawaited(goToPage(pageIndex: currentPageIndex.value - 1));
+    }
+
+    /// 回答結果を確定し、オンボーディング直後の課金導線へ進む。
     Future<void> finishOnboarding() async {
       unawaited(
         logAnalyticsEvent(
@@ -247,191 +268,188 @@ class OnboardingPage extends HookWidget {
       }
     }
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                AppSpacing.md,
-                AppSpacing.xl,
-                0,
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 40,
-                    child: currentPageIndex.value == 0
-                        ? null
-                        : IconButton(
-                            tooltip: MaterialLocalizations.of(
-                              context,
-                            ).backButtonTooltip,
-                            onPressed: completionInProgress.value
-                                ? null
-                                : () {
-                                    unawaited(
-                                      logAnalyticsEvent(
-                                        name: 'onboarding_back',
-                                        parameters: {
-                                          'step': currentOnboardingStep.name,
-                                          'funnel_variant': funnelVariant,
-                                        },
-                                      ),
-                                    );
-                                    goToPage(
-                                      pageIndex: currentPageIndex.value - 1,
-                                    );
-                                  },
-                            icon: const BackButtonIcon(),
-                          ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      child: LinearProgressIndicator(
-                        minHeight: 7,
-                        value:
-                            (currentPageIndex.value + 1) /
-                            onboardingSteps.length,
-                        backgroundColor: context.appColors.surfaceVariant,
+    return PopScope(
+      canPop: currentPageIndex.value == 0 && !completionInProgress.value,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop &&
+            currentPageIndex.value > 0 &&
+            !completionInProgress.value) {
+          goBack();
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.md,
+                  AppSpacing.xl,
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 40,
+                      child: currentPageIndex.value == 0
+                          ? null
+                          : IconButton(
+                              tooltip: MaterialLocalizations.of(
+                                context,
+                              ).backButtonTooltip,
+                              onPressed: completionInProgress.value
+                                  ? null
+                                  : goBack,
+                              icon: const BackButtonIcon(),
+                            ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        child: LinearProgressIndicator(
+                          minHeight: 7,
+                          value:
+                              (currentPageIndex.value + 1) /
+                              onboardingSteps.length,
+                          backgroundColor: context.appColors.surfaceVariant,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  SizedBox(
-                    width: 40,
-                    child: Text(
-                      '${currentPageIndex.value + 1}/${onboardingSteps.length}',
-                      textAlign: TextAlign.end,
-                      style: AppTextStyles.caption.copyWith(
-                        color: context.appColors.textMuted,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(width: AppSpacing.md),
+                    SizedBox(
+                      width: 40,
+                      child: Text(
+                        '${currentPageIndex.value + 1}/${onboardingSteps.length}',
+                        textAlign: TextAlign.end,
+                        style: AppTextStyles.caption.copyWith(
+                          color: context.appColors.textMuted,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: PageView.builder(
-                controller: pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: onboardingSteps.length,
-                itemBuilder: (context, pageIndex) => _OnboardingStepContent(
-                  onboardingStep: onboardingSteps[pageIndex],
-                  selectedPain: selectedPain.value,
-                  selectedSource: selectedSource.value,
-                  selectedGoal: selectedGoal.value,
-                  selectedFrequency: selectedFrequency.value,
-                  onPainSelected: (onboardingPain) {
-                    unawaited(
-                      _logOnboardingAnswer(
-                        logAnalyticsEvent: logAnalyticsEvent,
-                        onboardingStep: _OnboardingStep.pain,
-                        answer: onboardingPain.name,
-                        funnelVariant: funnelVariant,
-                      ),
-                    );
-                    selectedPain.value = onboardingPain;
-                  },
-                  onSourceSelected: (onboardingSource) {
-                    unawaited(
-                      _logOnboardingAnswer(
-                        logAnalyticsEvent: logAnalyticsEvent,
-                        onboardingStep: _OnboardingStep.source,
-                        answer: onboardingSource.name,
-                        funnelVariant: funnelVariant,
-                      ),
-                    );
-                    selectedSource.value = onboardingSource;
-                  },
-                  onGoalSelected: (onboardingGoal) {
-                    unawaited(
-                      _logOnboardingAnswer(
-                        logAnalyticsEvent: logAnalyticsEvent,
-                        onboardingStep: _OnboardingStep.goal,
-                        answer: onboardingGoal.name,
-                        funnelVariant: funnelVariant,
-                      ),
-                    );
-                    selectedGoal.value = onboardingGoal;
-                  },
-                  onFrequencySelected: (onboardingFrequency) {
-                    unawaited(
-                      _logOnboardingAnswer(
-                        logAnalyticsEvent: logAnalyticsEvent,
-                        onboardingStep: _OnboardingStep.frequency,
-                        answer: onboardingFrequency.name,
-                        funnelVariant: funnelVariant,
-                      ),
-                    );
-                    selectedFrequency.value = onboardingFrequency;
-                  },
+                  ],
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                AppSpacing.sm,
-                AppSpacing.xl,
-                AppSpacing.xl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (completionError.value != null) ...[
-                    Text(
-                      completionError.value.toString(),
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.caption.copyWith(
-                        color: context.appColors.destructive,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                  ],
-                  FilledButton(
-                    onPressed: !canContinue || completionInProgress.value
-                        ? null
-                        : () {
-                            if (currentOnboardingStep ==
-                                _OnboardingStep.result) {
-                              finishOnboarding();
-                              return;
-                            }
-                            unawaited(
-                              logAnalyticsEvent(
-                                name: 'onboarding_continue',
-                                parameters: {
-                                  'step': currentOnboardingStep.name,
-                                  'funnel_variant': funnelVariant,
-                                },
-                              ),
-                            );
-                            goToPage(pageIndex: currentPageIndex.value + 1);
-                          },
-                    child: completionInProgress.value
-                        ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            currentOnboardingStep == _OnboardingStep.result
-                                ? AppLocalizations.of(
-                                    context,
-                                  ).onboardingSeePremium
-                                : AppLocalizations.of(
-                                    context,
-                                  ).onboardingContinue,
-                          ),
+              Expanded(
+                child: PageView.builder(
+                  controller: pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: onboardingSteps.length,
+                  itemBuilder: (context, pageIndex) => _OnboardingStepContent(
+                    onboardingStep: onboardingSteps[pageIndex],
+                    selectedPain: selectedPain.value,
+                    selectedSource: selectedSource.value,
+                    selectedGoal: selectedGoal.value,
+                    selectedFrequency: selectedFrequency.value,
+                    onPainSelected: (onboardingPain) {
+                      unawaited(
+                        _logOnboardingAnswer(
+                          logAnalyticsEvent: logAnalyticsEvent,
+                          onboardingStep: _OnboardingStep.pain,
+                          answer: onboardingPain.name,
+                          funnelVariant: funnelVariant,
+                        ),
+                      );
+                      selectedPain.value = onboardingPain;
+                    },
+                    onSourceSelected: (onboardingSource) {
+                      unawaited(
+                        _logOnboardingAnswer(
+                          logAnalyticsEvent: logAnalyticsEvent,
+                          onboardingStep: _OnboardingStep.source,
+                          answer: onboardingSource.name,
+                          funnelVariant: funnelVariant,
+                        ),
+                      );
+                      selectedSource.value = onboardingSource;
+                    },
+                    onGoalSelected: (onboardingGoal) {
+                      unawaited(
+                        _logOnboardingAnswer(
+                          logAnalyticsEvent: logAnalyticsEvent,
+                          onboardingStep: _OnboardingStep.goal,
+                          answer: onboardingGoal.name,
+                          funnelVariant: funnelVariant,
+                        ),
+                      );
+                      selectedGoal.value = onboardingGoal;
+                    },
+                    onFrequencySelected: (onboardingFrequency) {
+                      unawaited(
+                        _logOnboardingAnswer(
+                          logAnalyticsEvent: logAnalyticsEvent,
+                          onboardingStep: _OnboardingStep.frequency,
+                          answer: onboardingFrequency.name,
+                          funnelVariant: funnelVariant,
+                        ),
+                      );
+                      selectedFrequency.value = onboardingFrequency;
+                    },
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.sm,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (completionError.value != null) ...[
+                      Text(
+                        completionError.value.toString(),
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.caption.copyWith(
+                          color: context.appColors.destructive,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+                    FilledButton(
+                      onPressed: !canContinue || completionInProgress.value
+                          ? null
+                          : () {
+                              if (currentOnboardingStep ==
+                                  _OnboardingStep.result) {
+                                finishOnboarding();
+                                return;
+                              }
+                              unawaited(
+                                logAnalyticsEvent(
+                                  name: 'onboarding_continue',
+                                  parameters: {
+                                    'step': currentOnboardingStep.name,
+                                    'funnel_variant': funnelVariant,
+                                  },
+                                ),
+                              );
+                              goToPage(pageIndex: currentPageIndex.value + 1);
+                            },
+                      child: completionInProgress.value
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              currentOnboardingStep == _OnboardingStep.result
+                                  ? AppLocalizations.of(
+                                      context,
+                                    ).onboardingSeePremium
+                                  : AppLocalizations.of(
+                                      context,
+                                    ).onboardingContinue,
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

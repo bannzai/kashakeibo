@@ -7,10 +7,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// プレミアムのパッケージ (月額 / 年額) を購入し、有効化された課金期間を返す操作。
 typedef PurchasePremiumPackage =
-    Future<PremiumPurchaseActivation?> Function({required Package package});
-
-/// 購入後に有効化されたプレミアムの課金期間。
-enum PremiumPurchaseActivation { trial, paid }
+    Future<PeriodType?> Function({required Package package});
 
 /// 購入を復元し、復元後にプレミアムが有効なら true を返す操作。
 typedef RestorePurchases = Future<bool> Function();
@@ -99,9 +96,7 @@ final logInPurchasesProvider = Provider<LogInPurchases>(
 /// ストアの購入シートを開くユーザー操作ごとの副作用のため冪等ではない。
 /// キャンセルを含むエラーは PlatformException のまま投げ、呼び出し側が
 /// `PurchasesErrorHelper.getErrorCode` で判定する。
-Future<PremiumPurchaseActivation?> purchasePremiumPackage({
-  required Package package,
-}) async {
+Future<PeriodType?> purchasePremiumPackage({required Package package}) async {
   await _ensurePurchasesAppUserIdMatchesFirebaseUid();
   final customerInfo = (await Purchases.purchase(
     PurchaseParams.package(package),
@@ -111,9 +106,7 @@ Future<PremiumPurchaseActivation?> purchasePremiumPackage({
   if (premiumEntitlement == null) {
     return null;
   }
-  return premiumEntitlement.periodType == PeriodType.trial
-      ? PremiumPurchaseActivation.trial
-      : PremiumPurchaseActivation.paid;
+  return premiumEntitlement.periodType;
 }
 
 /// ストアの購入履歴から entitlement を復元し、プレミアムが有効なら true を返す。

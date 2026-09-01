@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kashakeibo/features/onboarding/onboarding_page.dart';
@@ -172,6 +174,51 @@ void main() {
     expect(paywallOpened, isTrue);
     expect(find.text('月次画面'), findsOneWidget);
     expect(find.textContaining('計測できませんでした'), findsNothing);
+  });
+
+  testWidgets('2画面目以降のシステム戻る操作で1つ前の画面へ戻る', (tester) async {
+    await pumpOnboardingResolver(
+      tester,
+      loadOnboardingCompletion: () async => false,
+      saveOnboardingCompletion: () async {},
+      openOnboardingPaywall: ({required context}) async {},
+      logAnalyticsEvent: ({required name, parameters}) async {},
+      locale: const Locale('ja'),
+    );
+    await tester.pumpAndSettle();
+    await tapVisibleText(tester, text: '次へ');
+    expect(find.text('2/7'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('1/7'), findsOneWidget);
+    expect(find.text('家計の記録をもっと手軽に'), findsOneWidget);
+  });
+
+  testWidgets('完了処理中はシステム戻る操作を受け付けない', (tester) async {
+    final paywallCompletion = Completer<void>();
+    await pumpOnboardingResolver(
+      tester,
+      loadOnboardingCompletion: () async => false,
+      saveOnboardingCompletion: () async {},
+      openOnboardingPaywall: ({required context}) => paywallCompletion.future,
+      logAnalyticsEvent: ({required name, parameters}) async {},
+      locale: const Locale('ja'),
+    );
+    await tester.pumpAndSettle();
+    await completeJapaneseOnboarding(tester);
+    await tester.tap(find.text('プレミアムプランを見る'));
+    await tester.pump();
+    expect(find.text('7/7'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(find.text('7/7'), findsOneWidget);
+    paywallCompletion.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('月次画面'), findsOneWidget);
   });
 
   testWidgets('英語ロケールでは価値説明を含む10画面の長尺ファネルを表示する', (tester) async {
