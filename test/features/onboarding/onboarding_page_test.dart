@@ -238,6 +238,22 @@ void main() {
     expect(find.text('2/10'), findsOneWidget);
   });
 
+  for (final locale in const [Locale('ko'), Locale('zh')]) {
+    testWidgets('${locale.languageCode}ロケールでは7画面の短尺ファネルを表示する', (tester) async {
+      await pumpOnboardingResolver(
+        tester,
+        loadOnboardingCompletion: () async => false,
+        saveOnboardingCompletion: () async {},
+        openOnboardingPaywall: ({required context}) async {},
+        logAnalyticsEvent: ({required name, parameters}) async {},
+        locale: locale,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('1/7'), findsOneWidget);
+    });
+  }
+
   testWidgets('表示中に英語から日本語へ変更しても開始時の10画面構成を維持する', (tester) async {
     Future<void> pumpWithLocale(Locale locale) => pumpOnboardingResolver(
       tester,
