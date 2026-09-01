@@ -10,7 +10,7 @@ last_verified_at: 2026-08-23
 ## 関連リンク
 
 - 仕様: https://github.com/bannzai/kashakeibo/issues/12 (RevenueCat 課金・スキャン無料枠とハードペイウォールの受け入れ条件)
-- 関連: https://github.com/bannzai/kashakeibo/pull/48 (実装 PR)、lib/features/paywall/README.md、lib/features/capture/README.md、workers/image/README.md
+- 関連: https://github.com/bannzai/kashakeibo/pull/48 (実装 PR)、https://github.com/bannzai/kashakeibo/issues/76、lib/features/paywall/README.md、lib/features/capture/README.md、workers/image/README.md
 
 ## 仕様チェックリスト
 
@@ -23,6 +23,7 @@ last_verified_at: 2026-08-23
 | S5 | app user ID は Firebase uid で、Worker が同じ uid で RevenueCat の entitlement を検証できる | サーバー側の entitlement 確認 |
 | S6 | 「購入の復元」で entitlement を復元し、復元できる購入が無ければその旨を表示する | 購入の復元 (復元対象なし) / 購入の復元 (復元対象あり) |
 | S7 | 非プレミアム時に節約効果の訴求カード (調査データ + 出典注記) を表示する (issue #52) | 節約効果の訴求カード |
+| S8 | 購入後のentitlementが無料トライアルならtrial_start、通常の有料期間ならpurchase_completeを記録する (issue #76) | 購入開始のAnalyticsイベント |
 
 ## 1. ペイウォールの表示と導線
 
@@ -49,7 +50,7 @@ last_verified_at: 2026-08-23
 <details>
 <summary>動作確認エビデンス</summary>
 
-### **節約効果の訴求カード**: 非プレミアム時に調査データの訴求と出典注記が表示される (issue #52)
+### **節約効果の訴求カード**: 非プレミアム時、見出しと無料枠バーの間に「家計簿で支出が減った人の約半数が、月5,000円〜1万円未満の節約を実感*」と出典注記 (東証マネ部!「お金に関するアンケート」2022年10月・全国20〜40代の会社員1,111名) のカードが表示される。プレミアム利用中は表示されない
 
 <details><summary>動作確認スクショ</summary>
 
@@ -163,6 +164,8 @@ Simulator の当日は 2026-08-20。無料プランの新規 uid で 2026年8月
 
 ## 2. 購入・復元
 
+- [ ] **購入開始のAnalyticsイベント**: 購入後のentitlementがtrialならtrial_startだけを、paidならpurchase_completeだけを記録する
+  - 自動化: auto (test/features/paywall/paywall_page_test.dart)
 - [x] **mock 購入の成功**: 「プレミアムを始める」で RevenueCat Test Store の購入モーダルが開き、「Test valid purchase」で購入が成立するとペイウォールが閉じて完了メッセージ「プレミアムを開始しました。スキャンし放題です!」が表示される
   - 自動化: manual (Test Store の mock 購入モーダルは Maestro で flaky の実績があるため agent のシミュレータ操作で確認する)
 - [x] **購入後の残量チップ**: 購入直後に月次一覧の残量チップと記録するシート下部の残量表示が「スキャンし放題」になる
@@ -313,6 +316,14 @@ Simulator 消去後の新規 uid (無料プラン) で「プレミアムを始�
 </details>
 
 ### **購入の復元 (復元対象あり)**: 購入済みのストアアカウントで別端末・再インストール後に「購入の復元」をタップすると entitlement が復元され、完了メッセージを出して閉じる
+
+<details><summary>動作確認スクショ</summary>
+
+（未実行）
+
+</details>
+
+### **購入開始のAnalyticsイベント**: 購入後のentitlementがtrialならtrial_startだけを、paidならpurchase_completeだけを記録する
 
 <details><summary>動作確認スクショ</summary>
 
