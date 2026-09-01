@@ -1,7 +1,7 @@
 ---
 feature: onboarding
 verification: mobile-mcp,maestro
-last_verified_commit: e9122a0b1d37eaea0fb11266fa9c4bce355f02f8
+last_verified_commit: 32510008940beb817397056cb98421c57bb82dab
 last_verified_at: 2026-09-01
 ---
 
@@ -52,7 +52,7 @@ last_verified_at: 2026-09-01
 
 **確認日: 2026-09-01**
 
-日本語は画面上の進捗表示が1/7から7/7まで増えることをSimulatorとMaestroで確認した。レビュー修正後の `e9122a0b1d37eaea0fb11266fa9c4bce355f02f8` ではwidget testを再実行し、英語の1/10と価値説明を含む2/10への遷移、日本語・韓国語・中国語の1/7表示を確認した。韓国語・中国語のSimulator上の見た目は、Xcodeビルドサービスが15分以上応答待ちになったため未検証。
+日本語は画面上の進捗表示が1/7から7/7まで増えることをSimulatorとMaestroで確認した。レビュー修正後の `32510008940beb817397056cb98421c57bb82dab` ではwidget testを再実行し、英語の1/10と価値説明を含む2/10への遷移、日本語・韓国語・中国語の1/7表示、遷移中に進む・戻るを連打しても1画面だけ移動することを確認した。英語Maestroフローの主要14文言は `app_en.arb` と一致することを確認したが、iOS 26.5でMaestroドライバーが起動タイムアウトしたため英語10画面のシミュレータE2Eは未検証。韓国語・中国語のSimulator上の見た目も、Xcodeビルドサービスが15分以上応答待ちになったため未検証。
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260901/565dabe3-469b-4ecb-a896-31a4573baee2.png" width="320">
 
@@ -117,7 +117,7 @@ last_verified_at: 2026-09-01
 
 **確認日: 2026-09-01**
 
-レビュー修正後の `e9122a0b1d37eaea0fb11266fa9c4bce355f02f8` で`flutter test`を再実行し、onboarding_start、7回のonboarding_step_view、回答内容、完了状態保存後のonboarding_complete、Analytics送信失敗時もペイウォールを開くことを確認した。paywall widget testではRevenueCatのPeriodTypeを直接扱い、trial時にtrial_startだけ、既知の有料期間でpurchase_completeを記録し、unknownではどちらも記録しないことを確認した。
+レビュー修正後の `32510008940beb817397056cb98421c57bb82dab` で`flutter test`を再実行し、181件成功・1件スキップとなった。onboarding_start、7回のonboarding_step_view、回答内容、完了状態保存後のonboarding_complete、Analytics送信失敗時もペイウォールを開くことを確認した。paywall widget testではRevenueCatのPeriodTypeを直接扱い、trial時にtrial_startだけ、既知の有料期間でpurchase_completeを記録し、unknownではどちらも記録しないことを確認した。
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260901/f3b2bb1f-4d22-4a6b-bcc5-189b2c3b6ed6.png" width="320">
 
