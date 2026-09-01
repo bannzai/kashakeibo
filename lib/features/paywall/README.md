@@ -35,6 +35,7 @@
 
 1. 導線 (残量チップ / 記録するシートで残量 0 の「カメラで撮影」/ 設定のプラン行 / 撮影フローで解析が 402 / 無料範囲より古い月への月送り / 検索・操作履歴の履歴制限の注記) からペイウォールを開く。`showPaywall` の `trigger` で導線を Analytics に記録する
 2. 料金カードを選び「プレミアムを始める」でストアの購入シートを開く (`purchasePremiumPackageProvider`)。キャンセルは何も表示せず開いたまま、失敗はエラー文をそのまま表示する
+   - 購入後の RevenueCat entitlement が trial なら `trial_start`、それ以外の有効な課金期間なら `purchase_complete` を、購入した商品の `storeProductIdentifier` 付きで Analytics に記録する
 3. 購入・復元後にプレミアムの entitlement が有効なら完了メッセージを出して true で閉じる。撮影フローは true を受けて同じ画像で解析をやり直す
 4. 「購入の復元」はストアの購入履歴から entitlement を復元する (`restorePurchasesProvider`)。復元できる購入が無ければその旨を表示する
 

@@ -1129,6 +1129,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'See your full history with Premium'**
   String get freePlanHistoryLimitUpgrade;
+
+  /// Button that advances to the next onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get onboardingContinue;
+
+  /// Final onboarding button that opens the paywall
+  ///
+  /// In en, this message translates to:
+  /// **'See my Premium plan'**
+  String get onboardingSeePremium;
+
+  /// Onboarding welcome title
+  ///
+  /// In en, this message translates to:
+  /// **'Make money tracking effortless'**
+  String get onboardingWelcomeTitle;
+
+  /// Onboarding welcome description
+  ///
+  /// In en, this message translates to:
+  /// **'Turn receipts and online statements into records with a photo or screenshot'**
+  String get onboardingWelcomeDescription;
+
+  /// Long funnel value explanation title
+  ///
+  /// In en, this message translates to:
+  /// **'Capture it now and review it later'**
+  String get onboardingValueTitle;
+
+  /// Long funnel value explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Kashakeibo uses AI to organize the store, amount, date, and category so you can spend your time understanding your money'**
+  String get onboardingValueDescription;
+
+  /// Pain recognition question title
+  ///
+  /// In en, this message translates to:
+  /// **'What makes budgeting hardest?'**
+  String get onboardingPainTitle;
+
+  /// Pain recognition question description
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the challenge you want to solve first'**
+  String get onboardingPainDescription;
+
+  /// Pain option for manual entry effort
+  ///
+  /// In en, this message translates to:
+  /// **'Entering every purchase takes too much work'**
+  String get onboardingPainRecordingEffort;
+
+  /// Pain option for spending visibility
+  ///
+  /// In en, this message translates to:
+  /// **'I cannot see where my money goes'**
+  String get onboardingPainSpendingVisibility;
+
+  /// Pain option for review time
+  ///
+  /// In en, this message translates to:
+  /// **'I never find time to review spending'**
+  String get onboardingPainReviewTime;
+
+  /// Personalization question for record sources
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to capture?'**
+  String get onboardingSourceTitle;
+
+  /// Record source question description
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer shapes the plan we show you'**
+  String get onboardingSourceDescription;
+
+  /// Receipt source option
+  ///
+  /// In en, this message translates to:
+  /// **'Paper receipts'**
+  String get onboardingSourceReceipt;
+
+  /// Online statement source option
+  ///
+  /// In en, this message translates to:
+  /// **'Card and online shopping statements'**
+  String get onboardingSourceOnlineStatement;
+
+  /// All record sources option
+  ///
+  /// In en, this message translates to:
+  /// **'Both receipts and online statements'**
+  String get onboardingSourceBoth;
+
+  /// Long funnel tracking frequency question
+  ///
+  /// In en, this message translates to:
+  /// **'How often do you track spending now?'**
+  String get onboardingFrequencyTitle;
+
+  /// Tracking frequency question description
+  ///
+  /// In en, this message translates to:
+  /// **'There is no wrong answer'**
+  String get onboardingFrequencyDescription;
+
+  /// Daily tracking frequency option
+  ///
+  /// In en, this message translates to:
+  /// **'Almost every day'**
+  String get onboardingFrequencyDaily;
+
+  /// Weekly tracking frequency option
+  ///
+  /// In en, this message translates to:
+  /// **'Once or twice a week'**
+  String get onboardingFrequencyWeekly;
+
+  /// Occasional tracking frequency option
+  ///
+  /// In en, this message translates to:
+  /// **'Only when I remember'**
+  String get onboardingFrequencyOccasionally;
+
+  /// Onboarding goal and commitment question
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to achieve?'**
+  String get onboardingGoalTitle;
+
+  /// Onboarding goal question description
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the result that matters most to you'**
+  String get onboardingGoalDescription;
+
+  /// Spend less goal option
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce unnecessary spending'**
+  String get onboardingGoalSpendLess;
+
+  /// Understand spending goal option
+  ///
+  /// In en, this message translates to:
+  /// **'Understand my spending patterns'**
+  String get onboardingGoalUnderstandSpending;
+
+  /// Save time goal option
+  ///
+  /// In en, this message translates to:
+  /// **'Spend less time on bookkeeping'**
+  String get onboardingGoalSaveTime;
+
+  /// Social proof screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Small records can create real savings'**
+  String get onboardingSocialProofTitle;
+
+  /// Long funnel commitment screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to make tracking easier?'**
+  String get onboardingCommitmentTitle;
+
+  /// Long funnel commitment screen description
+  ///
+  /// In en, this message translates to:
+  /// **'Your plan starts with one simple habit: capture a purchase when it happens'**
+  String get onboardingCommitmentDescription;
+
+  /// Plan generation screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Building your tracking plan'**
+  String get onboardingGeneratingTitle;
+
+  /// Plan generation screen description
+  ///
+  /// In en, this message translates to:
+  /// **'Combining your challenge, record sources, and goal'**
+  String get onboardingGeneratingDescription;
+
+  /// Fallback personalized result title
+  ///
+  /// In en, this message translates to:
+  /// **'Your plan is ready'**
+  String get onboardingResultTitle;
+
+  /// Personalized result screen description
+  ///
+  /// In en, this message translates to:
+  /// **'Kashakeibo turns your captures into a monthly view you can understand at a glance'**
+  String get onboardingResultDescription;
+
+  /// Result title for manual entry pain
+  ///
+  /// In en, this message translates to:
+  /// **'A plan that keeps manual entry out of the way'**
+  String get onboardingResultRecordingEffort;
+
+  /// Result title for spending visibility pain
+  ///
+  /// In en, this message translates to:
+  /// **'A plan that makes every purchase visible'**
+  String get onboardingResultSpendingVisibility;
+
+  /// Result title for review time pain
+  ///
+  /// In en, this message translates to:
+  /// **'A plan built for quick monthly reviews'**
+  String get onboardingResultReviewTime;
+
+  /// Result plan for receipt users
+  ///
+  /// In en, this message translates to:
+  /// **'Photograph receipts when you receive them and let AI prepare the record'**
+  String get onboardingPlanReceipt;
+
+  /// Result plan for online statement users
+  ///
+  /// In en, this message translates to:
+  /// **'Share card and shopping screenshots and let AI prepare the record'**
+  String get onboardingPlanOnlineStatement;
+
+  /// Result plan for all record sources
+  ///
+  /// In en, this message translates to:
+  /// **'Capture receipts or share screenshots and keep every purchase in one place'**
+  String get onboardingPlanBoth;
+
+  /// Result plan for spending reduction goal
+  ///
+  /// In en, this message translates to:
+  /// **'Use the monthly view to find spending you want to reduce'**
+  String get onboardingPlanSpendLess;
+
+  /// Result plan for spending understanding goal
+  ///
+  /// In en, this message translates to:
+  /// **'Use categories and monthly totals to understand your spending patterns'**
+  String get onboardingPlanUnderstandSpending;
+
+  /// Result plan for time saving goal
+  ///
+  /// In en, this message translates to:
+  /// **'Replace repetitive entry with photos and screenshots'**
+  String get onboardingPlanSaveTime;
 }
 
 class _AppLocalizationsDelegate

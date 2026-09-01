@@ -100,7 +100,7 @@ List<Override> freePlanOverrides({required int monthlyScanCount}) => [
   isPremiumProvider.overrideWithValue(false),
   premiumOfferingProvider.overrideWith((ref) async => null),
   purchasePremiumPackageProvider.overrideWithValue(
-    ({required package}) async => false,
+    ({required package}) async => null,
   ),
   restorePurchasesProvider.overrideWithValue(() async => false),
 ];

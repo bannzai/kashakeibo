@@ -562,6 +562,132 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get freePlanHistoryLimitUpgrade => '使用高级版查看完整记录';
+
+  @override
+  String get onboardingContinue => '下一步';
+
+  @override
+  String get onboardingSeePremium => '查看高级版方案';
+
+  @override
+  String get onboardingWelcomeTitle => '让家庭收支记录更轻松';
+
+  @override
+  String get onboardingWelcomeDescription => '拍下收据或在线账单即可记入家庭账本';
+
+  @override
+  String get onboardingValueTitle => '现在拍下以后查看';
+
+  @override
+  String get onboardingValueDescription => 'AI会整理商家金额日期和类别，让你把时间用在了解收支上';
+
+  @override
+  String get onboardingPainTitle => '管理收支时最困扰你的是什么？';
+
+  @override
+  String get onboardingPainDescription => '选择你最想先解决的问题';
+
+  @override
+  String get onboardingPainRecordingEffort => '每次手动输入太麻烦难以坚持';
+
+  @override
+  String get onboardingPainSpendingVisibility => '看不清钱花在了哪里';
+
+  @override
+  String get onboardingPainReviewTime => '没有时间回顾支出';
+
+  @override
+  String get onboardingSourceTitle => '你想记录什么？';
+
+  @override
+  String get onboardingSourceDescription => '我们会根据回答建议使用方案';
+
+  @override
+  String get onboardingSourceReceipt => '纸质收据';
+
+  @override
+  String get onboardingSourceOnlineStatement => '信用卡和网购账单';
+
+  @override
+  String get onboardingSourceBoth => '收据和在线账单都要';
+
+  @override
+  String get onboardingFrequencyTitle => '你现在多久记录一次？';
+
+  @override
+  String get onboardingFrequencyDescription => '任何回答都可以';
+
+  @override
+  String get onboardingFrequencyDaily => '几乎每天';
+
+  @override
+  String get onboardingFrequencyWeekly => '每周一到两次';
+
+  @override
+  String get onboardingFrequencyOccasionally => '想起来时才记录';
+
+  @override
+  String get onboardingGoalTitle => '你希望通过家庭账本实现什么？';
+
+  @override
+  String get onboardingGoalDescription => '选择对你最重要的目标';
+
+  @override
+  String get onboardingGoalSpendLess => '减少不必要的支出';
+
+  @override
+  String get onboardingGoalUnderstandSpending => '了解自己的支出规律';
+
+  @override
+  String get onboardingGoalSaveTime => '减少记账所花的时间';
+
+  @override
+  String get onboardingSocialProofTitle => '小小的记录也能带来节省';
+
+  @override
+  String get onboardingCommitmentTitle => '准备开始轻松记录了吗？';
+
+  @override
+  String get onboardingCommitmentDescription => '先从消费时拍一张照片的简单习惯开始';
+
+  @override
+  String get onboardingGeneratingTitle => '正在生成你的使用方案';
+
+  @override
+  String get onboardingGeneratingDescription => '正在结合你的困扰记录来源和目标';
+
+  @override
+  String get onboardingResultTitle => '你的使用方案已准备好';
+
+  @override
+  String get onboardingResultDescription => '把拍下的账单按月整理，让你一眼回顾家庭收支';
+
+  @override
+  String get onboardingResultRecordingEffort => '减少输入负担并轻松坚持的方案';
+
+  @override
+  String get onboardingResultSpendingVisibility => '让每笔支出清晰可见的方案';
+
+  @override
+  String get onboardingResultReviewTime => '快速回顾每月收支的方案';
+
+  @override
+  String get onboardingPlanReceipt => '收到收据时拍下来并交给AI生成记录';
+
+  @override
+  String get onboardingPlanOnlineStatement => '共享信用卡或购物账单并交给AI生成记录';
+
+  @override
+  String get onboardingPlanBoth => '拍下收据或共享截图并把所有支出集中在一处';
+
+  @override
+  String get onboardingPlanSpendLess => '从月度页面找出想要减少的支出';
+
+  @override
+  String get onboardingPlanUnderstandSpending => '通过类别和月度总额了解支出规律';
+
+  @override
+  String get onboardingPlanSaveTime => '用照片和截图代替重复输入';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1122,6 +1248,132 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get freePlanHistoryLimitUpgrade => '使用高级版查看完整记录';
+
+  @override
+  String get onboardingContinue => '下一步';
+
+  @override
+  String get onboardingSeePremium => '查看高级版方案';
+
+  @override
+  String get onboardingWelcomeTitle => '让家庭收支记录更轻松';
+
+  @override
+  String get onboardingWelcomeDescription => '拍下收据或在线账单即可记入家庭账本';
+
+  @override
+  String get onboardingValueTitle => '现在拍下以后查看';
+
+  @override
+  String get onboardingValueDescription => 'AI会整理商家金额日期和类别，让你把时间用在了解收支上';
+
+  @override
+  String get onboardingPainTitle => '管理收支时最困扰你的是什么？';
+
+  @override
+  String get onboardingPainDescription => '选择你最想先解决的问题';
+
+  @override
+  String get onboardingPainRecordingEffort => '每次手动输入太麻烦难以坚持';
+
+  @override
+  String get onboardingPainSpendingVisibility => '看不清钱花在了哪里';
+
+  @override
+  String get onboardingPainReviewTime => '没有时间回顾支出';
+
+  @override
+  String get onboardingSourceTitle => '你想记录什么？';
+
+  @override
+  String get onboardingSourceDescription => '我们会根据回答建议使用方案';
+
+  @override
+  String get onboardingSourceReceipt => '纸质收据';
+
+  @override
+  String get onboardingSourceOnlineStatement => '信用卡和网购账单';
+
+  @override
+  String get onboardingSourceBoth => '收据和在线账单都要';
+
+  @override
+  String get onboardingFrequencyTitle => '你现在多久记录一次？';
+
+  @override
+  String get onboardingFrequencyDescription => '任何回答都可以';
+
+  @override
+  String get onboardingFrequencyDaily => '几乎每天';
+
+  @override
+  String get onboardingFrequencyWeekly => '每周一到两次';
+
+  @override
+  String get onboardingFrequencyOccasionally => '想起来时才记录';
+
+  @override
+  String get onboardingGoalTitle => '你希望通过家庭账本实现什么？';
+
+  @override
+  String get onboardingGoalDescription => '选择对你最重要的目标';
+
+  @override
+  String get onboardingGoalSpendLess => '减少不必要的支出';
+
+  @override
+  String get onboardingGoalUnderstandSpending => '了解自己的支出规律';
+
+  @override
+  String get onboardingGoalSaveTime => '减少记账所花的时间';
+
+  @override
+  String get onboardingSocialProofTitle => '小小的记录也能带来节省';
+
+  @override
+  String get onboardingCommitmentTitle => '准备开始轻松记录了吗？';
+
+  @override
+  String get onboardingCommitmentDescription => '先从消费时拍一张照片的简单习惯开始';
+
+  @override
+  String get onboardingGeneratingTitle => '正在生成你的使用方案';
+
+  @override
+  String get onboardingGeneratingDescription => '正在结合你的困扰记录来源和目标';
+
+  @override
+  String get onboardingResultTitle => '你的使用方案已准备好';
+
+  @override
+  String get onboardingResultDescription => '把拍下的账单按月整理，让你一眼回顾家庭收支';
+
+  @override
+  String get onboardingResultRecordingEffort => '减少输入负担并轻松坚持的方案';
+
+  @override
+  String get onboardingResultSpendingVisibility => '让每笔支出清晰可见的方案';
+
+  @override
+  String get onboardingResultReviewTime => '快速回顾每月收支的方案';
+
+  @override
+  String get onboardingPlanReceipt => '收到收据时拍下来并交给AI生成记录';
+
+  @override
+  String get onboardingPlanOnlineStatement => '共享信用卡或购物账单并交给AI生成记录';
+
+  @override
+  String get onboardingPlanBoth => '拍下收据或共享截图并把所有支出集中在一处';
+
+  @override
+  String get onboardingPlanSpendLess => '从月度页面找出想要减少的支出';
+
+  @override
+  String get onboardingPlanUnderstandSpending => '通过类别和月度总额了解支出规律';
+
+  @override
+  String get onboardingPlanSaveTime => '用照片和截图代替重复输入';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1681,4 +1933,130 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get freePlanHistoryLimitUpgrade => '使用進階版查看完整記錄';
+
+  @override
+  String get onboardingContinue => '下一步';
+
+  @override
+  String get onboardingSeePremium => '查看進階版方案';
+
+  @override
+  String get onboardingWelcomeTitle => '讓家庭收支記錄更輕鬆';
+
+  @override
+  String get onboardingWelcomeDescription => '拍下收據或線上帳單即可記入家庭帳本';
+
+  @override
+  String get onboardingValueTitle => '現在拍下以後查看';
+
+  @override
+  String get onboardingValueDescription => 'AI會整理商家金額日期和類別，讓你把時間用在了解收支上';
+
+  @override
+  String get onboardingPainTitle => '管理收支時最困擾你的是什麼？';
+
+  @override
+  String get onboardingPainDescription => '選擇你最想先解決的問題';
+
+  @override
+  String get onboardingPainRecordingEffort => '每次手動輸入太麻煩難以堅持';
+
+  @override
+  String get onboardingPainSpendingVisibility => '看不清錢花在了哪裡';
+
+  @override
+  String get onboardingPainReviewTime => '沒有時間回顧支出';
+
+  @override
+  String get onboardingSourceTitle => '你想記錄什麼？';
+
+  @override
+  String get onboardingSourceDescription => '我們會根據回答建議使用方案';
+
+  @override
+  String get onboardingSourceReceipt => '紙本收據';
+
+  @override
+  String get onboardingSourceOnlineStatement => '信用卡和網購帳單';
+
+  @override
+  String get onboardingSourceBoth => '收據和線上帳單都要';
+
+  @override
+  String get onboardingFrequencyTitle => '你現在多久記錄一次？';
+
+  @override
+  String get onboardingFrequencyDescription => '任何回答都可以';
+
+  @override
+  String get onboardingFrequencyDaily => '幾乎每天';
+
+  @override
+  String get onboardingFrequencyWeekly => '每週一到兩次';
+
+  @override
+  String get onboardingFrequencyOccasionally => '想起來時才記錄';
+
+  @override
+  String get onboardingGoalTitle => '你希望透過家庭帳本實現什麼？';
+
+  @override
+  String get onboardingGoalDescription => '選擇對你最重要的目標';
+
+  @override
+  String get onboardingGoalSpendLess => '減少不必要的支出';
+
+  @override
+  String get onboardingGoalUnderstandSpending => '了解自己的支出規律';
+
+  @override
+  String get onboardingGoalSaveTime => '減少記帳所花的時間';
+
+  @override
+  String get onboardingSocialProofTitle => '小小的記錄也能帶來節省';
+
+  @override
+  String get onboardingCommitmentTitle => '準備開始輕鬆記錄了嗎？';
+
+  @override
+  String get onboardingCommitmentDescription => '先從消費時拍一張照片的簡單習慣開始';
+
+  @override
+  String get onboardingGeneratingTitle => '正在產生你的使用方案';
+
+  @override
+  String get onboardingGeneratingDescription => '正在結合你的困擾記錄來源和目標';
+
+  @override
+  String get onboardingResultTitle => '你的使用方案已準備好';
+
+  @override
+  String get onboardingResultDescription => '把拍下的帳單按月整理，讓你一眼回顧家庭收支';
+
+  @override
+  String get onboardingResultRecordingEffort => '減少輸入負擔並輕鬆堅持的方案';
+
+  @override
+  String get onboardingResultSpendingVisibility => '讓每筆支出清晰可見的方案';
+
+  @override
+  String get onboardingResultReviewTime => '快速回顧每月收支的方案';
+
+  @override
+  String get onboardingPlanReceipt => '收到收據時拍下來並交給AI產生記錄';
+
+  @override
+  String get onboardingPlanOnlineStatement => '分享信用卡或購物帳單並交給AI產生記錄';
+
+  @override
+  String get onboardingPlanBoth => '拍下收據或分享截圖並把所有支出集中在一處';
+
+  @override
+  String get onboardingPlanSpendLess => '從月度頁面找出想要減少的支出';
+
+  @override
+  String get onboardingPlanUnderstandSpending => '透過類別和月度總額了解支出規律';
+
+  @override
+  String get onboardingPlanSaveTime => '用照片和截圖代替重複輸入';
 }

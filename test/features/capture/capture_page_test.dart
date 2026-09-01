@@ -596,7 +596,7 @@ void main() {
           ], annual: annualPackage),
         ),
         purchasePremiumPackageProvider.overrideWithValue(
-          ({required package}) async => true,
+          ({required package}) async => PeriodType.normal,
         ),
         restorePurchasesProvider.overrideWithValue(() async => false),
       ],
@@ -645,7 +645,7 @@ void main() {
         isPremiumProvider.overrideWithValue(false),
         premiumOfferingProvider.overrideWith((ref) async => null),
         purchasePremiumPackageProvider.overrideWithValue(
-          ({required package}) async => false,
+          ({required package}) async => null,
         ),
         restorePurchasesProvider.overrideWithValue(() async => false),
       ],

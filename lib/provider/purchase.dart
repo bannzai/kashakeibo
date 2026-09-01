@@ -5,9 +5,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/utils/purchase/purchase.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-/// プレミアムのパッケージ (月額 / 年額) を購入し、購入後にプレミアムが有効なら true を返す操作。
+/// プレミアムのパッケージ (月額 / 年額) を購入し、有効化された課金期間を返す操作。
 typedef PurchasePremiumPackage =
-    Future<bool> Function({required Package package});
+    Future<PeriodType?> Function({required Package package});
 
 /// 購入を復元し、復元後にプレミアムが有効なら true を返す操作。
 typedef RestorePurchases = Future<bool> Function();
@@ -91,18 +91,22 @@ final logInPurchasesProvider = Provider<LogInPurchases>(
   (ref) => logInPurchases,
 );
 
-/// パッケージを購入し、購入後にプレミアムの entitlement が有効なら true を返す。
+/// パッケージを購入し、購入後に有効化されたプレミアムの課金期間を返す。
 ///
 /// ストアの購入シートを開くユーザー操作ごとの副作用のため冪等ではない。
 /// キャンセルを含むエラーは PlatformException のまま投げ、呼び出し側が
 /// `PurchasesErrorHelper.getErrorCode` で判定する。
-Future<bool> purchasePremiumPackage({required Package package}) async {
+Future<PeriodType?> purchasePremiumPackage({required Package package}) async {
   await _ensurePurchasesAppUserIdMatchesFirebaseUid();
-  return hasPremiumEntitlement(
-    customerInfo: (await Purchases.purchase(
-      PurchaseParams.package(package),
-    )).customerInfo,
-  );
+  final customerInfo = (await Purchases.purchase(
+    PurchaseParams.package(package),
+  )).customerInfo;
+  final premiumEntitlement =
+      customerInfo.entitlements.active[premiumEntitlementIdentifier];
+  if (premiumEntitlement == null) {
+    return null;
+  }
+  return premiumEntitlement.periodType;
 }
 
 /// ストアの購入履歴から entitlement を復元し、プレミアムが有効なら true を返す。

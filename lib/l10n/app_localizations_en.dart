@@ -593,4 +593,152 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get freePlanHistoryLimitUpgrade =>
       'See your full history with Premium';
+
+  @override
+  String get onboardingContinue => 'Continue';
+
+  @override
+  String get onboardingSeePremium => 'See my Premium plan';
+
+  @override
+  String get onboardingWelcomeTitle => 'Make money tracking effortless';
+
+  @override
+  String get onboardingWelcomeDescription =>
+      'Turn receipts and online statements into records with a photo or screenshot';
+
+  @override
+  String get onboardingValueTitle => 'Capture it now and review it later';
+
+  @override
+  String get onboardingValueDescription =>
+      'Kashakeibo uses AI to organize the store, amount, date, and category so you can spend your time understanding your money';
+
+  @override
+  String get onboardingPainTitle => 'What makes budgeting hardest?';
+
+  @override
+  String get onboardingPainDescription =>
+      'Choose the challenge you want to solve first';
+
+  @override
+  String get onboardingPainRecordingEffort =>
+      'Entering every purchase takes too much work';
+
+  @override
+  String get onboardingPainSpendingVisibility =>
+      'I cannot see where my money goes';
+
+  @override
+  String get onboardingPainReviewTime => 'I never find time to review spending';
+
+  @override
+  String get onboardingSourceTitle => 'What do you want to capture?';
+
+  @override
+  String get onboardingSourceDescription =>
+      'Your answer shapes the plan we show you';
+
+  @override
+  String get onboardingSourceReceipt => 'Paper receipts';
+
+  @override
+  String get onboardingSourceOnlineStatement =>
+      'Card and online shopping statements';
+
+  @override
+  String get onboardingSourceBoth => 'Both receipts and online statements';
+
+  @override
+  String get onboardingFrequencyTitle => 'How often do you track spending now?';
+
+  @override
+  String get onboardingFrequencyDescription => 'There is no wrong answer';
+
+  @override
+  String get onboardingFrequencyDaily => 'Almost every day';
+
+  @override
+  String get onboardingFrequencyWeekly => 'Once or twice a week';
+
+  @override
+  String get onboardingFrequencyOccasionally => 'Only when I remember';
+
+  @override
+  String get onboardingGoalTitle => 'What do you want to achieve?';
+
+  @override
+  String get onboardingGoalDescription =>
+      'Pick the result that matters most to you';
+
+  @override
+  String get onboardingGoalSpendLess => 'Reduce unnecessary spending';
+
+  @override
+  String get onboardingGoalUnderstandSpending =>
+      'Understand my spending patterns';
+
+  @override
+  String get onboardingGoalSaveTime => 'Spend less time on bookkeeping';
+
+  @override
+  String get onboardingSocialProofTitle =>
+      'Small records can create real savings';
+
+  @override
+  String get onboardingCommitmentTitle => 'Ready to make tracking easier?';
+
+  @override
+  String get onboardingCommitmentDescription =>
+      'Your plan starts with one simple habit: capture a purchase when it happens';
+
+  @override
+  String get onboardingGeneratingTitle => 'Building your tracking plan';
+
+  @override
+  String get onboardingGeneratingDescription =>
+      'Combining your challenge, record sources, and goal';
+
+  @override
+  String get onboardingResultTitle => 'Your plan is ready';
+
+  @override
+  String get onboardingResultDescription =>
+      'Kashakeibo turns your captures into a monthly view you can understand at a glance';
+
+  @override
+  String get onboardingResultRecordingEffort =>
+      'A plan that keeps manual entry out of the way';
+
+  @override
+  String get onboardingResultSpendingVisibility =>
+      'A plan that makes every purchase visible';
+
+  @override
+  String get onboardingResultReviewTime =>
+      'A plan built for quick monthly reviews';
+
+  @override
+  String get onboardingPlanReceipt =>
+      'Photograph receipts when you receive them and let AI prepare the record';
+
+  @override
+  String get onboardingPlanOnlineStatement =>
+      'Share card and shopping screenshots and let AI prepare the record';
+
+  @override
+  String get onboardingPlanBoth =>
+      'Capture receipts or share screenshots and keep every purchase in one place';
+
+  @override
+  String get onboardingPlanSpendLess =>
+      'Use the monthly view to find spending you want to reduce';
+
+  @override
+  String get onboardingPlanUnderstandSpending =>
+      'Use categories and monthly totals to understand your spending patterns';
+
+  @override
+  String get onboardingPlanSaveTime =>
+      'Replace repetitive entry with photos and screenshots';
 }

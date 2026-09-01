@@ -326,9 +326,41 @@ class PaywallPage extends HookConsumerWidget {
                               ? null
                               : () => runPurchaseAction(
                                   analyticsEventName: 'paywall_purchase',
-                                  purchaseAction: () => purchasePremiumPackage(
-                                    package: selectedPackage,
-                                  ),
+                                  purchaseAction: () async {
+                                    final storeProductIdentifier =
+                                        selectedPackage.storeProduct.identifier;
+                                    final premiumPeriodType =
+                                        await purchasePremiumPackage(
+                                          package: selectedPackage,
+                                        );
+                                    switch (premiumPeriodType) {
+                                      case PeriodType.trial:
+                                        unawaited(
+                                          logAnalyticsEvent(
+                                            name: 'trial_start',
+                                            parameters: {
+                                              'storeProductIdentifier':
+                                                  storeProductIdentifier,
+                                            },
+                                          ),
+                                        );
+                                      case PeriodType.intro:
+                                      case PeriodType.normal:
+                                      case PeriodType.prepaid:
+                                        unawaited(
+                                          logAnalyticsEvent(
+                                            name: 'purchase_complete',
+                                            parameters: {
+                                              'storeProductIdentifier':
+                                                  storeProductIdentifier,
+                                            },
+                                          ),
+                                        );
+                                      case PeriodType.unknown:
+                                      case null:
+                                    }
+                                    return premiumPeriodType != null;
+                                  },
                                   premiumUnlockedMessage: l10n.paywallPurchased,
                                   notUnlockedMessage:
                                       l10n.paywallOfferingUnavailable,

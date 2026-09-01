@@ -569,4 +569,133 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get freePlanHistoryLimitUpgrade => '프리미엄으로 전체 내역 보기';
+
+  @override
+  String get onboardingContinue => '다음';
+
+  @override
+  String get onboardingSeePremium => '프리미엄 플랜 보기';
+
+  @override
+  String get onboardingWelcomeTitle => '가계 기록을 더 간편하게';
+
+  @override
+  String get onboardingWelcomeDescription =>
+      '영수증이나 온라인 명세서를 촬영하면 가계부에 기록할 수 있어요';
+
+  @override
+  String get onboardingValueTitle => '지금 촬영하고 나중에 확인하세요';
+
+  @override
+  String get onboardingValueDescription =>
+      'AI가 상점과 금액과 날짜와 카테고리를 정리해 줘서 지출을 이해하는 데 집중할 수 있어요';
+
+  @override
+  String get onboardingPainTitle => '가계 관리에서 가장 어려운 점은 무엇인가요?';
+
+  @override
+  String get onboardingPainDescription => '먼저 해결하고 싶은 고민을 선택하세요';
+
+  @override
+  String get onboardingPainRecordingEffort => '매번 입력하기 번거로워서 계속하지 못해요';
+
+  @override
+  String get onboardingPainSpendingVisibility => '어디에 썼는지 파악하기 어려워요';
+
+  @override
+  String get onboardingPainReviewTime => '지출을 돌아볼 시간이 없어요';
+
+  @override
+  String get onboardingSourceTitle => '무엇을 기록하고 싶나요?';
+
+  @override
+  String get onboardingSourceDescription => '답변에 맞춰 사용 계획을 제안해 드려요';
+
+  @override
+  String get onboardingSourceReceipt => '종이 영수증';
+
+  @override
+  String get onboardingSourceOnlineStatement => '카드와 온라인 쇼핑 명세서';
+
+  @override
+  String get onboardingSourceBoth => '영수증과 온라인 명세서 모두';
+
+  @override
+  String get onboardingFrequencyTitle => '지금은 얼마나 자주 기록하나요?';
+
+  @override
+  String get onboardingFrequencyDescription => '어떤 답변이든 괜찮아요';
+
+  @override
+  String get onboardingFrequencyDaily => '거의 매일';
+
+  @override
+  String get onboardingFrequencyWeekly => '일주일에 한두 번';
+
+  @override
+  String get onboardingFrequencyOccasionally => '생각날 때만';
+
+  @override
+  String get onboardingGoalTitle => '가계부로 무엇을 이루고 싶나요?';
+
+  @override
+  String get onboardingGoalDescription => '가장 중요한 목표를 선택하세요';
+
+  @override
+  String get onboardingGoalSpendLess => '불필요한 지출을 줄이고 싶어요';
+
+  @override
+  String get onboardingGoalUnderstandSpending => '지출 패턴을 알고 싶어요';
+
+  @override
+  String get onboardingGoalSaveTime => '가계부에 드는 시간을 줄이고 싶어요';
+
+  @override
+  String get onboardingSocialProofTitle => '작은 기록이 절약으로 이어져요';
+
+  @override
+  String get onboardingCommitmentTitle => '간편한 기록을 시작할까요?';
+
+  @override
+  String get onboardingCommitmentDescription => '결제할 때 촬영하는 간단한 습관부터 시작해요';
+
+  @override
+  String get onboardingGeneratingTitle => '맞춤 사용 계획을 만드는 중';
+
+  @override
+  String get onboardingGeneratingDescription => '고민과 기록할 명세서와 목표를 조합하고 있어요';
+
+  @override
+  String get onboardingResultTitle => '맞춤 사용 계획이 준비됐어요';
+
+  @override
+  String get onboardingResultDescription =>
+      '촬영한 명세서를 월별로 정리해 지출을 한눈에 돌아볼 수 있어요';
+
+  @override
+  String get onboardingResultRecordingEffort => '입력 수고를 줄여 꾸준히 기록하는 계획';
+
+  @override
+  String get onboardingResultSpendingVisibility => '사용한 돈을 선명하게 보여 주는 계획';
+
+  @override
+  String get onboardingResultReviewTime => '짧은 시간에 지출을 돌아보는 계획';
+
+  @override
+  String get onboardingPlanReceipt => '영수증을 받으면 촬영하고 AI에게 기록을 맡겨요';
+
+  @override
+  String get onboardingPlanOnlineStatement => '카드와 쇼핑 명세서를 공유하고 AI에게 기록을 맡겨요';
+
+  @override
+  String get onboardingPlanBoth => '영수증과 온라인 명세서를 촬영해 지출을 한곳에 모아요';
+
+  @override
+  String get onboardingPlanSpendLess => '월간 화면에서 줄이고 싶은 지출을 찾아요';
+
+  @override
+  String get onboardingPlanUnderstandSpending => '카테고리와 월 합계로 지출 패턴을 파악해요';
+
+  @override
+  String get onboardingPlanSaveTime => '반복 입력 대신 사진과 스크린샷으로 기록해요';
 }
