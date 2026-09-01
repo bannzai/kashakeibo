@@ -106,6 +106,7 @@ last_verified_at: 2026-09-01
 
 - [x] **ファネルと購入のAnalyticsイベント**: 開始・各画面・回答・完了・1画面目のシステム戻るで閉じた操作を記録し、実際のentitlementがtrialならtrial_start、paidならpurchase_completeをstoreProductIdentifier付きで記録する
   - 自動化: auto（test/features/onboarding/onboarding_page_test.dart、test/features/paywall/paywall_page_test.dart）
+  - ⏭️ 未検証: 1画面目のシステム戻るのAndroid実機・エミュレータでの挙動（onboarding_close記録後の`SystemNavigator.pop()`によるアプリ終了・バックグラウンド化）。イベント記録自体はwidget testで検証済み
 
 #### 動作確認
 <details>
