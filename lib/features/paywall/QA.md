@@ -1,7 +1,7 @@
 ---
 feature: paywall
 verification: mobile-mcp
-last_verified_commit: cd9dbad802effa2adefc8f309f88c7cce80bf5aa
+last_verified_commit: abd37aca8cec187fa9c021e5b65ffc48acb8e743
 last_verified_at: 2026-09-01
 ---
 
@@ -23,7 +23,9 @@ last_verified_at: 2026-09-01
 | S5 | app user ID は Firebase uid で、Worker が同じ uid で RevenueCat の entitlement を検証できる | サーバー側の entitlement 確認 |
 | S6 | 「購入の復元」で entitlement を復元し、復元できる購入が無ければその旨を表示する | 購入の復元 (復元対象なし) / 購入の復元 (復元対象あり) |
 | S7 | 非プレミアム時に節約効果の訴求カード (調査データ + 出典注記) を表示する (issue #52) | 節約効果の訴求カード |
-| S8 | 購入後のentitlementが無料トライアルならtrial_start、通常の有料期間ならpurchase_completeを記録する (issue #76) | 購入開始のAnalyticsイベント |
+| S8 | 購入後のentitlementが無料トライアルならtrial_start、通常の有料期間ならpurchase_completeを、購入商品のstoreProductIdentifier付きで記録する (issue #76) | 購入開始のAnalyticsイベント |
+
+最終実装 `abd37aca8cec187fa9c021e5b65ffc48acb8e743` で再実施したのは自動化 auto の項目 (S8 の widget test) のみ。manual 項目は各エビデンス記載の確認日 (2026-08-20〜2026-09-01) 時点の記録のままで、最終実装の差分 (`PeriodType` の直接判定と Analytics パラメータ追加。画面表示・購入フローの挙動は不変) に対する Simulator 再実施は未検証。
 
 ## 1. ペイウォールの表示と導線
 
@@ -164,7 +166,7 @@ Simulator の当日は 2026-08-20。無料プランの新規 uid で 2026年8月
 
 ## 2. 購入・復元
 
-- [x] **購入開始のAnalyticsイベント**: 購入後のentitlementがtrialならtrial_startだけを、paidならpurchase_completeだけを記録する
+- [x] **購入開始のAnalyticsイベント**: 購入後のentitlementがtrialならtrial_startだけを、paidならpurchase_completeだけを、購入商品のstoreProductIdentifier付きで記録する
   - 自動化: auto (test/features/paywall/paywall_page_test.dart)
 - [x] **mock 購入の成功**: 「プレミアムを始める」で RevenueCat Test Store の購入モーダルが開き、「Test valid purchase」で購入が成立するとペイウォールが閉じて完了メッセージ「プレミアムを開始しました。スキャンし放題です!」が表示される
   - 自動化: manual (Test Store の mock 購入モーダルは Maestro で flaky の実績があるため agent のシミュレータ操作で確認する)
@@ -323,13 +325,13 @@ Simulator 消去後の新規 uid (無料プラン) で「プレミアムを始�
 
 </details>
 
-### **購入開始のAnalyticsイベント**: 購入後のentitlementがtrialならtrial_startだけを、paidならpurchase_completeだけを記録する
+### **購入開始のAnalyticsイベント**: 購入後のentitlementがtrialならtrial_startだけを、paidならpurchase_completeだけを、購入商品のstoreProductIdentifier付きで記録する
 
 <details><summary>動作確認スクショ</summary>
 
 **確認日: 2026-09-01**
 
-`flutter test test/features/paywall/paywall_page_test.dart`を実行し、trialの購入結果ではtrial_startだけを記録し、paidの購入結果ではpurchase_completeを記録するテストが通過した。オンボーディング完了後に同じペイウォールが表示されることもSimulatorで確認した。
+最終実装の `abd37aca8cec187fa9c021e5b65ffc48acb8e743` で`flutter test`を再実行し、182件成功・1件スキップとなった。trialの購入結果ではtrial_startだけを、paidの購入結果ではpurchase_completeを、いずれも購入した商品のstoreProductIdentifier (テストでは年額の `kashakeibo_premium_annual_3800yen`) 付きで記録し、unknownではどちらも記録しないことを確認した。オンボーディング完了後に同じペイウォールが表示されることもSimulatorで確認した (下記スクリーンショットはパラメータ追加前の画面で、表示への影響はない)。
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260901/f3b2bb1f-4d22-4a6b-bcc5-189b2c3b6ed6.png" width="320">
 

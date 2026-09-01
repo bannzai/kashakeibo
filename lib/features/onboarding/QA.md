@@ -1,7 +1,7 @@
 ---
 feature: onboarding
 verification: mobile-mcp,maestro
-last_verified_commit: 32510008940beb817397056cb98421c57bb82dab
+last_verified_commit: abd37aca8cec187fa9c021e5b65ffc48acb8e743
 last_verified_at: 2026-09-01
 ---
 
@@ -104,20 +104,20 @@ last_verified_at: 2026-09-01
 
 ## 3. Analytics
 
-- [x] **ファネルと購入のAnalyticsイベント**: 開始・各画面・回答・完了を記録し、実際のentitlementがtrialならtrial_start、paidならpurchase_completeを記録する
+- [x] **ファネルと購入のAnalyticsイベント**: 開始・各画面・回答・完了・1画面目のシステム戻るで閉じた操作を記録し、実際のentitlementがtrialならtrial_start、paidならpurchase_completeをstoreProductIdentifier付きで記録する
   - 自動化: auto（test/features/onboarding/onboarding_page_test.dart、test/features/paywall/paywall_page_test.dart）
 
 #### 動作確認
 <details>
 <summary>動作確認エビデンス</summary>
 
-### **ファネルと購入のAnalyticsイベント**: 開始・各画面・回答・完了を記録し、実際のentitlementがtrialならtrial_start、paidならpurchase_completeを記録する
+### **ファネルと購入のAnalyticsイベント**: 開始・各画面・回答・完了・1画面目のシステム戻るで閉じた操作を記録し、実際のentitlementがtrialならtrial_start、paidならpurchase_completeをstoreProductIdentifier付きで記録する
 
 <details><summary>動作確認スクショ</summary>
 
 **確認日: 2026-09-01**
 
-レビュー修正後の `32510008940beb817397056cb98421c57bb82dab` で`flutter test`を再実行し、181件成功・1件スキップとなった。onboarding_start、7回のonboarding_step_view、回答内容、完了状態保存後のonboarding_complete、Analytics送信失敗時もペイウォールを開くことを確認した。paywall widget testではRevenueCatのPeriodTypeを直接扱い、trial時にtrial_startだけ、既知の有料期間でpurchase_completeを記録し、unknownではどちらも記録しないことを確認した。
+レビュー修正後の `abd37aca8cec187fa9c021e5b65ffc48acb8e743` で`flutter test`を再実行し、182件成功・1件スキップとなった。onboarding_start、7回のonboarding_step_view、回答内容、完了状態保存後のonboarding_complete、Analytics送信失敗時もペイウォールを開くこと、1画面目のシステム戻るでonboarding_close (step・funnel_variant付き) を記録することを確認した。paywall widget testではRevenueCatのPeriodTypeを直接扱い、trial時にtrial_startだけ、既知の有料期間でpurchase_completeを、いずれもstoreProductIdentifier付きで記録し、unknownではどちらも記録しないことを確認した。1画面目のシステム戻るのSimulator実機挙動 (Android実機・エミュレータでのアプリ終了) は未検証。
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260901/f3b2bb1f-4d22-4a6b-bcc5-189b2c3b6ed6.png" width="320">
 
