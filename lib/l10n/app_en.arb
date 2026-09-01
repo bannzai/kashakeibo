@@ -480,5 +480,173 @@
   "freePlanHistoryLimitUpgrade": "See your full history with Premium",
   "@freePlanHistoryLimitUpgrade": {
     "description": "Tappable hint under the free plan history notice that opens the paywall"
+  },
+  "onboardingContinue": "Continue",
+  "@onboardingContinue": {
+    "description": "Button that advances to the next onboarding step"
+  },
+  "onboardingSeePremium": "See my Premium plan",
+  "@onboardingSeePremium": {
+    "description": "Final onboarding button that opens the paywall"
+  },
+  "onboardingWelcomeTitle": "Make money tracking effortless",
+  "@onboardingWelcomeTitle": {
+    "description": "Onboarding welcome title"
+  },
+  "onboardingWelcomeDescription": "Turn receipts and online statements into records with a photo or screenshot",
+  "@onboardingWelcomeDescription": {
+    "description": "Onboarding welcome description"
+  },
+  "onboardingValueTitle": "Capture it now and review it later",
+  "@onboardingValueTitle": {
+    "description": "Long funnel value explanation title"
+  },
+  "onboardingValueDescription": "Kashakeibo uses AI to organize the store, amount, date, and category so you can spend your time understanding your money",
+  "@onboardingValueDescription": {
+    "description": "Long funnel value explanation"
+  },
+  "onboardingPainTitle": "What makes budgeting hardest?",
+  "@onboardingPainTitle": {
+    "description": "Pain recognition question title"
+  },
+  "onboardingPainDescription": "Choose the challenge you want to solve first",
+  "@onboardingPainDescription": {
+    "description": "Pain recognition question description"
+  },
+  "onboardingPainRecordingEffort": "Entering every purchase takes too much work",
+  "@onboardingPainRecordingEffort": {
+    "description": "Pain option for manual entry effort"
+  },
+  "onboardingPainSpendingVisibility": "I cannot see where my money goes",
+  "@onboardingPainSpendingVisibility": {
+    "description": "Pain option for spending visibility"
+  },
+  "onboardingPainReviewTime": "I never find time to review spending",
+  "@onboardingPainReviewTime": {
+    "description": "Pain option for review time"
+  },
+  "onboardingSourceTitle": "What do you want to capture?",
+  "@onboardingSourceTitle": {
+    "description": "Personalization question for record sources"
+  },
+  "onboardingSourceDescription": "Your answer shapes the plan we show you",
+  "@onboardingSourceDescription": {
+    "description": "Record source question description"
+  },
+  "onboardingSourceReceipt": "Paper receipts",
+  "@onboardingSourceReceipt": {
+    "description": "Receipt source option"
+  },
+  "onboardingSourceOnlineStatement": "Card and online shopping statements",
+  "@onboardingSourceOnlineStatement": {
+    "description": "Online statement source option"
+  },
+  "onboardingSourceBoth": "Both receipts and online statements",
+  "@onboardingSourceBoth": {
+    "description": "All record sources option"
+  },
+  "onboardingFrequencyTitle": "How often do you track spending now?",
+  "@onboardingFrequencyTitle": {
+    "description": "Long funnel tracking frequency question"
+  },
+  "onboardingFrequencyDescription": "There is no wrong answer",
+  "@onboardingFrequencyDescription": {
+    "description": "Tracking frequency question description"
+  },
+  "onboardingFrequencyDaily": "Almost every day",
+  "@onboardingFrequencyDaily": {
+    "description": "Daily tracking frequency option"
+  },
+  "onboardingFrequencyWeekly": "Once or twice a week",
+  "@onboardingFrequencyWeekly": {
+    "description": "Weekly tracking frequency option"
+  },
+  "onboardingFrequencyOccasionally": "Only when I remember",
+  "@onboardingFrequencyOccasionally": {
+    "description": "Occasional tracking frequency option"
+  },
+  "onboardingGoalTitle": "What do you want to achieve?",
+  "@onboardingGoalTitle": {
+    "description": "Onboarding goal and commitment question"
+  },
+  "onboardingGoalDescription": "Pick the result that matters most to you",
+  "@onboardingGoalDescription": {
+    "description": "Onboarding goal question description"
+  },
+  "onboardingGoalSpendLess": "Reduce unnecessary spending",
+  "@onboardingGoalSpendLess": {
+    "description": "Spend less goal option"
+  },
+  "onboardingGoalUnderstandSpending": "Understand my spending patterns",
+  "@onboardingGoalUnderstandSpending": {
+    "description": "Understand spending goal option"
+  },
+  "onboardingGoalSaveTime": "Spend less time on bookkeeping",
+  "@onboardingGoalSaveTime": {
+    "description": "Save time goal option"
+  },
+  "onboardingSocialProofTitle": "Small records can create real savings",
+  "@onboardingSocialProofTitle": {
+    "description": "Social proof screen title"
+  },
+  "onboardingCommitmentTitle": "Ready to make tracking easier?",
+  "@onboardingCommitmentTitle": {
+    "description": "Long funnel commitment screen title"
+  },
+  "onboardingCommitmentDescription": "Your plan starts with one simple habit: capture a purchase when it happens",
+  "@onboardingCommitmentDescription": {
+    "description": "Long funnel commitment screen description"
+  },
+  "onboardingGeneratingTitle": "Building your tracking plan",
+  "@onboardingGeneratingTitle": {
+    "description": "Plan generation screen title"
+  },
+  "onboardingGeneratingDescription": "Combining your challenge, record sources, and goal",
+  "@onboardingGeneratingDescription": {
+    "description": "Plan generation screen description"
+  },
+  "onboardingResultTitle": "Your plan is ready",
+  "@onboardingResultTitle": {
+    "description": "Fallback personalized result title"
+  },
+  "onboardingResultDescription": "Kashakeibo turns your captures into a monthly view you can understand at a glance",
+  "@onboardingResultDescription": {
+    "description": "Personalized result screen description"
+  },
+  "onboardingResultRecordingEffort": "A plan that keeps manual entry out of the way",
+  "@onboardingResultRecordingEffort": {
+    "description": "Result title for manual entry pain"
+  },
+  "onboardingResultSpendingVisibility": "A plan that makes every purchase visible",
+  "@onboardingResultSpendingVisibility": {
+    "description": "Result title for spending visibility pain"
+  },
+  "onboardingResultReviewTime": "A plan built for quick monthly reviews",
+  "@onboardingResultReviewTime": {
+    "description": "Result title for review time pain"
+  },
+  "onboardingPlanReceipt": "Photograph receipts when you receive them and let AI prepare the record",
+  "@onboardingPlanReceipt": {
+    "description": "Result plan for receipt users"
+  },
+  "onboardingPlanOnlineStatement": "Share card and shopping screenshots and let AI prepare the record",
+  "@onboardingPlanOnlineStatement": {
+    "description": "Result plan for online statement users"
+  },
+  "onboardingPlanBoth": "Capture receipts or share screenshots and keep every purchase in one place",
+  "@onboardingPlanBoth": {
+    "description": "Result plan for all record sources"
+  },
+  "onboardingPlanSpendLess": "Use the monthly view to find spending you want to reduce",
+  "@onboardingPlanSpendLess": {
+    "description": "Result plan for spending reduction goal"
+  },
+  "onboardingPlanUnderstandSpending": "Use categories and monthly totals to understand your spending patterns",
+  "@onboardingPlanUnderstandSpending": {
+    "description": "Result plan for spending understanding goal"
+  },
+  "onboardingPlanSaveTime": "Replace repetitive entry with photos and screenshots",
+  "@onboardingPlanSaveTime": {
+    "description": "Result plan for time saving goal"
   }
 }

@@ -326,9 +326,26 @@ class PaywallPage extends HookConsumerWidget {
                               ? null
                               : () => runPurchaseAction(
                                   analyticsEventName: 'paywall_purchase',
-                                  purchaseAction: () => purchasePremiumPackage(
-                                    package: selectedPackage,
-                                  ),
+                                  purchaseAction: () async {
+                                    final premiumPurchaseActivation =
+                                        await purchasePremiumPackage(
+                                          package: selectedPackage,
+                                        );
+                                    if (premiumPurchaseActivation ==
+                                        PremiumPurchaseActivation.trial) {
+                                      unawaited(
+                                        logAnalyticsEvent(name: 'trial_start'),
+                                      );
+                                    } else if (premiumPurchaseActivation ==
+                                        PremiumPurchaseActivation.paid) {
+                                      unawaited(
+                                        logAnalyticsEvent(
+                                          name: 'purchase_complete',
+                                        ),
+                                      );
+                                    }
+                                    return premiumPurchaseActivation != null;
+                                  },
                                   premiumUnlockedMessage: l10n.paywallPurchased,
                                   notUnlockedMessage:
                                       l10n.paywallOfferingUnavailable,

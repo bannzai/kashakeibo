@@ -550,4 +550,131 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get freePlanHistoryLimitUpgrade => 'プレミアムで全期間の履歴を見る';
+
+  @override
+  String get onboardingContinue => '次へ';
+
+  @override
+  String get onboardingSeePremium => 'プレミアムプランを見る';
+
+  @override
+  String get onboardingWelcomeTitle => '家計の記録をもっと手軽に';
+
+  @override
+  String get onboardingWelcomeDescription => 'レシートやWeb明細を撮るだけで家計簿に記録できます';
+
+  @override
+  String get onboardingValueTitle => '今撮ってあとで見返す';
+
+  @override
+  String get onboardingValueDescription =>
+      'AIがお店や金額や日付やカテゴリを整理するので家計を知ることに時間を使えます';
+
+  @override
+  String get onboardingPainTitle => '家計管理で一番困ることは？';
+
+  @override
+  String get onboardingPainDescription => '最初に解決したい悩みを選んでください';
+
+  @override
+  String get onboardingPainRecordingEffort => '毎回の入力が面倒で続かない';
+
+  @override
+  String get onboardingPainSpendingVisibility => '何に使ったか把握できない';
+
+  @override
+  String get onboardingPainReviewTime => '支出を見返す時間がない';
+
+  @override
+  String get onboardingSourceTitle => '何を記録したいですか？';
+
+  @override
+  String get onboardingSourceDescription => '回答に合わせて使い方を提案します';
+
+  @override
+  String get onboardingSourceReceipt => '紙のレシート';
+
+  @override
+  String get onboardingSourceOnlineStatement => 'クレカやネット通販の明細';
+
+  @override
+  String get onboardingSourceBoth => 'レシートもWeb明細も両方';
+
+  @override
+  String get onboardingFrequencyTitle => '今はどのくらい記録していますか？';
+
+  @override
+  String get onboardingFrequencyDescription => 'どの回答でも大丈夫です';
+
+  @override
+  String get onboardingFrequencyDaily => 'ほぼ毎日';
+
+  @override
+  String get onboardingFrequencyWeekly => '週に1〜2回';
+
+  @override
+  String get onboardingFrequencyOccasionally => '思い出した時だけ';
+
+  @override
+  String get onboardingGoalTitle => '家計簿で何を叶えたいですか？';
+
+  @override
+  String get onboardingGoalDescription => '一番大切な目標を選んでください';
+
+  @override
+  String get onboardingGoalSpendLess => '無駄な支出を減らしたい';
+
+  @override
+  String get onboardingGoalUnderstandSpending => '支出の傾向を知りたい';
+
+  @override
+  String get onboardingGoalSaveTime => '家計簿にかける時間を減らしたい';
+
+  @override
+  String get onboardingSocialProofTitle => '小さな記録が節約につながります';
+
+  @override
+  String get onboardingCommitmentTitle => '手軽な記録を始めませんか？';
+
+  @override
+  String get onboardingCommitmentDescription => '買い物をした時に撮るだけの習慣から始めましょう';
+
+  @override
+  String get onboardingGeneratingTitle => 'あなた向けの使い方を作成中';
+
+  @override
+  String get onboardingGeneratingDescription => '悩みと記録したい明細と目標を組み合わせています';
+
+  @override
+  String get onboardingResultTitle => 'あなた向けの使い方ができました';
+
+  @override
+  String get onboardingResultDescription => '撮った明細を月ごとに整理して家計をひと目で振り返れます';
+
+  @override
+  String get onboardingResultRecordingEffort => '入力の手間を減らして続けやすく';
+
+  @override
+  String get onboardingResultSpendingVisibility => '使ったお金を見えるように';
+
+  @override
+  String get onboardingResultReviewTime => '短時間で家計を振り返れるように';
+
+  @override
+  String get onboardingPlanReceipt => 'レシートを受け取った時に撮ってAIに記録を任せます';
+
+  @override
+  String get onboardingPlanOnlineStatement => 'クレカや通販の明細を共有してAIに記録を任せます';
+
+  @override
+  String get onboardingPlanBoth => 'レシートもWeb明細も撮って支出を1か所にまとめます';
+
+  @override
+  String get onboardingPlanSpendLess => '月次画面から減らしたい支出を見つけます';
+
+  @override
+  String get onboardingPlanUnderstandSpending => 'カテゴリと月の合計から支出の傾向をつかみます';
+
+  @override
+  String get onboardingPlanSaveTime => '繰り返し入力する代わりに写真とスクショで記録します';
 }

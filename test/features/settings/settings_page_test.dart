@@ -55,7 +55,7 @@ Widget buildSettingsApp({
     ),
     premiumOfferingProvider.overrideWith((ref) async => null),
     purchasePremiumPackageProvider.overrideWithValue(
-      ({required package}) async => false,
+      ({required package}) async => null,
     ),
     restorePurchasesProvider.overrideWithValue(() async => false),
     linkOrSignInWithAppleProvider.overrideWithValue(linkOrSignInWithApple),

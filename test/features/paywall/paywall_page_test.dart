@@ -10,6 +10,7 @@ import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/provider/firebase_user.dart';
 import 'package:kashakeibo/provider/image.dart';
 import 'package:kashakeibo/provider/purchase.dart';
+import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// Analytics を必要としないテスト用の記録処理。
@@ -64,8 +65,12 @@ final premiumOffering = Offering(
 /// ペイウォールを開くボタンだけを持つホーム画面 (pop の戻り値を確認するため)。
 class _PaywallLauncher extends StatelessWidget {
   final ValueChanged<bool?> onPaywallClosed;
+  final LogAnalyticsEvent logAnalyticsEvent;
 
-  const _PaywallLauncher({required this.onPaywallClosed});
+  const _PaywallLauncher({
+    required this.onPaywallClosed,
+    required this.logAnalyticsEvent,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +83,7 @@ class _PaywallLauncher extends StatelessWidget {
                 context: context,
                 trigger: 'test',
                 openExternalUri: ({required uri}) async {},
-                logAnalyticsEvent: discardAnalyticsEvent,
+                logAnalyticsEvent: logAnalyticsEvent,
               ),
             );
           },
@@ -96,6 +101,7 @@ Future<void> pumpPaywall(
   required PurchasePremiumPackage purchasePremiumPackage,
   required RestorePurchases restorePurchases,
   required ValueChanged<bool?> onPaywallClosed,
+  required LogAnalyticsEvent logAnalyticsEvent,
   Offering? offering,
 }) async {
   await tester.pumpWidget(
@@ -116,7 +122,10 @@ Future<void> pumpPaywall(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         locale: const Locale('ja'),
-        home: _PaywallLauncher(onPaywallClosed: onPaywallClosed),
+        home: _PaywallLauncher(
+          onPaywallClosed: onPaywallClosed,
+          logAnalyticsEvent: logAnalyticsEvent,
+        ),
       ),
     ),
   );
@@ -146,6 +155,7 @@ void main() {
     (tester) async {
       Package? purchasedPackage;
       bool? paywallResult;
+      final loggedEventNames = <String>[];
       await pumpPaywall(
         tester,
         isPremium: false,
@@ -155,10 +165,13 @@ void main() {
         ),
         purchasePremiumPackage: ({required package}) async {
           purchasedPackage = package;
-          return true;
+          return PremiumPurchaseActivation.paid;
         },
         restorePurchases: () async => false,
         onPaywallClosed: (result) => paywallResult = result,
+        logAnalyticsEvent: ({required name, parameters}) async {
+          loggedEventNames.add(name);
+        },
       );
 
       expect(find.text('スキャンし放題に'), findsOneWidget);
@@ -191,6 +204,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(purchasedPackage, annualPackage);
       expect(paywallResult, isTrue);
+      expect(loggedEventNames, contains('purchase_complete'));
       expect(find.byType(PaywallPage), findsNothing);
     },
   );
@@ -206,10 +220,11 @@ void main() {
       ),
       purchasePremiumPackage: ({required package}) async {
         purchasedPackage = package;
-        return true;
+        return PremiumPurchaseActivation.paid;
       },
       restorePurchases: () async => false,
       onPaywallClosed: (_) {},
+      logAnalyticsEvent: discardAnalyticsEvent,
     );
 
     await tester.ensureVisible(find.text('¥480'));
@@ -218,6 +233,27 @@ void main() {
     await tester.pumpAndSettle();
     await tapStartPremium(tester);
     expect(purchasedPackage, monthlyPackage);
+  });
+
+  testWidgets('無料トライアルが有効になった購入では trial_start を記録する', (tester) async {
+    final loggedEventNames = <String>[];
+    await pumpPaywall(
+      tester,
+      isPremium: false,
+      scanQuota: const ScanQuota(monthlyScanCount: 0, monthlyFreeScanLimit: 50),
+      purchasePremiumPackage: ({required package}) async =>
+          PremiumPurchaseActivation.trial,
+      restorePurchases: () async => false,
+      onPaywallClosed: (_) {},
+      logAnalyticsEvent: ({required name, parameters}) async {
+        loggedEventNames.add(name);
+      },
+    );
+
+    await tapStartPremium(tester);
+
+    expect(loggedEventNames, contains('trial_start'));
+    expect(loggedEventNames, isNot(contains('purchase_complete')));
   });
 
   testWidgets('購入シートを閉じただけ (キャンセル) ならエラーを表示せず開いたままにする', (tester) async {
@@ -237,6 +273,7 @@ void main() {
       },
       restorePurchases: () async => false,
       onPaywallClosed: (result) => paywallResult = result,
+      logAnalyticsEvent: discardAnalyticsEvent,
     );
 
     await tapStartPremium(tester);
@@ -262,6 +299,7 @@ void main() {
       },
       restorePurchases: () async => false,
       onPaywallClosed: (_) {},
+      logAnalyticsEvent: discardAnalyticsEvent,
     );
 
     await tapStartPremium(tester);
@@ -283,9 +321,10 @@ void main() {
         monthlyScanCount: 50,
         monthlyFreeScanLimit: 50,
       ),
-      purchasePremiumPackage: ({required package}) async => false,
+      purchasePremiumPackage: ({required package}) async => null,
       restorePurchases: () async => restoreResult,
       onPaywallClosed: (result) => paywallResult = result,
+      logAnalyticsEvent: discardAnalyticsEvent,
     );
 
     await scrollToRestoreLink(tester);
@@ -311,9 +350,11 @@ void main() {
         monthlyScanCount: 25,
         monthlyFreeScanLimit: 50,
       ),
-      purchasePremiumPackage: ({required package}) async => true,
+      purchasePremiumPackage: ({required package}) async =>
+          PremiumPurchaseActivation.paid,
       restorePurchases: () async => true,
       onPaywallClosed: (_) {},
+      logAnalyticsEvent: discardAnalyticsEvent,
     );
 
     expect(find.text('プレミアム利用中'), findsOneWidget);
@@ -331,9 +372,11 @@ void main() {
       tester,
       isPremium: false,
       scanQuota: const ScanQuota(monthlyScanCount: 0, monthlyFreeScanLimit: 50),
-      purchasePremiumPackage: ({required package}) async => true,
+      purchasePremiumPackage: ({required package}) async =>
+          PremiumPurchaseActivation.paid,
       restorePurchases: () async => false,
       onPaywallClosed: (_) {},
+      logAnalyticsEvent: discardAnalyticsEvent,
       offering: const Offering('empty', '', {}, []),
     );
 

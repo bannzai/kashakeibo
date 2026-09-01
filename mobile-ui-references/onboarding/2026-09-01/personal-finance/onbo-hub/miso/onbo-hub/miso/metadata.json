@@ -1,0 +1,28 @@
+{
+  "name": "Miso",
+  "category": "Food & Drink",
+  "revenue": "$84,000/mo",
+  "onboarding_steps": 38,
+  "free_preview_count": 5,
+  "description": "An AI app that creates meal menus for you. There are many apps rapidly growing with this theme. You can incorporate menus that are buzzing on social media like Instagram.",
+  "ux_highlights": "First, a series of Yes/No questions that make users aware of their challenges rather than asking questions directly. The onboarding clearly explains how to use the app's signature feature: \"Importing menus from social media.\" Users can experience the actual menu generation process firsthand. Toward the end, there is a commitment button where users long-press to boil a pot.",
+  "monetization": "With the annual plan offer, you can choose between a 3-day free trial and a 30-day trial for 500 yen.",
+  "preview_screenshots": [
+    {
+      "sort_order": 1,
+      "image_url": "https://nhszbxbzobakgesgzmlh.supabase.co/storage/v1/object/public/screenshots/1786709365085-y8gamdf2tor.webp"
+    },
+    {
+      "sort_order": 2,
+      "image_url": "https://nhszbxbzobakgesgzmlh.supabase.co/storage/v1/object/public/screenshots/1786709363957-9xsczkcyra4.webp"
+    },
+    {
+      "sort_order": 3,
+      "image_url": "https://nhszbxbzobakgesgzmlh.supabase.co/storage/v1/object/public/screenshots/1786709365740-nfhfyw4dua.webp"
+    },
+    {
+      "sort_order": 4,
+      "image_url": "https://nhszbxbzobakgesgzmlh.supabase.co/storage/v1/object/public/screenshots/1786709366461-1y3z5y0jimd.webp"
+    }
+  ]
+}

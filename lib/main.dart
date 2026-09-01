@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kashakeibo/features/auth/sign_in_resolver.dart';
 import 'package:kashakeibo/features/monthly/monthly_page.dart';
+import 'package:kashakeibo/features/onboarding/onboarding_page.dart';
+import 'package:kashakeibo/features/paywall/paywall_page.dart';
+import 'package:kashakeibo/features/settings/settings_page.dart';
 import 'package:kashakeibo/l10n/app_localizations.dart';
 import 'package:kashakeibo/style/app_theme.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
@@ -44,8 +47,23 @@ class App extends StatelessWidget {
       theme: buildAppTheme(brightness: Brightness.light),
       darkTheme: buildAppTheme(brightness: Brightness.dark),
       home: const SignInResolver(
-        child: MonthlyPage(logAnalyticsEvent: recordAnalyticsEvent),
+        child: OnboardingResolver(
+          logAnalyticsEvent: recordAnalyticsEvent,
+          loadOnboardingCompletion: loadOnboardingCompletion,
+          saveOnboardingCompletion: saveOnboardingCompletion,
+          openOnboardingPaywall: _openOnboardingPaywall,
+          child: MonthlyPage(logAnalyticsEvent: recordAnalyticsEvent),
+        ),
       ),
     );
   }
+}
+
+Future<void> _openOnboardingPaywall({required BuildContext context}) async {
+  await showPaywall(
+    context: context,
+    trigger: 'onboarding_complete',
+    openExternalUri: openExternalUri,
+    logAnalyticsEvent: recordAnalyticsEvent,
+  );
 }

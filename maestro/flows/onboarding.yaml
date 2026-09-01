@@ -1,0 +1,88 @@
+# 初回オンボーディング → 個別化結果 → ペイウォール → 再起動フロー。
+# 日本語の7画面と英語の10画面を、追加画面の条件実行で両方扱う。
+appId: com.bannzai.kashakeibo.dev
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Make money tracking effortless|家計の記録をもっと手軽に).*"
+    timeout: 30000
+- tapOn:
+    text: "Continue|次へ"
+- runFlow:
+    when:
+      visible: "(?s).*Capture it now and review it later.*"
+    commands:
+      - tapOn:
+          text: "Continue"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(What is your biggest money tracking challenge|家計管理で一番困ることは).*"
+    timeout: 15000
+# 未回答のままでは次へ進めないことを確認する。
+- tapOn:
+    text: "Continue|次へ"
+- assertVisible: "(?s).*(What is your biggest money tracking challenge|家計管理で一番困ることは).*"
+- tapOn:
+    text: "(?s).*(Entering every purchase is too much work|毎回の入力が面倒で続かない).*"
+- tapOn:
+    text: "Continue|次へ"
+- tapOn:
+    text: "(?s).*(Receipts and online statements|レシートもWeb明細も両方).*"
+- tapOn:
+    text: "Continue|次へ"
+- runFlow:
+    when:
+      visible: "(?s).*(How often do you want to check your spending).*"
+    commands:
+      - tapOn:
+          text: "(?s).*(Once a week).*"
+      - tapOn:
+          text: "Continue"
+- tapOn:
+    text: "(?s).*(Spend less time on money tracking|家計簿にかける時間を減らしたい).*"
+- tapOn:
+    text: "Continue|次へ"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Small records add up to savings|小さな記録が節約につながります).*"
+    timeout: 15000
+- tapOn:
+    text: "Continue|次へ"
+- runFlow:
+    when:
+      visible: "(?s).*(Your first step is just one photo).*"
+    commands:
+      - tapOn:
+          text: "Continue"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Building your personal setup|あなた向けの使い方を作成中).*"
+    timeout: 15000
+- tapOn:
+    text: "Continue|次へ"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Make tracking easy enough to keep going|入力の手間を減らして続けやすく).*"
+    timeout: 15000
+- assertVisible: "(?s).*(Bring receipts and online statements together|レシートもWeb明細も撮って支出を1か所にまとめます).*"
+- tapOn:
+    text: "(?s).*(See Premium plans|プレミアムプランを見る).*"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Scan freely with Premium|スキャンし放題に).*"
+    timeout: 30000
+- tapOn:
+    text: "Close|閉じる"
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Add a record|記録する).*"
+    timeout: 30000
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*(Add a record|記録する).*"
+    timeout: 30000
+- assertNotVisible: "(?s).*(Make money tracking effortless|家計の記録をもっと手軽に).*"

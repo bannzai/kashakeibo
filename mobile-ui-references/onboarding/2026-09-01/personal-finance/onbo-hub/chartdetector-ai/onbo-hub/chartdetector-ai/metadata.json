@@ -1,0 +1,28 @@
+{
+  "name": "ChartDetector AI",
+  "category": "Other",
+  "revenue": "$56,000/mo",
+  "onboarding_steps": 13,
+  "free_preview_count": 5,
+  "description": "An app that analyzes and provides advice through AI when users take photos of stock charts and other financial data and upload them. Using TikTok ads as the main marketing channel, it surpassed $56,000 in monthly revenue in just over a year after launch. Internally, it's a wrapper app that simply uses the GPT API, but it's a great example that shows how even a simple wrapper app can achieve rapid growth with the right concept and marketing strategy.",
+  "ux_highlights": "The onboarding is concise, but it effectively incorporates essential elements like questions, personalization, and social proof.",
+  "monetization": "The paywall is unique in that it offers a 6-month plan instead of an annual plan. While \"120 dollars per year\" might seem expensive, \"60 dollars for 6 months\" could feel affordable. Since the paywall typically displays the annual plan, users may unconsciously interpret it as \"this is the yearly price\" and perceive it as cheap. A clever tactic.",
+  "preview_screenshots": [
+    {
+      "sort_order": 1,
+      "image_url": "https://nhszbxbzobakgesgzmlh.supabase.co/storage/v1/object/public/screenshots/1786969456608-9zd70ns8fod.webp"
+    },
+    {
+      "sort_order": 2,
+      "image_url": "https://nhszbxbzobakgesgzmlh.supabase.co/storage/v1/object/public/screenshots/1786969458272-77c3tdam8.webp"
+    },
+    {
+      "sort_order": 3,
+      "image_url": "https://nhszbxbzobakgesgzmlh.supabase.co/storage/v1/object/public/screenshots/1786969458147-b7vhjra5qw8.webp"
+    },
+    {
+      "sort_order": 4,
+      "image_url": "https://nhszbxbzobakgesgzmlh.supabase.co/storage/v1/object/public/screenshots/1786969456877-sx4wriv8yw9.webp"
+    }
+  ]
+}

@@ -58,8 +58,8 @@ last_verified_at: 2026-08-19
 
 ## 1. 起動・サインイン
 
-- [x] **初回起動の匿名サインイン**: 初回起動 (アプリ削除後の再インストール直後) に登録操作なしで匿名サインインが完了し、月次一覧が表示される
-  - 自動化: manual (Maestro 未導入のため agent のシミュレータ操作で確認する)
+- [ ] **初回起動の匿名サインイン**: 初回起動 (アプリ削除後の再インストール直後) に登録操作なしで匿名サインインが完了し、オンボーディングが表示される
+  - 自動化: auto (maestro/flows/onboarding.yaml)
 - [ ] **初回サインイン中のローディング表示**: 匿名サインインが完了するまで SignInResolver がローディングを表示し、未認証のまま月次一覧が出ない
   - 自動化: todo (匿名サインインを遅延させる状態の作り込み手段が未整備。ネットワークを低速化できるローカル Simulator (Network Link Conditioner) なら観測できる見込み)
 - [x] **2 回目以降の起動**: アプリを終了して再起動しても、同じユーザーのデータ (投入済み明細) が表示される
@@ -73,17 +73,11 @@ last_verified_at: 2026-08-19
 <details>
 <summary>動作確認エビデンス</summary>
 
-### **初回起動の匿名サインイン**: 初回起動 (アプリ削除後の再インストール直後) に登録操作なしで匿名サインインが完了し、月次一覧が表示される
+### **初回起動の匿名サインイン**: 初回起動 (アプリ削除後の再インストール直後) に登録操作なしで匿名サインインが完了し、オンボーディングが表示される
 
 <details><summary>動作確認スクショ</summary>
 
-**確認日: 2026-08-19**
-
-simtunnel のリモート Simulator ではアプリ削除→再インストールができないため、runner へインストールした直後の初回起動状態 (明細 0 件・"No transactions this month") がそのまま観測できていることを根拠にする。ローディング表示の瞬間はスクショに収められない。
-
-runner の Simulator が英語ロケールのため、英語表示 ("August 2026" / "Spending" / "No transactions this month" / "Enter manually") で確認した。
-
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260819/e560a189-a695-488f-a8ce-027780140e9a.jpg" width="320">
+（未実行）
 
 </details>
 
@@ -130,6 +124,7 @@ manual_entry の QA で 4 件の明細を登録した状態からアプリを終
 
 ## 機能別 QA.md
 
+- [onboarding (初回起動・課金転換ファネル)](lib/features/onboarding/QA.md)
 - [monthly (月次一覧)](lib/features/monthly/QA.md)
 - [manual_entry (手動明細入力)](lib/features/manual_entry/QA.md)
 - [settings (設定)](lib/features/settings/QA.md)

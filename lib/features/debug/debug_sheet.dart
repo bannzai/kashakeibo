@@ -235,7 +235,7 @@ class _SamplePaywallPageState extends State<_SamplePaywallPage> {
     overrides: [
       premiumOfferingProvider.overrideWith((ref) async => _sampleOffering),
       purchasePremiumPackageProvider.overrideWithValue(
-        ({required package}) async => true,
+        ({required package}) async => PremiumPurchaseActivation.paid,
       ),
       restorePurchasesProvider.overrideWithValue(() async => false),
     ],
