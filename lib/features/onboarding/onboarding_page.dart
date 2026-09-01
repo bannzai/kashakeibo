@@ -8,8 +8,10 @@ import 'package:kashakeibo/style/tokens.dart';
 import 'package:kashakeibo/utils/analytics/analytics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// オンボーディング完了状態を保存する端末内キー。
 const _onboardingCompletedPreferenceKey = 'onboarding_completed_v1';
-// JP短尺ファネルで待ち時間を増やさず、生成処理を知覚できる長さとして1.2秒にする。
+
+/// JP短尺ファネルで待ち時間を増やさず、生成処理を知覚できるアニメーション時間。
 const _planGenerationAnimationDuration = Duration(milliseconds: 1200);
 
 /// オンボーディング完了状態を読み込む処理。
@@ -39,10 +41,19 @@ Future<void> saveOnboardingCompletion() =>
 
 /// 初回起動時だけオンボーディングを表示する resolver。
 class OnboardingResolver extends HookWidget {
+  /// オンボーディング完了後に表示するアプリ本体。
   final Widget child;
+
+  /// オンボーディングの操作を記録するAnalytics処理。
   final LogAnalyticsEvent logAnalyticsEvent;
+
+  /// 端末内のオンボーディング完了状態を読み込む処理。
   final LoadOnboardingCompletion loadOnboardingCompletion;
+
+  /// 端末内へオンボーディング完了状態を保存する処理。
   final SaveOnboardingCompletion saveOnboardingCompletion;
+
+  /// オンボーディング直後のペイウォールを開く処理。
   final OpenOnboardingPaywall openOnboardingPaywall;
 
   const OnboardingResolver({
@@ -150,7 +161,10 @@ enum _OnboardingStep {
 
 /// 初回起動時の課金転換型オンボーディング。
 class OnboardingPage extends HookWidget {
+  /// ファネル内の操作を記録するAnalytics処理。
   final LogAnalyticsEvent logAnalyticsEvent;
+
+  /// 回答完了後に永続化と課金導線を実行する処理。
   final Future<void> Function() completeOnboarding;
 
   const OnboardingPage({
@@ -184,6 +198,7 @@ class OnboardingPage extends HookWidget {
     final selectedSource = useState<_OnboardingSource?>(null);
     final selectedGoal = useState<_OnboardingGoal?>(null);
     final selectedFrequency = useState<_OnboardingFrequency?>(null);
+    final pageTransitionInProgress = useState(false);
     final completionInProgress = useState(false);
     final completionError = useState<Object?>(null);
 
@@ -217,23 +232,38 @@ class OnboardingPage extends HookWidget {
 
     /// 指定したオンボーディング画面へ移動する。
     Future<void> goToPage({required int pageIndex}) async {
-      currentPageIndex.value = pageIndex;
-      await pageController.animateToPage(
-        pageIndex,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-      unawaited(
-        _logOnboardingStepView(
-          logAnalyticsEvent: logAnalyticsEvent,
-          onboardingStep: onboardingSteps[pageIndex],
-          funnelVariant: funnelVariant,
-        ),
-      );
+      if (pageTransitionInProgress.value ||
+          pageIndex < 0 ||
+          pageIndex >= onboardingSteps.length) {
+        return;
+      }
+      pageTransitionInProgress.value = true;
+      try {
+        currentPageIndex.value = pageIndex;
+        await pageController.animateToPage(
+          pageIndex,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+        );
+        unawaited(
+          _logOnboardingStepView(
+            logAnalyticsEvent: logAnalyticsEvent,
+            onboardingStep: onboardingSteps[pageIndex],
+            funnelVariant: funnelVariant,
+          ),
+        );
+      } finally {
+        if (context.mounted) {
+          pageTransitionInProgress.value = false;
+        }
+      }
     }
 
     /// 現在の画面から1つ前のオンボーディング画面へ戻る。
     void goBack() {
+      if (pageTransitionInProgress.value || currentPageIndex.value == 0) {
+        return;
+      }
       unawaited(
         logAnalyticsEvent(
           name: 'onboarding_back',
@@ -269,10 +299,14 @@ class OnboardingPage extends HookWidget {
     }
 
     return PopScope(
-      canPop: currentPageIndex.value == 0 && !completionInProgress.value,
+      canPop:
+          currentPageIndex.value == 0 &&
+          !pageTransitionInProgress.value &&
+          !completionInProgress.value,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop &&
             currentPageIndex.value > 0 &&
+            !pageTransitionInProgress.value &&
             !completionInProgress.value) {
           goBack();
         }
@@ -298,7 +332,9 @@ class OnboardingPage extends HookWidget {
                               tooltip: MaterialLocalizations.of(
                                 context,
                               ).backButtonTooltip,
-                              onPressed: completionInProgress.value
+                              onPressed:
+                                  completionInProgress.value ||
+                                      pageTransitionInProgress.value
                                   ? null
                                   : goBack,
                               icon: const BackButtonIcon(),
@@ -411,7 +447,10 @@ class OnboardingPage extends HookWidget {
                       const SizedBox(height: AppSpacing.sm),
                     ],
                     FilledButton(
-                      onPressed: !canContinue || completionInProgress.value
+                      onPressed:
+                          !canContinue ||
+                              pageTransitionInProgress.value ||
+                              completionInProgress.value
                           ? null
                           : () {
                               if (currentOnboardingStep ==
@@ -456,6 +495,7 @@ class OnboardingPage extends HookWidget {
   }
 }
 
+/// オンボーディング画面の表示をファネル種別付きで記録する。
 Future<void> _logOnboardingStepView({
   required LogAnalyticsEvent logAnalyticsEvent,
   required _OnboardingStep onboardingStep,
@@ -465,6 +505,7 @@ Future<void> _logOnboardingStepView({
   parameters: {'step': onboardingStep.name, 'funnel_variant': funnelVariant},
 );
 
+/// オンボーディングの回答を画面とファネル種別付きで記録する。
 Future<void> _logOnboardingAnswer({
   required LogAnalyticsEvent logAnalyticsEvent,
   required _OnboardingStep onboardingStep,
@@ -479,15 +520,33 @@ Future<void> _logOnboardingAnswer({
   },
 );
 
+/// 1つのオンボーディング画面に表示する説明と選択肢。
 class _OnboardingStepContent extends StatelessWidget {
+  /// 表示対象のオンボーディング画面。
   final _OnboardingStep onboardingStep;
+
+  /// 選択済みの家計管理の課題。
   final _OnboardingPain? selectedPain;
+
+  /// 選択済みの明細取得元。
   final _OnboardingSource? selectedSource;
+
+  /// 選択済みの家計簿の目標。
   final _OnboardingGoal? selectedGoal;
+
+  /// 選択済みの支出記録頻度。
   final _OnboardingFrequency? selectedFrequency;
+
+  /// 家計管理の課題を選択した時の通知先。
   final ValueChanged<_OnboardingPain> onPainSelected;
+
+  /// 明細取得元を選択した時の通知先。
   final ValueChanged<_OnboardingSource> onSourceSelected;
+
+  /// 家計簿の目標を選択した時の通知先。
   final ValueChanged<_OnboardingGoal> onGoalSelected;
+
+  /// 支出記録頻度を選択した時の通知先。
   final ValueChanged<_OnboardingFrequency> onFrequencySelected;
 
   const _OnboardingStepContent({
@@ -656,6 +715,7 @@ class _OnboardingStepContent extends StatelessWidget {
   }
 }
 
+/// 家計管理の課題を選ぶカード一覧を作る。
 List<Widget> _painOptions({
   required AppLocalizations l10n,
   required _OnboardingPain? selectedPain,
@@ -681,6 +741,7 @@ List<Widget> _painOptions({
   ),
 ];
 
+/// 記録したい明細取得元を選ぶカード一覧を作る。
 List<Widget> _sourceOptions({
   required AppLocalizations l10n,
   required _OnboardingSource? selectedSource,
@@ -706,6 +767,7 @@ List<Widget> _sourceOptions({
   ),
 ];
 
+/// 現在の支出記録頻度を選ぶカード一覧を作る。
 List<Widget> _frequencyOptions({
   required AppLocalizations l10n,
   required _OnboardingFrequency? selectedFrequency,
@@ -731,6 +793,7 @@ List<Widget> _frequencyOptions({
   ),
 ];
 
+/// 家計簿で達成したい目標を選ぶカード一覧を作る。
 List<Widget> _goalOptions({
   required AppLocalizations l10n,
   required _OnboardingGoal? selectedGoal,
@@ -756,6 +819,7 @@ List<Widget> _goalOptions({
   ),
 ];
 
+/// 選択した課題に合わせた結果見出しを返す。
 String _resultTitle({
   required AppLocalizations l10n,
   required _OnboardingPain? selectedPain,
@@ -766,28 +830,34 @@ String _resultTitle({
   null => l10n.onboardingResultTitle,
 };
 
+/// 選択した明細取得元と目標に合わせた実行プランを返す。
 String _resultPlan({
   required AppLocalizations l10n,
   required _OnboardingSource? selectedSource,
   required _OnboardingGoal? selectedGoal,
-}) {
-  final sourceText = switch (selectedSource) {
-    _OnboardingSource.receipt => l10n.onboardingPlanReceipt,
-    _OnboardingSource.onlineStatement => l10n.onboardingPlanOnlineStatement,
-    _OnboardingSource.both || null => l10n.onboardingPlanBoth,
-  };
-  final goalText = switch (selectedGoal) {
-    _OnboardingGoal.spendLess => l10n.onboardingPlanSpendLess,
-    _OnboardingGoal.understandSpending => l10n.onboardingPlanUnderstandSpending,
-    _OnboardingGoal.saveTime || null => l10n.onboardingPlanSaveTime,
-  };
-  return '$sourceText\n\n$goalText';
-}
+}) =>
+    '${switch (selectedSource) {
+      _OnboardingSource.receipt => l10n.onboardingPlanReceipt,
+      _OnboardingSource.onlineStatement => l10n.onboardingPlanOnlineStatement,
+      _OnboardingSource.both || null => l10n.onboardingPlanBoth,
+    }}\n\n${switch (selectedGoal) {
+      _OnboardingGoal.spendLess => l10n.onboardingPlanSpendLess,
+      _OnboardingGoal.understandSpending => l10n.onboardingPlanUnderstandSpending,
+      _OnboardingGoal.saveTime || null => l10n.onboardingPlanSaveTime,
+    }}';
 
+/// 選択状態とアイコンを持つオンボーディング回答カード。
 class _ChoiceCard extends StatelessWidget {
+  /// 選択肢の意味を表すアイコン。
   final IconData icon;
+
+  /// 選択肢として表示する文言。
   final String label;
+
+  /// 現在選択されているかどうか。
   final bool selected;
+
+  /// カードを選択した時の処理。
   final VoidCallback onTap;
 
   const _ChoiceCard({
@@ -836,8 +906,12 @@ class _ChoiceCard extends StatelessWidget {
   );
 }
 
+/// 社会的証明や個別プランを補足する情報カード。
 class _InformationCard extends StatelessWidget {
+  /// 情報の種類を表すアイコン。
   final IconData icon;
+
+  /// カードに表示する説明文。
   final String text;
 
   const _InformationCard({required this.icon, required this.text});

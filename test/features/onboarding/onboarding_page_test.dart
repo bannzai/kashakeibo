@@ -196,6 +196,33 @@ void main() {
     expect(find.text('家計の記録をもっと手軽に'), findsOneWidget);
   });
 
+  testWidgets('ページ遷移中に次へや戻るを連打しても1画面だけ移動する', (tester) async {
+    await pumpOnboardingResolver(
+      tester,
+      loadOnboardingCompletion: () async => false,
+      saveOnboardingCompletion: () async {},
+      openOnboardingPaywall: ({required context}) async {},
+      logAnalyticsEvent: ({required name, parameters}) async {},
+      locale: const Locale('ja'),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('次へ'));
+    await tester.tap(find.text('次へ'));
+    await tester.pumpAndSettle();
+    expect(find.text('2/7'), findsOneWidget);
+    expect(find.text('家計管理で一番困ることは？'), findsOneWidget);
+
+    await tapVisibleText(tester, text: '毎回の入力が面倒で続かない');
+    await tapVisibleText(tester, text: '次へ');
+    expect(find.text('3/7'), findsOneWidget);
+
+    await tester.tap(find.byType(IconButton));
+    await tester.tap(find.byType(IconButton));
+    await tester.pumpAndSettle();
+    expect(find.text('2/7'), findsOneWidget);
+  });
+
   testWidgets('完了処理中はシステム戻る操作を受け付けない', (tester) async {
     final paywallCompletion = Completer<void>();
     await pumpOnboardingResolver(
