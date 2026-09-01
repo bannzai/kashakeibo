@@ -105,7 +105,11 @@ class OnboardingResolver extends HookWidget {
       logAnalyticsEvent: logAnalyticsEvent,
       completeOnboarding: () async {
         await saveOnboardingCompletion();
-        await logAnalyticsEvent(name: 'onboarding_complete');
+        try {
+          await logAnalyticsEvent(name: 'onboarding_complete');
+        } catch (_) {
+          // 計測障害で初回の課金導線を失わないよう、完了イベントはベストエフォートにする。
+        }
         if (!context.mounted) {
           return;
         }
@@ -152,7 +156,11 @@ class OnboardingPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLongFunnel = Localizations.localeOf(context).languageCode == 'en';
+    // 表示中のロケール変更でページ数が変わらないよう、開始時のファネル種別を固定する。
+    final isLongFunnel = useMemoized(
+      () => Localizations.localeOf(context).languageCode == 'en',
+      const [],
+    );
     final onboardingSteps = isLongFunnel
         ? _OnboardingStep.values
         : const [

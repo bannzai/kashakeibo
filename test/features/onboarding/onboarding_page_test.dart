@@ -149,6 +149,31 @@ void main() {
     expect(find.text('月次画面'), findsNothing);
   });
 
+  testWidgets('完了イベントの記録に失敗してもペイウォールを開く', (tester) async {
+    var paywallOpened = false;
+    await pumpOnboardingResolver(
+      tester,
+      loadOnboardingCompletion: () async => false,
+      saveOnboardingCompletion: () async {},
+      openOnboardingPaywall: ({required context}) async {
+        paywallOpened = true;
+      },
+      logAnalyticsEvent: ({required name, parameters}) async {
+        if (name == 'onboarding_complete') {
+          throw StateError('計測できませんでした');
+        }
+      },
+      locale: const Locale('ja'),
+    );
+    await tester.pumpAndSettle();
+    await completeJapaneseOnboarding(tester);
+    await tapVisibleText(tester, text: 'プレミアムプランを見る');
+
+    expect(paywallOpened, isTrue);
+    expect(find.text('月次画面'), findsOneWidget);
+    expect(find.textContaining('計測できませんでした'), findsNothing);
+  });
+
   testWidgets('英語ロケールでは価値説明を含む10画面の長尺ファネルを表示する', (tester) async {
     await pumpOnboardingResolver(
       tester,
@@ -164,5 +189,41 @@ void main() {
     await tapVisibleText(tester, text: 'Continue');
     expect(find.text('Capture it now and review it later'), findsOneWidget);
     expect(find.text('2/10'), findsOneWidget);
+  });
+
+  testWidgets('表示中に英語から日本語へ変更しても開始時の10画面構成を維持する', (tester) async {
+    Future<void> pumpWithLocale(Locale locale) => pumpOnboardingResolver(
+      tester,
+      loadOnboardingCompletion: () async => false,
+      saveOnboardingCompletion: () async {},
+      openOnboardingPaywall: ({required context}) async {},
+      logAnalyticsEvent: ({required name, parameters}) async {},
+      locale: locale,
+    );
+
+    await pumpWithLocale(const Locale('en'));
+    await tester.pumpAndSettle();
+    await tapVisibleText(tester, text: 'Continue');
+    await tapVisibleText(tester, text: 'Continue');
+    await tapVisibleText(
+      tester,
+      text: 'Entering every purchase takes too much work',
+    );
+    await tapVisibleText(tester, text: 'Continue');
+    await tapVisibleText(tester, text: 'Both receipts and online statements');
+    await tapVisibleText(tester, text: 'Continue');
+    await tapVisibleText(tester, text: 'Almost every day');
+    await tapVisibleText(tester, text: 'Continue');
+    await tapVisibleText(tester, text: 'Reduce unnecessary spending');
+    await tapVisibleText(tester, text: 'Continue');
+    await tapVisibleText(tester, text: 'Continue');
+    expect(find.text('8/10'), findsOneWidget);
+
+    await pumpWithLocale(const Locale('ja'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('8/10'), findsOneWidget);
+    expect(find.text('手軽な記録を始めませんか？'), findsOneWidget);
   });
 }
