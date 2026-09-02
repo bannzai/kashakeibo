@@ -588,7 +588,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardingValueDescription =>
-      'AI가 상점과 금액과 날짜와 카테고리를 정리해 줘서 지출을 이해하는 데 집중할 수 있어요';
+      'Kashakeibo는 AI가 상점, 금액, 날짜, 카테고리를 정리해 주므로 자신의 소비를 이해하는 데 집중할 수 있습니다';
 
   @override
   String get onboardingPainTitle => '가계 관리에서 가장 어려운 점은 무엇인가요?';
@@ -670,7 +670,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardingResultDescription =>
-      '촬영한 명세서를 월별로 정리해 지출을 한눈에 돌아볼 수 있어요';
+      'Kashakeibo는 촬영한 이미지를 한눈에 확인할 수 있는 월별 보기로 정리합니다';
 
   @override
   String get onboardingResultRecordingEffort => '입력 수고를 줄여 꾸준히 기록하는 계획';

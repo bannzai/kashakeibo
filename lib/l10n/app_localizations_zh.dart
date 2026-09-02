@@ -579,7 +579,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingValueTitle => '现在拍下以后查看';
 
   @override
-  String get onboardingValueDescription => 'AI会整理商家金额日期和类别，让你把时间用在了解收支上';
+  String get onboardingValueDescription =>
+      'Kashakeibo 使用 AI 整理商店、金额、日期和类别，让您专注于了解自己的财务状况';
 
   @override
   String get onboardingPainTitle => '管理收支时最困扰你的是什么？';
@@ -660,7 +661,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingResultTitle => '你的使用方案已准备好';
 
   @override
-  String get onboardingResultDescription => '把拍下的账单按月整理，让你一眼回顾家庭收支';
+  String get onboardingResultDescription => 'Kashakeibo 将您的截图和照片整理成一目了然的月度视图';
 
   @override
   String get onboardingResultRecordingEffort => '减少输入负担并轻松坚持的方案';
@@ -1265,7 +1266,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get onboardingValueTitle => '现在拍下以后查看';
 
   @override
-  String get onboardingValueDescription => 'AI会整理商家金额日期和类别，让你把时间用在了解收支上';
+  String get onboardingValueDescription =>
+      'Kashakeibo 使用 AI 整理商店、金额、日期和类别，让您专注于了解自己的财务状况';
 
   @override
   String get onboardingPainTitle => '管理收支时最困扰你的是什么？';
@@ -1346,7 +1348,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get onboardingResultTitle => '你的使用方案已准备好';
 
   @override
-  String get onboardingResultDescription => '把拍下的账单按月整理，让你一眼回顾家庭收支';
+  String get onboardingResultDescription => 'Kashakeibo 将您的截图和照片整理成一目了然的月度视图';
 
   @override
   String get onboardingResultRecordingEffort => '减少输入负担并轻松坚持的方案';
@@ -1950,7 +1952,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onboardingValueTitle => '現在拍下以後查看';
 
   @override
-  String get onboardingValueDescription => 'AI會整理商家金額日期和類別，讓你把時間用在了解收支上';
+  String get onboardingValueDescription =>
+      'Kashakeibo 使用 AI 整理商店、金額、日期和類別，讓您專注於了解自己的財務狀況';
 
   @override
   String get onboardingPainTitle => '管理收支時最困擾你的是什麼？';
@@ -2031,7 +2034,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onboardingResultTitle => '你的使用方案已準備好';
 
   @override
-  String get onboardingResultDescription => '把拍下的帳單按月整理，讓你一眼回顧家庭收支';
+  String get onboardingResultDescription => 'Kashakeibo 將您的截圖和照片整理成一目了然的月度檢視';
 
   @override
   String get onboardingResultRecordingEffort => '減少輸入負擔並輕鬆堅持的方案';

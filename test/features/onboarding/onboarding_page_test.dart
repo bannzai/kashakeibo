@@ -84,7 +84,7 @@ void main() {
     expect(find.text('入力の手間を減らして続けやすく'), findsOneWidget);
     final titleBottom = tester.getBottomLeft(find.text('入力の手間を減らして続けやすく')).dy;
     final descriptionTop = tester
-        .getTopLeft(find.text('撮った明細を月ごとに整理して家計をひと目で振り返れます'))
+        .getTopLeft(find.text('カシャケイボなら、撮影した画像をひと目でわかる月次ビューにまとめられます'))
         .dy;
     expect(titleBottom, lessThan(descriptionTop));
     expect(
