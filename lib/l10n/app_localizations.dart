@@ -626,6 +626,42 @@ abstract class AppLocalizations {
   /// **'Logged ✓'**
   String get captureRegistered;
 
+  /// Heading above the chat-style history of instructions the user gave the AI on the confirm screen
+  ///
+  /// In en, this message translates to:
+  /// **'Instructions to the AI'**
+  String get captureInstructionSectionTitle;
+
+  /// Button that opens the sheet to type an instruction for the AI to re-read the image; also the sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the AI to re-read'**
+  String get captureInstructionOpen;
+
+  /// Placeholder examples in the instruction text field
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. The last line is missing / The second amount is wrong'**
+  String get captureInstructionHint;
+
+  /// Note that re-reading with an instruction consumes one scan of the quota
+  ///
+  /// In en, this message translates to:
+  /// **'Re-reading uses one scan'**
+  String get captureInstructionScanNote;
+
+  /// Button that sends the instruction and re-reads the image
+  ///
+  /// In en, this message translates to:
+  /// **'Send and re-read'**
+  String get captureInstructionSend;
+
+  /// AI reply bubble showing how many entries the re-read produced
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Re-read as 1 entry} other{Re-read as {count} entries}}'**
+  String captureInstructionResult(int count);
+
   /// No description provided for @transactionDetailTitle.
   ///
   /// In en, this message translates to:
@@ -721,6 +757,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Source'**
   String get transactionDetailProvenance;
+
+  /// Label of the list of instructions the user gave the AI, shown on the transaction detail
+  ///
+  /// In en, this message translates to:
+  /// **'Instructions to the AI'**
+  String get transactionDetailAnalysisInstructions;
 
   /// No description provided for @transactionDetailExcludeFromAggregation.
   ///

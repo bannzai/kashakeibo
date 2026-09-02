@@ -246,6 +246,35 @@
     }
   },
   "captureRegistered": "Logged ✓",
+  "captureInstructionSectionTitle": "Instructions to the AI",
+  "@captureInstructionSectionTitle": {
+    "description": "Heading above the chat-style history of instructions the user gave the AI on the confirm screen"
+  },
+  "captureInstructionOpen": "Ask the AI to re-read",
+  "@captureInstructionOpen": {
+    "description": "Button that opens the sheet to type an instruction for the AI to re-read the image; also the sheet title"
+  },
+  "captureInstructionHint": "e.g. The last line is missing / The second amount is wrong",
+  "@captureInstructionHint": {
+    "description": "Placeholder examples in the instruction text field"
+  },
+  "captureInstructionScanNote": "Re-reading uses one scan",
+  "@captureInstructionScanNote": {
+    "description": "Note that re-reading with an instruction consumes one scan of the quota"
+  },
+  "captureInstructionSend": "Send and re-read",
+  "@captureInstructionSend": {
+    "description": "Button that sends the instruction and re-reads the image"
+  },
+  "captureInstructionResult": "{count, plural, =1{Re-read as 1 entry} other{Re-read as {count} entries}}",
+  "@captureInstructionResult": {
+    "description": "AI reply bubble showing how many entries the re-read produced",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "transactionDetailTitle": "Transaction",
   "transactionDetailSourceImage": "Source image",
   "transactionDetailSourceImageNote": "You can revisit the source image anytime",
@@ -262,6 +291,10 @@
   "transactionDetailDeleted": "Transaction deleted",
   "transactionDetailNotFound": "This transaction was deleted",
   "transactionDetailProvenance": "Source",
+  "transactionDetailAnalysisInstructions": "Instructions to the AI",
+  "@transactionDetailAnalysisInstructions": {
+    "description": "Label of the list of instructions the user gave the AI, shown on the transaction detail"
+  },
   "transactionDetailExcludeFromAggregation": "Exclude from totals",
   "transactionDetailExcludeFromAggregationDescription": "When on, this is left out of totals and the category breakdown",
   "transactionProvenanceAutomatic": "Auto-imported",

@@ -296,6 +296,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get captureRegistered => '기록되었습니다 ✓';
 
   @override
+  String get captureInstructionSectionTitle => 'AI에 보낸 추가 지시';
+
+  @override
+  String get captureInstructionOpen => 'AI에 지시하여 다시 읽기';
+
+  @override
+  String get captureInstructionHint => '예: 맨 아래 내역이 읽히지 않음 / 두 번째 금액이 다름';
+
+  @override
+  String get captureInstructionScanNote => '다시 읽기에는 스캔 1회가 사용됩니다';
+
+  @override
+  String get captureInstructionSend => '보내고 다시 읽기';
+
+  @override
+  String captureInstructionResult(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '다시 읽어 $count건이 되었습니다',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailTitle => '거래 내역';
 
   @override
@@ -345,6 +370,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get transactionDetailProvenance => '출처';
+
+  @override
+  String get transactionDetailAnalysisInstructions => 'AI에 보낸 지시';
 
   @override
   String get transactionDetailExcludeFromAggregation => '합계에서 제외';
