@@ -568,7 +568,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onboardingValueDescription =>
-      'AIがお店や金額や日付やカテゴリを整理するので家計を知ることに時間を使えます';
+      'カシャケイボはAIが店名・金額・日付・カテゴリを整理するので、お金の使い方を理解する時間に集中できます';
 
   @override
   String get onboardingPainTitle => '家計管理で一番困ることは？';
@@ -649,7 +649,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingResultTitle => 'あなた向けの使い方ができました';
 
   @override
-  String get onboardingResultDescription => '撮った明細を月ごとに整理して家計をひと目で振り返れます';
+  String get onboardingResultDescription =>
+      'カシャケイボなら、撮影した画像をひと目でわかる月次ビューにまとめられます';
 
   @override
   String get onboardingResultRecordingEffort => '入力の手間を減らして続けやすく';
