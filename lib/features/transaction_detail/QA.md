@@ -23,7 +23,7 @@ last_verified_at: 2026-08-22
 | S5 | 計算対象からの除外を切り替えられ、本画面と月次一覧の集計へ即時反映される | 計算対象外スイッチ |
 | S6 | 画像が無い明細はプレースホルダー表示になる (手動入力は「手動入力のため元画像なし」) | 画像なしのプレースホルダー |
 | S7 | 別端末などで削除された明細を開いていた場合は「この明細は削除されました」を表示する | — (自動化 todo。別クライアントからの書き込み手段が未整備) |
-| S8 | 撮影フローで AI へ追加指示を出した明細は、指示の履歴 (「AI への指示」) が情報カードに表示される (issue #40) | capture QA.md の「追加指示の履歴の保存」で確認する。⏭️ 未検証 (2026-09-02、PR #79。理由は同項目を参照。widget テスト test/features/transaction_detail/transaction_detail_page_test.dart で表示・非表示は検証済み) |
+| S8 | 撮影フローで AI へ追加指示を出した明細は、指示の履歴 (「AI への指示」) が情報カードに表示される (issue #40) | capture QA.md の「追加指示の履歴の保存」で確認する (2026-09-02 に simtunnel で確認済み。エビデンスは同項目。非表示側は widget テスト test/features/transaction_detail/transaction_detail_page_test.dart で検証) |
 
 ## 1. 表示
 

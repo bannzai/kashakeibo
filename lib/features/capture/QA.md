@@ -1,8 +1,8 @@
 ---
 feature: capture
 verification: mobile-mcp
-last_verified_commit: f492e1566dfd2fae08cfc3a15b79e1cc469e1e1e
-last_verified_at: 2026-08-22
+last_verified_commit: d77ea92d27f40570f879b97fc8a3e746ef7bec34
+last_verified_at: 2026-09-02
 ---
 
 # capture QA
@@ -131,12 +131,39 @@ Simulator kashakeibo-issue-67-iOS26.5 の debug ビルド (kashakeibo-dev + dev 
   - 自動化: manual
 - [x] **明細なし画像の失敗表示**: 明細が写っていない画像 (風景写真) を選ぶと「読み取れませんでした」画面になり、「取り直す」でフォトライブラリが開き直す
   - 自動化: manual
-- [ ] **追加指示による読み直し**: 確認画面 (単一フォーム・候補リストのどちらでも) の「AI に指示して読み直す」でシートが開き、指示 (例: 「一番下の明細が読めていない」) を送信すると「AI 解析中」を経て確認画面が作り直され、元画像サムネイルの下に「AI への追加指示」としてユーザーの指示の吹き出しと AI の「読み直して n 件になりました」の吹き出しが並ぶ。未入力では送信できず、シートを閉じると読み直さない (lib/features/capture/README.md)
-  - 自動化: manual (widget テスト test/features/capture/capture_page_test.dart の「追加指示:」で分岐は網羅済み)
-  - ⏭️ 未検証 (2026-09-02、PR #79): シミュレータでの画面確認は未実施。無人実行のためローカル Simulator の長時間占有を開始せず、simtunnel は撮影フローに必要な App Check debug token が手元に無く Worker が 401 になる。加えて dev Worker に本機能 (`instructionTurns`) が未デプロイ。Worker を dev にデプロイした後の run-qa で確認する
-- [ ] **追加指示の履歴の保存**: 追加指示を出してから登録した明細を明細詳細で開くと、出所チップの下に「AI への指示」として指示文が表示される。指示を出さずに登録した明細には表示されない
-  - 自動化: manual
-  - ⏭️ 未検証 (2026-09-02、PR #79): 上の「追加指示による読み直し」と同じ理由で未実施 (widget テスト test/features/transaction_detail/transaction_detail_page_test.dart で表示・非表示は検証済み)
+- [x] **追加指示による読み直し**: 確認画面 (単一フォーム・候補リストのどちらでも) の「AI に指示して読み直す」でシートが開き、指示 (例: 「一番下の明細が読めていない」) を送信すると「AI 解析中」を経て確認画面が作り直され、元画像サムネイルの下に「AI への追加指示」としてユーザーの指示の吹き出しと AI の「読み直して n 件になりました」の吹き出しが並ぶ。未入力では送信できず、シートを閉じると読み直さない (lib/features/capture/README.md)
+  - 自動化: manual (widget テスト test/features/capture/capture_page_test.dart の「追加指示:」で分岐は網羅済み。未入力での送信不可・シートを閉じた時の非再解析・上限 10 回の無効化は widget テストのみで、Simulator では未実施)
+- [x] **追加指示の履歴の保存**: 追加指示を出してから登録した明細を明細詳細で開くと、出所チップの下に「AI への指示」として指示文が表示される。指示を出さずに登録した明細には表示されない
+  - 自動化: manual (非表示側は widget テスト test/features/transaction_detail/transaction_detail_page_test.dart で検証)
+
+#### 動作確認 (2026-09-02、issue #40 の項目のみ。他の項目はこの実行では再テストしていない)
+
+### **追加指示による読み直し**: 確認画面の「AI に指示して読み直す」でシートが開き、指示を送信すると読み直され、履歴が吹き出しで並ぶ
+
+<details><summary>動作確認エビデンス</summary>
+
+**確認日: 2026-09-02 (PR #79、commit d77ea92)**
+
+simtunnel のリモート Simulator (session kashakeibo-issue-40、iPhone 17、英語ロケール) の debug ビルド (kashakeibo-dev + dev Worker。本 PR の Worker を dev にデプロイ済み) で確認した。App Check は `ios-wda.sh launch --env-file ~/.config/kashakeibo/appcheck-debug-token-simtunnel.secret` で登録済み debug token を渡した。開発者メニュー「サンプルレシートで撮影フローを試す」で確認画面 (¥872) を開き、「Ask the AI to re-read」→ シートに「Use the subtotal before tax as the amount」を入力 → 「Send and re-read」で「AI 解析中」を経て確認画面が作り直され、金額が小計の ¥808 に変わった。元画像の下に「Instructions to the AI」としてユーザーの吹き出しと AI の「Re-read as 1 entry」が並んだ。残量チップは 50 → 48 (初回 + 読み直しで 2 回消費)。候補リスト (開発者メニュー「サンプル明細スクショで取込フローを試す」、3 件) でも同じボタンから指示を送れ、履歴の吹き出し (「Re-read as 3 entries」) が候補カードの上に並んだ。
+
+- 確認画面 (指示前): <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260902/5f4023df-5f2f-4836-b37a-8c1f398fd7bc.jpg" width="240" />
+- 指示の入力シート: <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260902/7ec810b9-86e8-498f-8982-e445844bc64c.jpg" width="240" />
+- 読み直し後 (履歴の吹き出し + 金額 ¥808): <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260902/408b68c3-c2f8-4840-b475-5de8f666db6d.jpg" width="240" />
+- 候補リストでの指示後: <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260902/bbfb170e-ba76-42fe-a939-5ae4c8e679a5.jpg" width="240" />
+
+</details>
+
+### **追加指示の履歴の保存**: 登録した明細の詳細に「AI への指示」として指示文が表示される
+
+<details><summary>動作確認エビデンス</summary>
+
+**確認日: 2026-09-02 (PR #79、commit d77ea92)**
+
+上の読み直し後に「Register」で登録し、8 月の月次一覧から明細を開くと、出所チップ (Receipt / Auto-imported。フォームは手修正していないため自動取込のまま) の下に「Instructions to the AI」として「Use the subtotal before tax as the amount」が表示された。指示を出していない明細 (サンプル明細) には表示されないことは widget テストで検証済み。
+
+- 明細詳細: <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260902/e51748c8-5064-4d0d-a80b-0c325fbd9ffd.jpg" width="240" />
+
+</details>
 
 #### 動作確認
 <details>
