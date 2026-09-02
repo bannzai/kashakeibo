@@ -445,6 +445,7 @@ Future<void> _addSampleTransactions({
       excludedFromAggregation: sample.excludedFromAggregation,
       sourceImageObjectKey: null,
       analysisAdjustedByUser: false,
+      analysisInstructions: const [],
     );
   }
 }

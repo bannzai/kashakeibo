@@ -252,6 +252,7 @@ class ManualEntrySheet extends HookConsumerWidget {
                             // 手動入力は画像を持たず、AI 解析も経ない。
                             sourceImageObjectKey: null,
                             analysisAdjustedByUser: false,
+                            analysisInstructions: const [],
                           );
                           if (context.mounted) {
                             // PopScope が送信中の外部 dismiss を防ぐ一方、登録完了後の
