@@ -135,6 +135,13 @@ export const maxDailyAuditLogCountTotal = maxDailyUploadCountTotal;
 // 元画像はその範囲に収まるサイズまでしか解析しない (クライアントは撮影時に長辺を縮小してから送る)
 export const maxAnalysisImageBytes = 14 * 1024 * 1024;
 
+/**
+ * POST /analyses のリクエスト本体 (JSON) の上限バイト数。
+ * 追加指示の上限いっぱい (10 往復 × 直前の結果 50 件 × 1 件 約 300 バイト ≒ 150 KB) に余裕を持たせた 256 KB。
+ * 超過は JSON を parse する前に 413 で拒否し、巨大な本体で Worker のメモリ・CPU を消費させない。
+ */
+export const maxAnalysisRequestBodyBytes = 256 * 1024;
+
 const imageObjectPathPrefix = "/images/";
 
 /** 明細の訂正削除履歴 (監査ログ) のエンドポイントのパス。 */
@@ -697,9 +704,17 @@ async function handleImageAnalysis(
   env: ImageWorkerEnv,
   verifiedFirebaseUser: VerifiedFirebaseUser,
 ): Promise<Response> {
+  // 本体は parse の前にサイズで打ち切る (Content-Length は省略・詐称され得るため実バイト数で判定する)
+  const requestBodyBytes = await request.arrayBuffer();
+  if (requestBodyBytes.byteLength > maxAnalysisRequestBodyBytes) {
+    return jsonResponse(413, { error: `リクエスト本体の上限 (${maxAnalysisRequestBodyBytes} bytes) を超えています` });
+  }
   let requestBody: { imageObjectKey?: unknown; instructionTurns?: unknown };
   try {
-    requestBody = (await request.json()) as { imageObjectKey?: unknown; instructionTurns?: unknown };
+    requestBody = JSON.parse(new TextDecoder().decode(requestBodyBytes)) as {
+      imageObjectKey?: unknown;
+      instructionTurns?: unknown;
+    };
   } catch (error) {
     return jsonResponse(400, { error: "JSON のリクエストボディが必要です" });
   }

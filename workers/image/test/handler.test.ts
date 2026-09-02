@@ -15,10 +15,16 @@ import {
   maxDailyUploadCountPerIpAddress,
   maxDailyUploadCountPerUser,
   maxDailyUploadCountTotal,
+  maxAnalysisRequestBodyBytes,
   monthlyFreeScanLimit,
   monthlyPremiumScanLimit,
 } from "../src/handler";
-import { maxAnalysisInstructionLength, maxAnalysisInstructionTurnCount } from "../src/analysis";
+import {
+  maxAnalysisInstructionLength,
+  maxAnalysisInstructionTurnCount,
+  maxAnalysisPreviousTransactionCount,
+  maxAnalysisTransactionTitleLength,
+} from "../src/analysis";
 import { dailyCounterPurgeDelayMilliseconds } from "../src/usage_counter";
 import { buildPngHeaderBytes } from "./image_fixtures";
 
@@ -961,9 +967,35 @@ describe("画像解析", () => {
       method: "GET",
       headers: { Authorization: `Bearer valid-token-${uid}`, [firebaseAppCheckHeaderName]: validAppCheckToken },
     });
+    // 無料枠を消費していない状態から始めることを明示する (最後の検証が「消費しなかった」ことを意味するため)
+    expect(await (await handleImageRequest(quotaRequest.clone(), env, stubTokenVerifiers)).json()).toEqual({
+      monthlyScanCount: 0,
+      monthlyFreeScanLimit,
+    });
+    const validTransaction = { title: "スーパー", amount: 100, transactionDate: "2026-08-16", type: "expense", category: "food" };
     const invalidBodies = [
       { imageObjectKey, instructionTurns: [{ previousTransactions: [], instruction: "   " }] },
       { imageObjectKey, instructionTurns: [{ previousTransactions: [], instruction: "あ".repeat(maxAnalysisInstructionLength + 1) }] },
+      // 文字数はユーザー知覚文字 (書記素) で数えるため、非 BMP の絵文字 501 個 (UTF-16 では 1002) は超過
+      { imageObjectKey, instructionTurns: [{ previousTransactions: [], instruction: "😀".repeat(maxAnalysisInstructionLength + 1) }] },
+      {
+        imageObjectKey,
+        instructionTurns: [
+          {
+            previousTransactions: Array.from({ length: maxAnalysisPreviousTransactionCount + 1 }, () => validTransaction),
+            instruction: "見直して",
+          },
+        ],
+      },
+      {
+        imageObjectKey,
+        instructionTurns: [
+          {
+            previousTransactions: [{ ...validTransaction, title: "あ".repeat(maxAnalysisTransactionTitleLength + 1) }],
+            instruction: "見直して",
+          },
+        ],
+      },
       {
         imageObjectKey,
         instructionTurns: Array.from({ length: maxAnalysisInstructionTurnCount + 1 }, () => ({
@@ -986,6 +1018,40 @@ describe("画像解析", () => {
       monthlyScanCount: 0,
       monthlyFreeScanLimit,
     });
+  });
+
+  it("追加指示の文字数は書記素で数え、UTF-16 で上限を超える絵文字だけの指示も上限以内なら受け付ける", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000014");
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(200, buildGeminiResponseBody({ transactions: [] }));
+
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({
+          imageObjectKey,
+          instructionTurns: [{ previousTransactions: [], instruction: "😀".repeat(maxAnalysisInstructionLength) }],
+        }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it("リクエスト本体が上限バイト数を超える場合は parse せず 413 を返し、Gemini を呼ばない", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000015");
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({ imageObjectKey, padding: "a".repeat(maxAnalysisRequestBodyBytes) }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(413);
   });
 
   it("Gemini の出力のうち不正な明細 (金額が正の整数でない・enum 外) を取り除き、不正な日付は null にする", async () => {

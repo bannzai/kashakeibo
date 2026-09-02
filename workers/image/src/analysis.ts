@@ -59,10 +59,36 @@ export interface AnalysisInstructionTurn {
 export const maxAnalysisInstructionTurnCount = 10;
 
 /**
- * 追加指示 1 件の最大文字数。読み取りの訂正指示は 1〜2 文で足りる想定で、
- * 長文のプロンプト注入・トークン消費の膨張を抑えるために 500 文字で打ち切る。
+ * 追加指示 1 件の最大文字数 (書記素クラスタ単位。クライアントの TextField.maxLength と同じ数え方)。
+ * 読み取りの訂正指示は 1〜2 文で足りる想定で、長文のプロンプト注入・トークン消費の膨張を抑えるために 500 文字で打ち切る。
  */
 export const maxAnalysisInstructionLength = 500;
+
+/**
+ * 追加指示 1 往復に添える直前の解析結果 (previousTransactions) の最大件数。
+ * 直前の結果は Worker 自身の出力の再送で、実物ベンチマーク (benchmark/) の明細スクショでも 1 枚 15 件未満のため、
+ * 改変クライアントが巨大な履歴でプロンプト (トークン・原価) を膨らませるのを 50 件で打ち切る。
+ */
+export const maxAnalysisPreviousTransactionCount = 50;
+
+/**
+ * 直前の解析結果の店名 (title) 1 件の最大文字数。店名・サービス名は数十文字で収まるため、
+ * 長大な文字列をプロンプトへ積むのを 200 文字で打ち切る。
+ */
+export const maxAnalysisTransactionTitleLength = 200;
+
+// 追加指示の文字数はユーザー知覚文字 (書記素クラスタ) で数え、絵文字・結合文字を含む指示を
+// クライアントの入力欄 (Flutter の TextField.maxLength も書記素単位) と同じ判定にする
+const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/** 文字列の長さをユーザー知覚文字 (書記素クラスタ) の数で返す。 */
+export function countGraphemes(text: string): number {
+  let graphemeCount = 0;
+  for (const _ of graphemeSegmenter.segment(text)) {
+    graphemeCount++;
+  }
+  return graphemeCount;
+}
 
 // Gemini に強制する出力スキーマ (generationConfig.responseSchema。OpenAPI 3.0 のサブセット)。
 // AnalyzedTransaction と 1 対 1 に対応させ、enum はクライアント Entity の enum 名と一致させる
@@ -313,7 +339,8 @@ export function toImageAnalysisResult(geminiOutput: unknown): ImageAnalysisResul
  * リクエストの `instructionTurns` を検証し、正規化した往復の配列を返す。
  * 未指定 (undefined) は初回解析として空配列。配列でない・上限超過・指示が空または長すぎる場合は
  * クライアントへ返すエラー文を返す。直前の結果は Worker 自身の出力の再送のため [toImageAnalysisResult] で
- * 不正な明細を取り除いてから Gemini へ渡す (クライアント申告の値をそのままプロンプトに載せない)。
+ * 不正な明細を取り除いてから Gemini へ渡し (クライアント申告の値をそのままプロンプトに載せない)、
+ * 件数・店名の長さも上限 (maxAnalysisPreviousTransactionCount / maxAnalysisTransactionTitleLength) で拒否する。
  */
 export function parseAnalysisInstructionTurns(
   rawInstructionTurns: unknown,
@@ -336,12 +363,19 @@ export function parseAnalysisInstructionTurns(
     if (typeof instruction !== "string" || instruction.trim() === "") {
       return { error: "追加指示 (instruction) を入力してください" };
     }
-    if (instruction.length > maxAnalysisInstructionLength) {
+    if (countGraphemes(instruction) > maxAnalysisInstructionLength) {
       return { error: `追加指示は ${maxAnalysisInstructionLength} 文字以内で入力してください` };
+    }
+    const normalizedPreviousTransactions = toImageAnalysisResult({ transactions: previousTransactions }).transactions;
+    if (normalizedPreviousTransactions.length > maxAnalysisPreviousTransactionCount) {
+      return { error: `直前の解析結果は ${maxAnalysisPreviousTransactionCount} 件までです` };
+    }
+    if (normalizedPreviousTransactions.some((previousTransaction) => previousTransaction.title.length > maxAnalysisTransactionTitleLength)) {
+      return { error: `直前の解析結果の店名は ${maxAnalysisTransactionTitleLength} 文字以内にしてください` };
     }
     instructionTurns.push({
       instruction: instruction.trim(),
-      previousTransactions: toImageAnalysisResult({ transactions: previousTransactions }).transactions,
+      previousTransactions: normalizedPreviousTransactions,
     });
   }
   return { instructionTurns };
