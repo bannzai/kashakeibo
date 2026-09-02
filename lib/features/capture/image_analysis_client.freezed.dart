@@ -578,6 +578,9 @@ as String,
 mixin _$ImageAnalysisResult {
 
 /// 抽出した明細。レシートは 1 枚 1 件。明細が写っていない画像では空。
+/// 1 枚の画像に別々の支払いのレシートが複数写っていればそれぞれ 1 件、
+/// 1 回の支払いが複数の紙片に分かれて写っていればまとめて 1 件 (issue #82。
+/// 抽出ルールの SSOT は workers/image/README.md の POST /analyses)。
  List<AnalyzedTransaction> get transactions;
 /// Create a copy of ImageAnalysisResult
 /// with the given fields replaced by the non-null parameter values.
@@ -776,8 +779,14 @@ class _ImageAnalysisResult implements ImageAnalysisResult {
   factory _ImageAnalysisResult.fromJson(Map<String, dynamic> json) => _$ImageAnalysisResultFromJson(json);
 
 /// 抽出した明細。レシートは 1 枚 1 件。明細が写っていない画像では空。
+/// 1 枚の画像に別々の支払いのレシートが複数写っていればそれぞれ 1 件、
+/// 1 回の支払いが複数の紙片に分かれて写っていればまとめて 1 件 (issue #82。
+/// 抽出ルールの SSOT は workers/image/README.md の POST /analyses)。
  final  List<AnalyzedTransaction> _transactions;
 /// 抽出した明細。レシートは 1 枚 1 件。明細が写っていない画像では空。
+/// 1 枚の画像に別々の支払いのレシートが複数写っていればそれぞれ 1 件、
+/// 1 回の支払いが複数の紙片に分かれて写っていればまとめて 1 件 (issue #82。
+/// 抽出ルールの SSOT は workers/image/README.md の POST /analyses)。
 @override List<AnalyzedTransaction> get transactions {
   if (_transactions is EqualUnmodifiableListView) return _transactions;
   // ignore: implicit_dynamic_type
