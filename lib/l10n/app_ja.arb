@@ -8,13 +8,6 @@
   "monthlyTransactionsEmpty": "今月の明細はまだありません",
   "excludedFromAggregation": "計算対象外",
   "duplicateCandidateCount": "重複の可能性が{count}件あります",
-  "@duplicateCandidateCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "duplicateCandidateReviewHint": "タップして確認",
   "duplicateCandidateTitle": "重複候補の確認",
   "duplicateCandidateDescription": "金額・日付・店名が近い明細です。同じ支出か確認してください。",
@@ -90,23 +83,9 @@
   "captureSourceImageNote": "読み取りに使った元画像は、明細からいつでも見返せます",
   "captureRegister": "登録する",
   "captureCandidatesNote": "読み取った{count}件から登録する明細を選んでください",
-  "@captureCandidatesNote": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "captureCandidateEdit": "修正する",
   "captureCandidateApplyEdit": "変更を反映",
   "captureRegisterCount": "{count}件を登録する",
-  "@captureRegisterCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "captureRegistered": "カシャッと記録!",
   "transactionDetailTitle": "明細",
   "transactionDetailSourceImage": "元画像",
@@ -130,13 +109,6 @@
   "transactionProvenanceAdjusted": "手調整",
   "capturesSection": "とった記録",
   "scanQuotaRemaining": "スキャン残り{count}回",
-  "@scanQuotaRemaining": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "scanQuotaUnlimited": "スキャンし放題",
   "scanQuotaExhausted": "今月の無料スキャンを使い切りました",
   "paywallTitle": "スキャンし放題に",
@@ -144,16 +116,6 @@
   "paywallSavingsClaim": "家計簿で支出が減った人の約半数が、月5,000円〜1万円未満の節約を実感*",
   "paywallSavingsSource": "* 東証マネ部!「お金に関するアンケート」2022年10月・全国20〜40代の会社員1,111名",
   "paywallFreeQuota": "今月の無料スキャン {used}/{limit}",
-  "@paywallFreeQuota": {
-    "placeholders": {
-      "used": {
-        "type": "int"
-      },
-      "limit": {
-        "type": "int"
-      }
-    }
-  },
   "paywallBenefitUnlimitedScans": "スキャンし放題",
   "paywallBenefitFullHistory": "全期間の履歴",
   "paywallBenefitFutureFeatures": "今後の新機能",
@@ -161,21 +123,7 @@
   "paywallAnnualPlan": "年額",
   "paywallRecommended": "おすすめ",
   "paywallAnnualSavings": "{percent}%お得",
-  "@paywallAnnualSavings": {
-    "placeholders": {
-      "percent": {
-        "type": "int"
-      }
-    }
-  },
   "paywallPerMonthEquivalent": "{price}/月換算",
-  "@paywallPerMonthEquivalent": {
-    "placeholders": {
-      "price": {
-        "type": "String"
-      }
-    }
-  },
   "paywallStartPremium": "プレミアムを始める",
   "paywallCancelAnytime": "いつでも解約できます",
   "paywallRestore": "購入の復元",
@@ -220,35 +168,15 @@
   "transactionSearchAmountRangeInvalid": "最大金額は最小金額以上にしてください",
   "transactionSearchNoResults": "条件に一致する明細はありません",
   "transactionSearchResultCount": "{count}件",
-  "@transactionSearchResultCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "transactionSearchFreePlanHistoryLimit": "無料プランでは直近{monthCount}ヶ月の明細だけを検索できます",
-  "@transactionSearchFreePlanHistoryLimit": {
-    "placeholders": {
-      "monthCount": {
-        "type": "int"
-      }
-    }
-  },
   "auditLogFreePlanHistoryLimit": "無料プランでは直近{monthCount}ヶ月の操作履歴だけを表示します",
-  "@auditLogFreePlanHistoryLimit": {
-    "placeholders": {
-      "monthCount": {
-        "type": "int"
-      }
-    }
-  },
   "freePlanHistoryLimitUpgrade": "プレミアムで全期間の履歴を見る",
   "onboardingContinue": "次へ",
   "onboardingSeePremium": "プレミアムプランを見る",
   "onboardingWelcomeTitle": "家計の記録をもっと手軽に",
   "onboardingWelcomeDescription": "レシートやWeb明細を撮るだけで家計簿に記録できます",
   "onboardingValueTitle": "今撮ってあとで見返す",
+  "onboardingValueDescription": "カシャケイボはAIが店名・金額・日付・カテゴリを整理するので、お金の使い方を理解する時間に集中できます",
   "onboardingPainTitle": "家計管理で一番困ることは？",
   "onboardingPainDescription": "最初に解決したい悩みを選んでください",
   "onboardingPainRecordingEffort": "毎回の入力が面倒で続かない",
