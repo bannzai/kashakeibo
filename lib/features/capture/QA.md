@@ -136,8 +136,8 @@ Simulator kashakeibo-issue-67-iOS26.5 の debug ビルド (kashakeibo-dev + dev 
   - 自動化: manual (widget テスト test/features/capture/capture_page_test.dart の「追加指示:」で分岐は網羅済み。未入力での送信不可・シートを閉じた時の非再解析・上限 10 回の無効化は widget テストのみで、Simulator では未実施)
 - [x] **追加指示の履歴の保存**: 追加指示を出してから登録した明細を明細詳細で開くと、出所チップの下に「AI への指示」として指示文が表示される。指示を出さずに登録した明細には表示されない
   - 自動化: manual (非表示側は widget テスト test/features/transaction_detail/transaction_detail_page_test.dart で検証)
-- [ ] **背景・複数レシート・分割紙片の抽出 (issue #82)**: 背景 (机・小物) が写り込んだ写真でも紙面だけから抽出される。別々の支払いのレシート 2 枚が写った写真は 2 件の候補になり (同じ店・同じ日付でも、それぞれに合計がある完結したレシートは 2 件)、長いレシートが 2 つの紙片に分かれた写真は支払全体の合計で 1 件にまとまる
-  - 自動化: サーバー側の抽出品質は合成フィクスチャ (workers/image の `receipt_two_receipts.jpg` / `receipt_same_store_two_receipts.jpg` / `receipt_split_long.jpg`、7 枚 7/7 全項目一致) と実物ベンチマーク 15 枚で機械検証済み (workers/image/benchmark/README.md の 2026-09-03 の再実測)。アプリ画面での取込確認 (実写真相当の画像をフォトライブラリへ投入 → 候補リスト表示) は未実施のため未検証
+- [ ] **背景・複数レシート・分割紙片の抽出 (issue #82)**: 背景 (机・小物) が写り込んだ写真でも紙面だけから抽出される。別々の支払いのレシート 2 枚が写った写真は 2 件の候補になり (同じ店・同じ日付でも、それぞれに合計がある完結したレシートは 2 件)、長いレシートが 2 つの紙片に分かれた写真は支払全体の合計で 1 件にまとまる。レシートとクレジットカード利用控えのような同一決済の複数の控えは二重計上されず 1 件になる
+  - 自動化: サーバー側の抽出品質は合成フィクスチャ (workers/image の `receipt_two_receipts.jpg` / `receipt_same_store_two_receipts.jpg` / `receipt_with_card_slip.jpg` / `receipt_split_long.jpg`、8 枚 × 3 回実行で 24/24 全項目一致) と実物ベンチマーク 15 枚で機械検証済み (workers/image/benchmark/README.md の 2026-09-03 の再実測)。アプリ画面での取込確認 (実写真相当の画像をフォトライブラリへ投入 → 候補リスト表示) は未実施のため未検証
 
 #### 動作確認 (2026-09-02、issue #40 の項目のみ。他の項目はこの実行では再テストしていない)
 
