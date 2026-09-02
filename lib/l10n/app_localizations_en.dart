@@ -385,6 +385,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionDetailProvenance => 'Source';
 
   @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'You can give up to $count instructions per image',
+      one: 'You can give 1 instruction per image',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailAnalysisInstructions => 'Instructions to the AI';
 
   @override

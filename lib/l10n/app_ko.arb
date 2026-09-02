@@ -109,6 +109,7 @@
   "transactionDetailDeleted": "거래 내역이 삭제되었습니다",
   "transactionDetailNotFound": "이 내역은 삭제되었습니다",
   "transactionDetailProvenance": "출처",
+  "captureInstructionLimitReached": "{count, plural, other{추가 지시는 이미지 1장당 {count}회까지입니다}}",
   "transactionDetailAnalysisInstructions": "AI에 보낸 지시",
   "transactionDetailExcludeFromAggregation": "합계에서 제외",
   "transactionDetailExcludeFromAggregationDescription": "켜면 합계와 카테고리별 내역에 포함되지 않습니다.",

@@ -130,6 +130,7 @@
   "transactionDetailDeleted": "明細を削除しました",
   "transactionDetailNotFound": "この明細は削除されました",
   "transactionDetailProvenance": "出所",
+  "captureInstructionLimitReached": "{count, plural, other{追加指示は1枚の画像につき{count}回までです}}",
   "transactionDetailAnalysisInstructions": "AI への指示",
   "transactionDetailExcludeFromAggregation": "計算対象から除外",
   "transactionDetailExcludeFromAggregationDescription": "オンにすると合計・カテゴリ内訳に含めません",

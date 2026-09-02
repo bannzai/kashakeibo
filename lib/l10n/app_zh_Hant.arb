@@ -109,6 +109,7 @@
   "transactionDetailDeleted": "交易記錄已刪除",
   "transactionDetailNotFound": "這筆明細已刪除",
   "transactionDetailProvenance": "來源",
+  "captureInstructionLimitReached": "{count, plural, other{每張圖片最多可補充指示 {count} 次}}",
   "transactionDetailAnalysisInstructions": "給 AI 的指示",
   "transactionDetailExcludeFromAggregation": "不計入總額",
   "transactionDetailExcludeFromAggregationDescription": "開啟後，將不計入總額和分類明細",

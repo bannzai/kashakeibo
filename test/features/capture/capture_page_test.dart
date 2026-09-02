@@ -517,6 +517,12 @@ void main() {
     await tester.tap(find.text(AppLocalizationsEn().captureManualFallback));
     await tester.pumpAndSettle();
 
+    // 解析結果が無い手動入力フォールバックでは、AI への追加指示は出せない
+    expect(
+      find.text(AppLocalizationsEn().captureInstructionOpen),
+      findsNothing,
+    );
+
     // 空のフォームになる (店名・金額とも未入力)
     expect(
       tester
@@ -1269,5 +1275,55 @@ void main() {
     expect(captureFakes.addTransaction.calls.single.analysisInstructions, [
       'Look again',
     ]);
+  });
+
+  testWidgets('追加指示: 上限の 10 回に達するとボタンが無効になり上限の案内を表示する', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => buildImageAnalysisResult(),
+    );
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: <CaptureFlowResult?>[],
+      analyticsEvents: <String>[],
+    );
+    await tester.pumpAndSettle();
+
+    for (var turn = 1; turn <= maxAnalysisInstructionTurnCount; turn++) {
+      await sendAnalysisInstruction(tester: tester, instruction: 'Turn $turn');
+    }
+    expect(
+      captureFakes.analyzedInstructionTurns.last,
+      hasLength(maxAnalysisInstructionTurnCount),
+    );
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(
+              OutlinedButton,
+              AppLocalizationsEn().captureInstructionOpen,
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      find.text(
+        AppLocalizationsEn().captureInstructionLimitReached(
+          maxAnalysisInstructionTurnCount,
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    // 上限到達後にボタンを押しても何も起きない (Worker への送信も増えない)
+    await tester.tap(find.text(AppLocalizationsEn().captureInstructionOpen));
+    await tester.pumpAndSettle();
+    expect(
+      captureFakes.analyzedInstructionTurns,
+      hasLength(maxAnalysisInstructionTurnCount + 1),
+    );
   });
 }

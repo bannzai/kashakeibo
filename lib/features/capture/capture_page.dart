@@ -363,7 +363,11 @@ class CapturePage extends HookConsumerWidget {
 
     /// 追加指示シートを開き、入力された指示を履歴に積んで同じ画像を読み直す。
     /// 直前の解析結果 (ユーザーの手修正前の AI 出力) を、指示の文脈として一緒に送る。
+    /// 上限に達した履歴では何もしない (Worker の 400 で有効な結果を失わないよう送信前に止める)。
     Future<void> instructAndReanalyze() async {
+      if (instructionTurns.value.length >= maxAnalysisInstructionTurnCount) {
+        return;
+      }
       unawaited(logAnalyticsEvent(name: 'capture_instruction_open'));
       final instruction = await showModalBottomSheet<String>(
         context: context,
@@ -799,12 +803,16 @@ class _CaptureConfirmForm extends HookWidget {
             imageBytes: imageBytes,
             note: l10n.captureSourceImageNote,
           ),
-          const SizedBox(height: 14),
-          _AnalysisInstructionSection(
-            instructionTurns: instructionTurns,
-            currentTransactionCount: analyzedTransaction == null ? 0 : 1,
-            onInstruct: submitting.value ? null : onInstruct,
-          ),
+          // 手動入力フォールバック (解析結果なし) では、指示の文脈になる直前の結果が無く
+          // 読み直してもスキャン枠を消費するだけのため、追加指示のセクションごと出さない。
+          if (analyzedTransaction != null) ...[
+            const SizedBox(height: 14),
+            _AnalysisInstructionSection(
+              instructionTurns: instructionTurns,
+              currentTransactionCount: 1,
+              onInstruct: submitting.value ? null : onInstruct,
+            ),
+          ],
           const SizedBox(height: 18),
           _TransactionFields(
             titleController: titleController,
@@ -1199,6 +1207,8 @@ class _AnalysisInstructionSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final instructionLimitReached =
+        instructionTurns.length >= maxAnalysisInstructionTurnCount;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1233,7 +1243,7 @@ class _AnalysisInstructionSection extends StatelessWidget {
           const SizedBox(height: 4),
         ],
         OutlinedButton.icon(
-          onPressed: onInstruct,
+          onPressed: instructionLimitReached ? null : onInstruct,
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(44),
             foregroundColor: AppColors.onSurface,
@@ -1242,6 +1252,17 @@ class _AnalysisInstructionSection extends StatelessWidget {
           icon: const Icon(Icons.chat_bubble_outline, size: 18),
           label: Text(l10n.captureInstructionOpen),
         ),
+        if (instructionLimitReached)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              l10n.captureInstructionLimitReached(
+                maxAnalysisInstructionTurnCount,
+              ),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: AppColors.neutral600),
+            ),
+          ),
       ],
     );
   }
@@ -1307,8 +1328,13 @@ class _InstructionChatBubble extends StatelessWidget {
 }
 
 // 追加指示 1 件の最大文字数。Worker 側の受け付け上限 (workers/image/src/analysis.ts の
-// maxAnalysisInstructionLength) と同じ値にし、送信前に入力側で打ち切る。
+// maxAnalysisInstructionLength。書記素単位で、TextField.maxLength と同じ数え方) と同じ値にし、送信前に入力側で打ち切る。
 const _maxAnalysisInstructionLength = 500;
+
+/// 1 枚の画像につき出せる追加指示の回数。Worker 側の受け付け上限 (workers/image/src/analysis.ts の
+/// maxAnalysisInstructionTurnCount) と同じ値にし、超過分は Worker の 400 を待たず送信前に止める
+/// (400 になると履歴に積んだ指示を再試行でも送り続け、直前の有効な結果へ戻れないため)。
+const maxAnalysisInstructionTurnCount = 10;
 
 /// 追加指示の入力シート。指示文を入力し「送信して読み直す」で文字列を pop で返す (閉じた場合は null)。
 class _AnalysisInstructionSheet extends HookWidget {
@@ -1321,7 +1347,9 @@ class _AnalysisInstructionSheet extends HookWidget {
     // 送信ボタンの活性 (空文字では送れない) を入力に追従させるための状態。
     final instructionText = useState('');
 
-    return Padding(
+    // キーボード表示後の高さに内容が収まらない環境 (横向き・小さい画面・大きな文字) でも
+    // 送信ボタンまでスクロールできるよう、候補の修正シートと同じく SingleChildScrollView で包む。
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         20,
         18,

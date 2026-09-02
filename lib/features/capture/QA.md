@@ -133,8 +133,10 @@ Simulator kashakeibo-issue-67-iOS26.5 の debug ビルド (kashakeibo-dev + dev 
   - 自動化: manual
 - [ ] **追加指示による読み直し**: 確認画面 (単一フォーム・候補リストのどちらでも) の「AI に指示して読み直す」でシートが開き、指示 (例: 「一番下の明細が読めていない」) を送信すると「AI 解析中」を経て確認画面が作り直され、元画像サムネイルの下に「AI への追加指示」としてユーザーの指示の吹き出しと AI の「読み直して n 件になりました」の吹き出しが並ぶ。未入力では送信できず、シートを閉じると読み直さない (lib/features/capture/README.md)
   - 自動化: manual (widget テスト test/features/capture/capture_page_test.dart の「追加指示:」で分岐は網羅済み)
+  - ⏭️ 未検証 (2026-09-02、PR #79): シミュレータでの画面確認は未実施。無人実行のためローカル Simulator の長時間占有を開始せず、simtunnel は撮影フローに必要な App Check debug token が手元に無く Worker が 401 になる。加えて dev Worker に本機能 (`instructionTurns`) が未デプロイ。Worker を dev にデプロイした後の run-qa で確認する
 - [ ] **追加指示の履歴の保存**: 追加指示を出してから登録した明細を明細詳細で開くと、出所チップの下に「AI への指示」として指示文が表示される。指示を出さずに登録した明細には表示されない
   - 自動化: manual
+  - ⏭️ 未検証 (2026-09-02、PR #79): 上の「追加指示による読み直し」と同じ理由で未実施 (widget テスト test/features/transaction_detail/transaction_detail_page_test.dart で表示・非表示は検証済み)
 
 #### 動作確認
 <details>

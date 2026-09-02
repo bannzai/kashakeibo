@@ -291,6 +291,15 @@
   "transactionDetailDeleted": "Transaction deleted",
   "transactionDetailNotFound": "This transaction was deleted",
   "transactionDetailProvenance": "Source",
+  "captureInstructionLimitReached": "{count, plural, =1{You can give 1 instruction per image} other{You can give up to {count} instructions per image}}",
+  "@captureInstructionLimitReached": {
+    "description": "Note shown in place of the enabled re-read button once the per-image instruction limit is reached",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "transactionDetailAnalysisInstructions": "Instructions to the AI",
   "@transactionDetailAnalysisInstructions": {
     "description": "Label of the list of instructions the user gave the AI, shown on the transaction detail"

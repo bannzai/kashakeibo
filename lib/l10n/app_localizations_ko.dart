@@ -372,6 +372,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transactionDetailProvenance => '출처';
 
   @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '추가 지시는 이미지 1장당 $count회까지입니다',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailAnalysisInstructions => 'AI에 보낸 지시';
 
   @override

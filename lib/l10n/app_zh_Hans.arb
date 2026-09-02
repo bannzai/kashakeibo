@@ -109,6 +109,7 @@
   "transactionDetailDeleted": "交易记录已删除",
   "transactionDetailNotFound": "这笔明细已删除",
   "transactionDetailProvenance": "来源",
+  "captureInstructionLimitReached": "{count, plural, other{每张图片最多可补充指示 {count} 次}}",
   "transactionDetailAnalysisInstructions": "给 AI 的指示",
   "transactionDetailExcludeFromAggregation": "不计入总额",
   "transactionDetailExcludeFromAggregationDescription": "开启后，将不计入总额和分类明细",

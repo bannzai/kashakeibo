@@ -758,6 +758,12 @@ abstract class AppLocalizations {
   /// **'Source'**
   String get transactionDetailProvenance;
 
+  /// Note shown in place of the enabled re-read button once the per-image instruction limit is reached
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{You can give 1 instruction per image} other{You can give up to {count} instructions per image}}'**
+  String captureInstructionLimitReached(int count);
+
   /// Label of the list of instructions the user gave the AI, shown on the transaction detail
   ///
   /// In en, this message translates to:

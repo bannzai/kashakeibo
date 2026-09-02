@@ -368,6 +368,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transactionDetailProvenance => '来源';
 
   @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '每张图片最多可补充指示 $count 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailAnalysisInstructions => '给 AI 的指示';
 
   @override
@@ -1082,6 +1092,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get transactionDetailProvenance => '来源';
 
   @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '每张图片最多可补充指示 $count 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailAnalysisInstructions => '给 AI 的指示';
 
   @override
@@ -1793,6 +1813,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get transactionDetailProvenance => '來源';
+
+  @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '每張圖片最多可補充指示 $count 次',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get transactionDetailAnalysisInstructions => '給 AI 的指示';
