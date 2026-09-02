@@ -7,7 +7,7 @@
 // テストでは実際の Google JWK / JWKS 取得を伴わないスタブ検証器で認可ロジックを検証できるようにしている
 // (実際の検証器の組み立ては index.ts を参照)。
 import type { ImageAnalysisResult } from "./analysis";
-import { analyzeImageWithGemini, GeminiRequestError } from "./analysis";
+import { analyzeImageWithGemini, GeminiRequestError, parseAnalysisInstructionTurns } from "./analysis";
 import type { VerifyFirebaseAppCheckToken } from "./app_check";
 import {
   fetchAuditLogs,
@@ -685,7 +685,9 @@ async function handleImageDelete(
 
 /**
  * アップロード済み画像を Gemini で解析し、抽出した明細を返す (POST /analyses)。
- * リクエスト本体は `{"imageObjectKey": "users/{uid}/..."}`。画像はクライアントから再送させず R2 から読む。
+ * リクエスト本体は `{"imageObjectKey": "users/{uid}/...", "instructionTurns"?: [...]}`。画像はクライアントから再送させず R2 から読む。
+ * `instructionTurns` はユーザーの追加指示による再解析の履歴 (src/analysis.ts の AnalysisInstructionTurn) で、
+ * 再解析も通常の解析と同じく回数を消費する (Gemini 呼び出しが発生するため)。
  * 本人の uid 配下のキーだけを許可し、解析回数は日次上限 (maxDailyAnalysisCount*) と
  * 月次の無料枠 (monthlyFreeScanLimit。超過時はプレミアム entitlement が必要) で守る。
  * 冪等 (副作用は日次・月次カウンターの加算のみ)。
@@ -695,9 +697,9 @@ async function handleImageAnalysis(
   env: ImageWorkerEnv,
   verifiedFirebaseUser: VerifiedFirebaseUser,
 ): Promise<Response> {
-  let requestBody: { imageObjectKey?: unknown };
+  let requestBody: { imageObjectKey?: unknown; instructionTurns?: unknown };
   try {
-    requestBody = (await request.json()) as { imageObjectKey?: unknown };
+    requestBody = (await request.json()) as { imageObjectKey?: unknown; instructionTurns?: unknown };
   } catch (error) {
     return jsonResponse(400, { error: "JSON のリクエストボディが必要です" });
   }
@@ -707,6 +709,11 @@ async function handleImageAnalysis(
   const resolvedKey = validateOwnImageObjectKey(requestBody.imageObjectKey, verifiedFirebaseUser);
   if ("errorResponse" in resolvedKey) {
     return resolvedKey.errorResponse;
+  }
+  // 追加指示の検証は回数の加算 (課金) より前に行い、不正なリクエストで無料枠を消費させない
+  const parsedInstructionTurns = parseAnalysisInstructionTurns(requestBody.instructionTurns);
+  if ("error" in parsedInstructionTurns) {
+    return jsonResponse(400, { error: parsedInstructionTurns.error });
   }
 
   // 本文は Gemini 呼び出しの直前まで読まず、メタデータ (head) だけで事前検査する
@@ -779,6 +786,7 @@ async function handleImageAnalysis(
       imageContentType,
       geminiApiKey: env.GEMINI_API_KEY,
       geminiModel: env.GEMINI_MODEL,
+      instructionTurns: parsedInstructionTurns.instructionTurns,
     });
   } catch (error) {
     // 解析失敗の詳細はログに残しつつ、クライアントには 502 として伝える (クライアントは手動入力へフォールバックする)
