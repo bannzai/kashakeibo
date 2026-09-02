@@ -16,7 +16,7 @@ App Store Connect の App Privacy と Google Play のデータセーフティに
 | 購入履歴 | RevenueCat SDK (`purchases_flutter`)。全ユーザーを uid で `logIn` するため購入前でも顧客レコードができる | RevenueCat。Worker が RevenueCat API v2 で entitlement を照会する (`workers/image/src/entitlement.ts`) | アプリの機能 (プレミアム判定)、分析 (RevenueCat 公式が両方の申告を最低要件としている) | 紐づく | しない |
 | アプリの操作 (画面遷移・タップ等のイベント) | Firebase Analytics (`lib/utils/analytics/analytics.dart`。`.claude/rules/analytics.md` に従い各操作で記録) | Google Analytics for Firebase。パラメータに transactionID 等の自社 ID を含むため、自社データと結合すれば本人に再連結できる | 分析 | 紐づく | しない |
 | おおよその位置情報 | Firebase Analytics が端末の IP アドレス (マスク済み) から導出する (SDK の既定動作) | Google Analytics for Firebase | 分析 | 紐づく | しない |
-| IP アドレス | Worker がアップロード・解析・操作履歴取得のリクエストで `CF-Connecting-IP` を読む (`workers/image/src/handler.ts`)。Firebase Auth もサインアップ時の不正防止に収集する | Worker の日次カウンター (Durable Object) に `ip:{IP アドレス}` をキーとして保存し、2 日後にアラームで削除する (`workers/image/src/usage_counter.ts`)。uid のカウンターとは別キーで、本人の記録には紐付けない | 不正行為の防止 (IP 単位の日次回数制限) | 紐づかない | しない |
+| IP アドレス | Worker がアップロード・解析・操作履歴取得のリクエストで `CF-Connecting-IP` を読む (`workers/image/src/handler.ts`)。Firebase Auth もサインアップ時の不正防止に収集する | Worker の日次カウンター (Durable Object) に `ip:{IP アドレス}` をキーとして保存し、2 日後にアラームで削除する (`workers/image/src/usage_counter.ts`)。uid のカウンターとは別キーだが、同じリクエストで検証済み uid と IP を同時に扱うため収集時点で本人と関連付けられる | 不正行為の防止 (IP 単位の日次回数制限) | 紐づく | しない |
 | デバイス ID または他の ID | Firebase Analytics の app-instance ID。Android では Analytics SDK が広告 ID (`AD_ID` 権限) も既定で収集する。Firebase App Check の端末証明トークン (App Attest / Play Integrity、`lib/utils/firebase_app_check/`) | Google Analytics for Firebase、Firebase App Check | 分析 (Analytics)、不正行為の防止 (App Check は Worker が正規のアプリからのリクエストか判定するために必須) | 紐づく | しない |
 
 回答の項目に入れていないもの:
@@ -45,7 +45,7 @@ App Store Connect の App Privacy と Google Play のデータセーフティに
 
 ## App Store (App Privacy)
 
-`fastlane/app_privacy_details.json` の 10 エントリと上表の対応。IP アドレス (OTHER_DATA) 以外は `DATA_LINKED_TO_YOU` で、トラッキングは無し。
+`fastlane/app_privacy_details.json` の 10 エントリと上表の対応。すべて `DATA_LINKED_TO_YOU` で、トラッキングは無し。
 
 | category | purposes | 上表の行 |
 |---|---|---|
@@ -58,7 +58,7 @@ App Store Connect の App Privacy と Google Play のデータセーフティに
 | COARSE_LOCATION | ANALYTICS | おおよその位置情報 |
 | PRODUCT_INTERACTION | ANALYTICS | アプリの操作 |
 | DEVICE_ID | ANALYTICS, APP_FUNCTIONALITY | デバイス ID または他の ID (APP_FUNCTIONALITY は App Check による不正リクエストの防止) |
-| OTHER_DATA | APP_FUNCTIONALITY | IP アドレス (Worker の回数制限。唯一 `DATA_NOT_LINKED_TO_YOU`) |
+| OTHER_DATA | APP_FUNCTIONALITY | IP アドレス (Worker の回数制限) |
 
 回答を変えた時は `bash ~/.claude/skills/appstore-app-privacy/scripts/privacy_apply.sh --app-identifier com.bannzai.kashakeibo --username <Apple ID> --team-id <ITC team ID> --json-path fastlane/app_privacy_details.json` で再適用する (spaceship セッションが失効していたら agent は `fastlane spaceauth` を実行せず、通常のターミナルでの実行を依頼する)。
 
