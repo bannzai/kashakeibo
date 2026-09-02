@@ -2,7 +2,7 @@
 
 App Store Connect の App Privacy と Google Play のデータセーフティに回答する内容を、実装から読み取った収集実態としてまとめる。回答が実態とずれないよう、データの経路 (収集元・保存先・送信先) を変える変更をした時はこの文書と `fastlane/app_privacy_details.json` を同じ PR で更新する。
 
-- App Store の回答の正は `fastlane/app_privacy_details.json`。appstore-app-privacy skill の `privacy_apply.sh` で App Store Connect へ適用・publish・一致検証する (公開 ASC API 非対応のため fastlane spaceship の Web セッションを使う)。2026-08-22 に publish 済み ( https://github.com/bannzai/kashakeibo/pull/63 )
+- App Store の回答の正は `fastlane/app_privacy_details.json`。appstore-app-privacy skill の `privacy_apply.sh` で App Store Connect へ適用・publish・一致検証する (公開 ASC API 非対応のため fastlane spaceship の Web セッションを使う)。2026-08-22 に初回 publish 済み ( https://github.com/bannzai/kashakeibo/pull/63 )。以降の JSON の変更は下記「App Store (App Privacy)」の再適用手順で反映する
 - Google Play のデータセーフティは Play Console の Web UI でしか回答できない。本文書の「Google Play データセーフティ」の表をそのまま転記する。Play Console へのアプリ登録は https://github.com/bannzai/kashakeibo/issues/38 で行う
 
 ## 収集しているデータと経路
@@ -16,11 +16,11 @@ App Store Connect の App Privacy と Google Play のデータセーフティに
 | 購入履歴 | RevenueCat SDK (`purchases_flutter`)。全ユーザーを uid で `logIn` するため購入前でも顧客レコードができる | RevenueCat。Worker が RevenueCat API v2 で entitlement を照会する (`workers/image/src/entitlement.ts`) | アプリの機能 (プレミアム判定)、分析 (RevenueCat 公式が両方の申告を最低要件としている) | 紐づく | しない |
 | アプリの操作 (画面遷移・タップ等のイベント) | Firebase Analytics (`lib/utils/analytics/analytics.dart`。`.claude/rules/analytics.md` に従い各操作で記録) | Google Analytics for Firebase。パラメータに transactionID 等の自社 ID を含むため、自社データと結合すれば本人に再連結できる | 分析 | 紐づく | しない |
 | おおよその位置情報 | Firebase Analytics が端末の IP アドレス (マスク済み) から導出する (SDK の既定動作) | Google Analytics for Firebase | 分析 | 紐づく | しない |
+| IP アドレス | Worker がアップロード・解析のリクエストで `CF-Connecting-IP` を読む (`workers/image/src/handler.ts`)。Firebase Auth もサインアップ時の不正防止に収集する | Worker の日次カウンター (Durable Object) に `ip:{IP アドレス}` をキーとして保存し、2 日後にアラームで削除する (`workers/image/src/usage_counter.ts`)。uid のカウンターとは別キーで、本人の記録には紐付けない | 不正行為の防止 (IP 単位の日次回数制限) | 紐づかない | しない |
 | デバイス ID または他の ID | Firebase Analytics の app-instance ID。Android では Analytics SDK が広告 ID (`AD_ID` 権限) も既定で収集する。Firebase App Check の端末証明トークン (App Attest / Play Integrity、`lib/utils/firebase_app_check/`) | Google Analytics for Firebase、Firebase App Check | 分析 (Analytics)、不正行為の防止 (App Check は Worker が正規のアプリからのリクエストか判定するために必須) | 紐づく | しない |
 
-回答の項目に入れていないもの (保存しない・一時的に参照するだけの情報):
+回答の項目に入れていないもの:
 
-- IP アドレス: Worker がアップロード・解析の日次回数制限に `CF-Connecting-IP` をカウンターのキーとして使う (`workers/image/src/handler.ts`。カウンターは 2 日後に削除)。Firebase Auth も不正防止のために参照する。ユーザーのデータとして保存しないため、上表では Analytics の「おおよその位置情報」に反映するだけで独立した項目にしていない
 - 端末内の他の写真: ユーザーが選んだ 1 枚だけを受け取る。フォトライブラリ全体は読まない
 
 ## 収集していないデータ・トラッキングなし
@@ -34,9 +34,16 @@ App Store Connect の App Privacy と Google Play のデータセーフティに
 
 削除の手順と削除されるデータは https://bannzai.github.io/kashakeibo/AccountDeletion (`docs/AccountDeletion.md`) が正。設定画面の「アカウントを削除」で、Firebase Auth・Firestore の明細・R2 の画像はその場で削除され、BigQuery の操作履歴は Worker の遅延パージで数時間以内に削除される。RevenueCat の購入履歴は Apple / Google の決済プラットフォームと RevenueCat の定めに従い、提供者が任意に削除できない。
 
+アカウント削除後も次のデータが残る (いずれも uid だけを持ち、氏名・メールアドレス・明細・画像は含まない):
+
+- RevenueCat の顧客レコード (app user ID = uid)。全ユーザーを `Purchases.logIn` で登録する一方、アカウント削除 (`lib/provider/account.dart` の `FirebaseDeleteAccount`) は RevenueCat の顧客を削除しない。削除依頼があれば RevenueCat の Dashboard / REST API で提供者が削除する
+- Worker の回数カウンター (`scan:uid:{uid}` / `uid:{uid}`)。削除経路は無く、月次カウンターは初回加算から 40 日後、日次カウンターは 2 日後にアラームで自動削除される (`workers/image/src/usage_counter.ts`)
+
+`docs/AccountDeletion.md` は「購入履歴以外に提供者が保持するデータはない」と案内しており、上記の残存データとずれている。案内の改訂か、アカウント削除時に RevenueCat の顧客削除・カウンター削除を実装するかは別途判断する。
+
 ## App Store (App Privacy)
 
-`fastlane/app_privacy_details.json` の 9 エントリと上表の対応。すべて `DATA_LINKED_TO_YOU` で、トラッキングは無し。
+`fastlane/app_privacy_details.json` の 10 エントリと上表の対応。IP アドレス (OTHER_DATA) 以外は `DATA_LINKED_TO_YOU` で、トラッキングは無し。
 
 | category | purposes | 上表の行 |
 |---|---|---|
@@ -48,7 +55,8 @@ App Store Connect の App Privacy と Google Play のデータセーフティに
 | OTHER_FINANCIAL_INFO | APP_FUNCTIONALITY | その他の財務情報 |
 | COARSE_LOCATION | ANALYTICS | おおよその位置情報 |
 | PRODUCT_INTERACTION | ANALYTICS | アプリの操作 |
-| DEVICE_ID | ANALYTICS | デバイス ID または他の ID |
+| DEVICE_ID | ANALYTICS, APP_FUNCTIONALITY | デバイス ID または他の ID (APP_FUNCTIONALITY は App Check による不正リクエストの防止) |
+| OTHER_DATA | APP_FUNCTIONALITY | IP アドレス (Worker の回数制限。唯一 `DATA_NOT_LINKED_TO_YOU`) |
 
 回答を変えた時は `bash ~/.claude/skills/appstore-app-privacy/scripts/privacy_apply.sh --app-identifier com.bannzai.kashakeibo --username <Apple ID> --team-id <ITC team ID> --json-path fastlane/app_privacy_details.json` で再適用する (spaceship セッションが失効していたら agent は `fastlane spaceauth` を実行せず、通常のターミナルでの実行を依頼する)。
 
@@ -93,7 +101,7 @@ Play Console → ポリシー → アプリのコンテンツ → データセ�
 | 名前 | **任意** (アカウント連携した人だけ) | アカウント管理 |
 | メールアドレス | **任意** (アカウント連携した人だけ) | アカウント管理 |
 | ユーザー ID | 必須 (起動時に匿名認証で発行) | アプリの機能、アカウント管理 |
-| 購入履歴 | 必須 (全ユーザーを RevenueCat に登録) | アプリの機能、分析 |
+| 購入履歴 | **任意** (購入した人だけ。RevenueCat の顧客レコード自体は全ユーザーにできるが、それは上のユーザー ID) | アプリの機能、分析 |
 | その他の財務情報 | 必須 (家計簿の記録そのもの) | アプリの機能 |
 | おおよその位置情報 | 必須 (Analytics の既定動作) | 分析 |
 | 写真 | **任意** (手入力だけでも使える) | アプリの機能 |
@@ -104,13 +112,27 @@ Play Console → ポリシー → アプリのコンテンツ → データセ�
 
 - 「共有」はすべて**なし**。「広告またはマーケティング」目的はすべて**なし**
 - プライバシーポリシー URL: https://bannzai.github.io/kashakeibo/PrivacyPolicy
-- 広告 ID の申告 (ポリシー → アプリのコンテンツ → 広告 ID): Firebase Analytics の Android SDK (`play-services-measurement-api`) が `com.google.android.gms.permission.AD_ID` をマニフェストに含めるため「**はい**」、用途は「**分析**」。広告 ID を使わない回答にするなら `AndroidManifest.xml` に `google_analytics_adid_collection_enabled=false` を入れて収集を止めてから回答を変える
+- IP アドレスはデータセーフティのデータタイプに該当する項目が無いため申告しない。収集の事実はプライバシーポリシー (`docs/PrivacyPolicy.md` の「提供者が収集する情報」) で開示している
+- 広告 ID の申告 (ポリシー → アプリのコンテンツ → 広告 ID): Firebase Analytics の Android SDK (`play-services-measurement-api`) が `com.google.android.gms.permission.AD_ID` をマニフェストに含めるため「**はい**」、用途は「**分析**」。広告 ID を使わない回答にするなら、`AndroidManifest.xml` に `<meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />` で収集を止めたうえで、`<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />` で SDK からマージされる権限も取り除いてから回答を変える (権限が manifest に残ったまま「いいえ」と回答すると Play Console が不一致として拒否する)
 
 ### 5. データセーフティ以外の残りフォーム
 
 | フォーム | 回答 |
 |---|---|
-| アプリのアクセス権 | **すべての機能を制限なく利用できる** (匿名認証で起動し、ログインなしで家計簿を使える。プレミアムは購入で解放される機能で、ログインによる制限ではない) |
+| アプリのアクセス権 | **一部の機能が制限される** (ログインは不要だが、無料枠 (月 50 スキャン) を超えるスキャンと 3 ヶ月より前の履歴はプレミアムの定期購入で解放されるため)。「手順」に下記の文言を書く |
 | 広告 | 広告を含まない |
 | コンテンツレーティング (IARC) | 暴力・性的表現・冒涜的表現・薬物・ギャンブルすべて「なし」。ユーザー同士の交流「なし」 (共有・チャット機能は無い) |
 | ターゲット層 | 子供向けではない (家計簿・クレジットカード明細を扱うため 13 歳以上を対象にする) |
+
+### アプリのアクセス権「手順」に貼る文言
+
+```
+ログインは不要です。起動すると匿名アカウントが自動で作られ、レシート・明細の撮影、
+明細の記録・集計など中心機能をすべて利用できます。
+月 50 回の無料スキャン枠を超えるスキャンと、3 ヶ月より前の履歴の閲覧はプレミアム
+(定期購入: 月額 / 年額) で解放されます。ペイウォールはホーム画面のスキャン残量チップ、
+または設定 > プランから開けます。審査アカウントは Play Console のライセンステスターに
+登録済みで、テスト購入で課金なしにプレミアムを確認できます。
+```
+
+ライセンステスターの登録は Play Console → 設定 → ライセンステスト で行う (Play Console 登録の #38 の後)。

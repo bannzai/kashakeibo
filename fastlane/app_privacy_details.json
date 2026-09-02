@@ -41,7 +41,12 @@
   },
   {
     "category": "DEVICE_ID",
-    "purposes": ["ANALYTICS"],
+    "purposes": ["ANALYTICS", "APP_FUNCTIONALITY"],
     "data_protections": ["DATA_LINKED_TO_YOU"]
+  },
+  {
+    "category": "OTHER_DATA",
+    "purposes": ["APP_FUNCTIONALITY"],
+    "data_protections": ["DATA_NOT_LINKED_TO_YOU"]
   }
 ]
