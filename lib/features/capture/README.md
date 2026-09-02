@@ -6,6 +6,8 @@
 Cloudflare Worker 経由の Gemini 解析で金額・日付・店名・カテゴリを抽出して、確認・修正画面を経て
 明細として登録するコア機能 (issue #7・#8)。1 枚の画像から複数の明細が読み取れた場合は候補リストで
 採用・破棄を選ぶ。共有 Extension から受け取った画像も同じ確認画面へ合流する (`features/share_import`)。
+読み取りが不十分な時は、確認画面から AI にチャット形式で追加指示 (「一番下の明細が読めていない」等) を出して
+同じ画像を読み直せ、指示の履歴は画面に残り、登録した明細にも保存される (issue #40)。
 解析の呼び出し先はクライアント SDK ではなく Worker の `POST /analyses`
 (スキャン無料枠をサーバー側で強制するため。documents/adr/0001-tech-stack.md の「画像解析」)。
 API 仕様は `workers/image/README.md` を SSOT とする。
@@ -21,6 +23,8 @@ API 仕様は `workers/image/README.md` を SSOT とする。
   - 読み取り確認 (明細 1 件・手動入力フォールバック): 元画像サムネイル (92×120) + 説明カード、店名 / 金額 / 収支種別 / カテゴリ / 日付の全項目を修正でき、「登録する」「取り直す」
   - 読み取り確認 (明細 2 件以上): 元画像サムネイル + 読み取り件数の説明カード + 候補カードのリスト。カード 1 枚 = 採用チェックボックス (既定は全件採用) + 店名 · 金額 + 取引日 · カテゴリ · 収支 + 「修正する」。破棄したカードは opacity 0.45。主ボタンは「n 件を登録する」(採用 0 件で無効)
   - 候補の修正シート: 候補 1 件を単一フォームと同じ入力項目で編集し、「変更を反映」で候補カードへ戻す
+  - AI への追加指示 (単一フォーム・候補リスト共通): 元画像サムネイルの下に「AI に指示して読み直す」ボタン。指示を 1 回以上出した後は、その上に「AI への追加指示」としてユーザーの吹き出し (accent-200・右寄せ) と AI の吹き出し (sage-100・左寄せ・スパークル。「読み直して n 件になりました」) をチャット形式で並べる。登録中と、候補リストで一部を登録済みの時 (「取り直す」と同じ理由) は無効
+  - 追加指示シート: 複数行の入力欄 (プレースホルダーは指示の例、500 文字まで) と注記「読み直しにはスキャン1回分を使います」、「送信して読み直す」(未入力では無効)
 - 登録完了トースト: sage-700 のピル「カシャッと記録!」を 2.4 秒表示 (`showCaptureRegisteredToast`)
 
 ## フロー
@@ -28,7 +32,8 @@ API 仕様は `workers/image/README.md` を SSOT とする。
 1. 取込フローの入口は 3 種類 (`CaptureEntryPoint`)。「記録する」→「カメラで撮影」は端末カメラ、「写真・スクショから選ぶ」はフォトライブラリを起動し (image_picker、長辺 1600px・JPEG 品質 85 に縮小)、共有 Extension 経由 (`features/share_import`) は受け取った画像でそのまま始まる
 2. 画像が決まると `CapturePage` を開き、UUID の `uploadImageID` を採番して `uploadCapturedImageProvider` で R2 にアップロードする
 3. 返ったオブジェクトキーで `analyzeUploadedImageProvider` (Worker の `POST /analyses`) を呼ぶ。明細が 1 件なら確認フォームの初期値にし、2 件以上なら候補リストを表示する。0 件なら失敗として扱う
-4. 「登録する」で `AddTransaction` が出所 (カメラは `receipt`、フォトライブラリ・共有 Extension は `screenshot`)・元画像キー付きの明細を保存する。初期値から 1 項目でも変更していれば `analysisAdjustedByUser: true` (出所表示は「手調整」、変更なしは「自動取込」)
+4. 「登録する」で `AddTransaction` が出所 (カメラは `receipt`、フォトライブラリ・共有 Extension は `screenshot`)・元画像キー付きの明細を保存する。初期値から 1 項目でも変更していれば `analysisAdjustedByUser: true` (出所表示は「手調整」、変更なしは「自動取込」)。AI への追加指示を出していれば、その指示文を出した順に `analysisInstructions` として一緒に保存する (指示による読み直しは AI の再解析であり、手調整の判定には含めない)
+   - 「AI に指示して読み直す」→ 指示を送信すると、それまでの指示の履歴 (指示文 + その時点で見えていた AI の解析結果) に新しい指示を積み、同じアップロード済み画像で `POST /analyses` を `instructionTurns` 付きで呼び直す。読み直し中は「AI 解析中」の表示になり、結果で確認フォーム・候補リストを作り直す (候補の採用・修正状態はリセットされる)。読み直しに失敗した場合は失敗画面になり、「もう一度読み取る」は同じ履歴で再実行する
 5. 候補リストでは採用した候補を上から順に登録する。途中で失敗した場合は登録済みの候補をリストから外してエラー文をそのまま表示し、残りの候補だけを再登録できる (二重登録しない)
 6. アップロードまたは解析に失敗した場合は失敗画面へ。「もう一度読み取る」は同じ `uploadImageID` で再試行 (孤児画像を作らない)、「手動で入力する」は空フォーム (アップロード済みなら画像は紐づけたまま、`analysisAdjustedByUser: true`)
    - 解析が無料枠超過 (`ScanQuotaExceededException`。Worker の 402) で拒否された場合は失敗画面の上にペイウォールを開き、購入・復元でプレミアムになれば同じアップロード済み画像で解析だけをやり直す。閉じた場合は失敗画面に戻り、手動入力・取り直しを選べる
@@ -41,11 +46,14 @@ API 仕様は `workers/image/README.md` を SSOT とする。
 - 保存先: `/users/{userID}/transactions/{id}` の `Transaction` (`source` は `receipt` / `screenshot`、`sourceImageObjectKey`、`analysisAdjustedByUser`)
 - 1 枚の画像から登録した複数の明細は、同じ `sourceImageObjectKey` を共有する (元画像は 1 つ)
 - 解析結果: `ImageAnalysisResult` (`lib/features/capture/image_analysis_client.dart`)。Worker が Flutter 側 Entity と同じ enum 名で `type` / `category` を返す契約
+- 追加指示の往復: `AnalysisInstructionTurn` (同ファイル。`previousTransactions` = 指示を出した時点の解析結果、`instruction` = 指示文)。解析はステートレスで Gemini 側に対話が残らないため、読み直しのたびに履歴の全件を Worker へ送る。登録する明細には指示文だけを `Transaction.analysisInstructions` として残し、明細詳細 (`features/transaction_detail`) で見返せる
 - 今月のスキャン回数と無料枠: `ScanQuota` (同ファイル。Worker の `GET /analyses/quota`)。残量 = `monthlyFreeScanLimit - monthlyScanCount`。プレミアムかどうかは含まれず `lib/provider/purchase.dart` の `isPremiumProvider` が持つ
 - 取引日は Worker が `YYYY-MM-DD` で返し、読み取れない場合は null (フォームの既定値は今日)
 
 ## 有効期限・制約
 
-- 解析は Worker の日次上限 (uid 別・接続元 IP 別・全体。429) と、月次の無料枠 (月 50 スキャン。超過時はプレミアム entitlement が必要。402)、およびプレミアムの月次上限 (月 1,000 スキャン。429。workers/image の `monthlyPremiumScanLimit`) の対象。無料枠の判定はサーバー側 (workers/image) が正で、クライアントの残量表示は体験のための補助。手動入力は消費しない
+- 解析は Worker の日次上限 (uid 別・接続元 IP 別・全体。429) と、月次の無料枠 (月 50 スキャン。超過時はプレミアム entitlement が必要。402)、およびプレミアムの月次上限 (月 1,000 スキャン。429。workers/image の `monthlyPremiumScanLimit`) の対象。無料枠の判定はサーバー側 (workers/image) が正で、クライアントの残量表示は体験のための補助。手動入力は消費しない。追加指示による読み直しも Gemini 呼び出しを伴うため、1 回ごとに通常の解析と同じく消費する (シートに注記を出す)
+- 追加指示は 1 枚の画像につき 10 回・1 件 500 文字まで (workers/image の `maxAnalysisInstructionTurnCount` / `maxAnalysisInstructionLength`)。文字数は入力欄で打ち切り、回数は Worker が 400 で拒否した時に失敗画面へエラー文をそのまま表示する
+- 追加指示を出せるのは確認画面 (解析結果がある状態) だけで、失敗画面 (明細 0 件・通信エラー) からは出せない。明細が 1 件も読めない画像への指示は、まず「もう一度読み取る」か手動入力で対応する
 - 撮影フローの中断時に画像削除まで失敗した場合、どこからも参照されない画像が R2 に残る (アカウント削除時の全消去で回収される)
 - DEBUG ビルドでは開発者メニュー (`features/debug`) の「サンプルレシートで撮影フローを試す」で、端末カメラの無いシミュレータでも描画したレシート画像でフローを通せる
