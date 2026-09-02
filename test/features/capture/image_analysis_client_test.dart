@@ -20,6 +20,7 @@ void main() {
         late http.Request capturedRequest;
         final imageAnalysisResult = await analyzeImage(
           imageObjectKey: 'users/uid-a/uuid.png',
+          instructionTurns: const [],
           firebaseIdToken: 'test-id-token',
           firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient((request) async {
@@ -71,9 +72,61 @@ void main() {
       },
     );
 
+    test('追加指示がある時は instructionTurns (直前の結果と指示) を JSON body に含める', () async {
+      late http.Request capturedRequest;
+      await analyzeImage(
+        imageObjectKey: 'users/uid-a/uuid.png',
+        instructionTurns: const [
+          AnalysisInstructionTurn(
+            previousTransactions: [
+              AnalyzedTransaction(
+                title: 'スーパーマーケット',
+                amount: 1280,
+                transactionDate: '2026-08-16',
+                type: TransactionType.expense,
+                category: TransactionCategory.food,
+              ),
+            ],
+            instruction: '一番下の明細が読めていない',
+          ),
+        ],
+        firebaseIdToken: 'test-id-token',
+        firebaseAppCheckToken: 'test-app-check-token',
+        httpClient: MockClient((request) async {
+          capturedRequest = request;
+          return http.Response(
+            jsonEncode({'transactions': <Map<String, dynamic>>[]}),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+        baseUrl: testBaseUrl,
+      );
+
+      // Worker の契約 (workers/image/README.md の POST /analyses) と同じ形で送る
+      expect(jsonDecode(capturedRequest.body), {
+        'imageObjectKey': 'users/uid-a/uuid.png',
+        'instructionTurns': [
+          {
+            'previousTransactions': [
+              {
+                'title': 'スーパーマーケット',
+                'amount': 1280,
+                'transactionDate': '2026-08-16',
+                'type': 'expense',
+                'category': 'food',
+              },
+            ],
+            'instruction': '一番下の明細が読めていない',
+          },
+        ],
+      });
+    });
+
     test('取引日が読み取れなかった明細は transactionDate が null になる', () async {
       final imageAnalysisResult = await analyzeImage(
         imageObjectKey: 'users/uid-a/uuid.png',
+        instructionTurns: const [],
         firebaseIdToken: 'test-id-token',
         firebaseAppCheckToken: 'test-app-check-token',
         httpClient: MockClient(
@@ -106,6 +159,7 @@ void main() {
     test('明細が写っていない画像では transactions が空で返る', () async {
       final imageAnalysisResult = await analyzeImage(
         imageObjectKey: 'users/uid-a/uuid.png',
+        instructionTurns: const [],
         firebaseIdToken: 'test-id-token',
         firebaseAppCheckToken: 'test-app-check-token',
         httpClient: MockClient(
@@ -124,6 +178,7 @@ void main() {
     test('Worker が返した未知の type / category は expense / other として読む', () async {
       final imageAnalysisResult = await analyzeImage(
         imageObjectKey: 'users/uid-a/uuid.png',
+        instructionTurns: const [],
         firebaseIdToken: 'test-id-token',
         firebaseAppCheckToken: 'test-app-check-token',
         httpClient: MockClient(
@@ -155,6 +210,7 @@ void main() {
       await expectLater(
         analyzeImage(
           imageObjectKey: 'users/uid-a/uuid.png',
+          instructionTurns: const [],
           firebaseIdToken: 'test-id-token',
           firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient(
@@ -180,6 +236,7 @@ void main() {
       await expectLater(
         analyzeImage(
           imageObjectKey: 'users/uid-a/uuid.png',
+          instructionTurns: const [],
           firebaseIdToken: 'test-id-token',
           firebaseAppCheckToken: 'test-app-check-token',
           httpClient: MockClient(

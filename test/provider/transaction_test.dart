@@ -394,6 +394,7 @@ void main() {
         excludedFromAggregation: false,
         sourceImageObjectKey: null,
         analysisAdjustedByUser: false,
+        analysisInstructions: const ['一番下の明細が読めていない'],
       );
 
       final createdTransactions = (await transactionsReference(
@@ -405,6 +406,9 @@ void main() {
       expect(createdTransactions.single.amount, 980);
       expect(createdTransactions.single.yearMonth, '2026-08');
       expect(createdTransactions.single.userID, 'user-id');
+      expect(createdTransactions.single.analysisInstructions, [
+        '一番下の明細が読めていない',
+      ]);
     });
   });
 

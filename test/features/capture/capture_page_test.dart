@@ -1,7 +1,7 @@
 // 撮影フロー画面 (CapturePage) の Widget テスト。
 // アップロード・解析・画像削除・明細登録は Provider を fake に差し替え、
-// 解析成功・解析失敗 (再試行 / 手動入力 / 取り直し) の各分岐で
-// 画面の表示と登録内容 (出所・元画像のキー・手調整の記録) を検証する。
+// 解析成功・解析失敗 (再試行 / 手動入力 / 取り直し)・AI への追加指示による読み直しの各分岐で
+// 画面の表示と登録内容 (出所・元画像のキー・手調整の記録・追加指示の履歴) を検証する。
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -83,6 +83,7 @@ typedef AddTransactionCall = ({
   bool excludedFromAggregation,
   String? sourceImageObjectKey,
   bool analysisAdjustedByUser,
+  List<String> analysisInstructions,
 });
 
 /// Firestore へ書き込まず、登録された値を呼ばれた順に記録する AddTransaction。
@@ -112,6 +113,7 @@ class RecordingAddTransaction implements AddTransaction {
     required bool excludedFromAggregation,
     required String? sourceImageObjectKey,
     required bool analysisAdjustedByUser,
+    required List<String> analysisInstructions,
   }) async {
     await onCall?.call(callIndex: calls.length);
     calls.add((
@@ -124,6 +126,7 @@ class RecordingAddTransaction implements AddTransaction {
       excludedFromAggregation: excludedFromAggregation,
       sourceImageObjectKey: sourceImageObjectKey,
       analysisAdjustedByUser: analysisAdjustedByUser,
+      analysisInstructions: analysisInstructions,
     ));
   }
 }
@@ -138,6 +141,9 @@ class CaptureFakes {
 
   /// 解析に渡されたオブジェクトキー。
   final List<String> analyzedImageObjectKeys = [];
+
+  /// 解析に渡された追加指示の履歴 (解析の呼び出しごと)。初回解析は空。
+  final List<List<AnalysisInstructionTurn>> analyzedInstructionTurns = [];
 
   /// 削除されたオブジェクトキー。
   final List<String> deletedImageObjectKeys = [];
@@ -159,8 +165,10 @@ class CaptureFakes {
     }),
     analyzeUploadedImageProvider.overrideWithValue(({
       required imageObjectKey,
+      required instructionTurns,
     }) async {
       analyzedImageObjectKeys.add(imageObjectKey);
+      analyzedInstructionTurns.add(instructionTurns);
       return analyze();
     }),
     deleteStoredImageProvider.overrideWithValue(({
@@ -217,6 +225,24 @@ Future<void> openCapturePage({
   );
   await tester.tap(find.text('open capture'));
   await pumpUntilAnalysisFinished(tester: tester);
+}
+
+/// 確認画面の「AI に指示して読み直す」からシートを開き、[instruction] を入力して送信する。
+/// 送信後の読み直し (解析) が終わるまでフレームを進める。
+Future<void> sendAnalysisInstruction({
+  required WidgetTester tester,
+  required String instruction,
+}) async {
+  await tester.tap(find.text(AppLocalizationsEn().captureInstructionOpen));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.widgetWithText(TextField, AppLocalizationsEn().captureInstructionHint),
+    instruction,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(AppLocalizationsEn().captureInstructionSend));
+  await pumpUntilAnalysisFinished(tester: tester);
+  await tester.pumpAndSettle();
 }
 
 /// アップロード → 解析が終わるまでフレームを進める。
@@ -964,5 +990,284 @@ void main() {
 
     expect(captureFlowResults, [CaptureFlowResult.cancelled]);
     expect(captureFakes.deletedImageObjectKeys, isEmpty);
+  });
+
+  testWidgets('追加指示: 単一明細の確認画面から指示を送ると直前の結果と指示付きで読み直し、履歴を表示して明細にも保存する', (
+    tester,
+  ) async {
+    useTallViewport(tester);
+    var analyzeCallCount = 0;
+    final captureFakes = CaptureFakes(
+      analyze: () async {
+        analyzeCallCount++;
+        // 2 回目 (指示付き) は金額が読み直された結果を返す
+        return analyzeCallCount == 1
+            ? buildImageAnalysisResult()
+            : const ImageAnalysisResult(
+                transactions: [
+                  AnalyzedTransaction(
+                    title: 'Corner Market',
+                    amount: 1480,
+                    transactionDate: '2026-08-16',
+                    type: TransactionType.expense,
+                    category: TransactionCategory.food,
+                  ),
+                ],
+              );
+      },
+    );
+    final captureFlowResults = <CaptureFlowResult?>[];
+    final analyticsEvents = <String>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: captureFlowResults,
+      analyticsEvents: analyticsEvents,
+    );
+    await tester.pumpAndSettle();
+    // 指示を出す前は履歴が無く、ボタンだけがある
+    expect(
+      find.text(AppLocalizationsEn().captureInstructionSectionTitle),
+      findsNothing,
+    );
+    expect(
+      find.text(AppLocalizationsEn().captureInstructionOpen),
+      findsOneWidget,
+    );
+
+    await sendAnalysisInstruction(
+      tester: tester,
+      instruction: 'The amount should include tax',
+    );
+
+    // 同じアップロード済みキーで、直前の結果と指示を添えて読み直す (アップロードはやり直さない)
+    expect(analyzeCallCount, 2);
+    expect(captureFakes.uploadedImageContentTypes, hasLength(1));
+    expect(captureFakes.analyzedInstructionTurns, [
+      const <AnalysisInstructionTurn>[],
+      [
+        AnalysisInstructionTurn(
+          previousTransactions: buildImageAnalysisResult().transactions,
+          instruction: 'The amount should include tax',
+        ),
+      ],
+    ]);
+    expect(
+      analyticsEvents,
+      containsAllInOrder([
+        'capture_instruction_open',
+        'capture_instruction_send',
+      ]),
+    );
+
+    // 読み直した結果がフォームの初期値になり、指示の履歴 (ユーザーの指示 → AI の件数) が表示される
+    expect(find.widgetWithText(TextFormField, '1480'), findsOneWidget);
+    expect(
+      find.text(AppLocalizationsEn().captureInstructionSectionTitle),
+      findsOneWidget,
+    );
+    expect(find.text('The amount should include tax'), findsOneWidget);
+    expect(
+      find.text(AppLocalizationsEn().captureInstructionResult(1)),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().captureRegister));
+    await tester.pumpAndSettle();
+
+    // 指示による読み直しは AI の再解析なので、フォームを手で直していなければ手調整にしない
+    expect(captureFakes.addTransaction.calls.single.amount, 1480);
+    expect(
+      captureFakes.addTransaction.calls.single.analysisAdjustedByUser,
+      false,
+    );
+    expect(captureFakes.addTransaction.calls.single.analysisInstructions, [
+      'The amount should include tax',
+    ]);
+    expect(captureFlowResults, [CaptureFlowResult.registered]);
+  });
+
+  testWidgets('追加指示: 複数明細の候補リストから指示を送ると候補を作り直し、採用した全件に指示の履歴を保存する', (
+    tester,
+  ) async {
+    useTallViewport(tester);
+    var analyzeCallCount = 0;
+    final captureFakes = CaptureFakes(
+      analyze: () async {
+        analyzeCallCount++;
+        // 2 回目 (指示付き) は 1 件減った結果を返す
+        return analyzeCallCount == 1
+            ? buildMultipleImageAnalysisResult()
+            : ImageAnalysisResult(
+                transactions: buildMultipleImageAnalysisResult().transactions
+                    .sublist(0, 2),
+              );
+      },
+    );
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: <CaptureFlowResult?>[],
+      analyticsEvents: <String>[],
+      transactionSource: TransactionSource.screenshot,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Checkbox), findsNWidgets(3));
+
+    await sendAnalysisInstruction(
+      tester: tester,
+      instruction: 'The coffee line is a duplicate',
+    );
+
+    expect(captureFakes.analyzedInstructionTurns.last, [
+      AnalysisInstructionTurn(
+        previousTransactions: buildMultipleImageAnalysisResult().transactions,
+        instruction: 'The coffee line is a duplicate',
+      ),
+    ]);
+    // 候補リストが読み直した結果で作り直され、AI の吹き出しに件数が出る
+    expect(find.byType(Checkbox), findsNWidgets(2));
+    expect(
+      find.text(AppLocalizationsEn().captureInstructionResult(2)),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().captureRegisterCount(2)));
+    await tester.pumpAndSettle();
+
+    expect(captureFakes.addTransaction.calls.map((call) => call.title), [
+      'Corner Market',
+      'Metro Card',
+    ]);
+    expect(
+      captureFakes.addTransaction.calls.map(
+        (call) => call.analysisInstructions,
+      ),
+      everyElement(['The coffee line is a duplicate']),
+    );
+  });
+
+  testWidgets('追加指示: 2 回目の指示は 1 回目の指示と読み直し結果を履歴として一緒に送る', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => buildImageAnalysisResult(),
+    );
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: <CaptureFlowResult?>[],
+      analyticsEvents: <String>[],
+    );
+    await tester.pumpAndSettle();
+
+    await sendAnalysisInstruction(tester: tester, instruction: 'First');
+    await sendAnalysisInstruction(tester: tester, instruction: 'Second');
+
+    expect(captureFakes.analyzedInstructionTurns.last, [
+      AnalysisInstructionTurn(
+        previousTransactions: buildImageAnalysisResult().transactions,
+        instruction: 'First',
+      ),
+      AnalysisInstructionTurn(
+        previousTransactions: buildImageAnalysisResult().transactions,
+        instruction: 'Second',
+      ),
+    ]);
+    // 履歴は古い順に両方表示される
+    expect(find.text('First'), findsOneWidget);
+    expect(find.text('Second'), findsOneWidget);
+    expect(
+      find.text(AppLocalizationsEn().captureInstructionResult(1)),
+      findsNWidgets(2),
+    );
+  });
+
+  testWidgets('追加指示: シートを閉じると読み直さず、空の指示は送れない', (tester) async {
+    useTallViewport(tester);
+    final captureFakes = CaptureFakes(
+      analyze: () async => buildImageAnalysisResult(),
+    );
+    final analyticsEvents = <String>[];
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: <CaptureFlowResult?>[],
+      analyticsEvents: analyticsEvents,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppLocalizationsEn().captureInstructionOpen));
+    await tester.pumpAndSettle();
+    // 未入力では送信できない
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(
+              FilledButton,
+              AppLocalizationsEn().captureInstructionSend,
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    // シートの外をタップして閉じる
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    expect(analyticsEvents, contains('capture_instruction_cancel'));
+    expect(captureFakes.analyzedInstructionTurns, hasLength(1));
+    expect(find.text(AppLocalizationsEn().captureConfirmTitle), findsOneWidget);
+  });
+
+  testWidgets('追加指示: 読み直しに失敗しても「もう一度読み取る」は同じ指示の履歴で再実行し、履歴は明細に残る', (
+    tester,
+  ) async {
+    useTallViewport(tester);
+    var analyzeCallCount = 0;
+    final captureFakes = CaptureFakes(
+      analyze: () async {
+        analyzeCallCount++;
+        if (analyzeCallCount == 2) {
+          throw StateError('解析エンドポイントが混み合っています');
+        }
+        return buildImageAnalysisResult();
+      },
+    );
+
+    await openCapturePage(
+      tester: tester,
+      captureFakes: captureFakes,
+      captureFlowResults: <CaptureFlowResult?>[],
+      analyticsEvents: <String>[],
+    );
+    await tester.pumpAndSettle();
+
+    await sendAnalysisInstruction(tester: tester, instruction: 'Look again');
+    expect(
+      find.text(AppLocalizationsEn().captureAnalysisFailedTitle),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text(AppLocalizationsEn().captureRetry));
+    await pumpUntilAnalysisFinished(tester: tester);
+    await tester.pumpAndSettle();
+
+    expect(captureFakes.analyzedInstructionTurns, hasLength(3));
+    expect(
+      captureFakes.analyzedInstructionTurns[2],
+      captureFakes.analyzedInstructionTurns[1],
+    );
+    expect(find.text(AppLocalizationsEn().captureConfirmTitle), findsOneWidget);
+
+    await tester.tap(find.text(AppLocalizationsEn().captureRegister));
+    await tester.pumpAndSettle();
+    expect(captureFakes.addTransaction.calls.single.analysisInstructions, [
+      'Look again',
+    ]);
   });
 }

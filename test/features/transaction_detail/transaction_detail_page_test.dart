@@ -30,6 +30,7 @@ Transaction buildTransaction({
   required TransactionSource source,
   required String? sourceImageObjectKey,
   required bool analysisAdjustedByUser,
+  required List<String> analysisInstructions,
   required bool excludedFromAggregation,
 }) => Transaction(
   id: testTransactionID,
@@ -45,6 +46,7 @@ Transaction buildTransaction({
   excludedFromAggregation: excludedFromAggregation,
   sourceImageObjectKey: sourceImageObjectKey,
   analysisAdjustedByUser: analysisAdjustedByUser,
+  analysisInstructions: analysisInstructions,
 );
 
 /// Firestore へ書き込まず、除外フラグの更新呼び出しを記録する。
@@ -180,6 +182,7 @@ void main() {
         source: TransactionSource.receipt,
         sourceImageObjectKey: 'users/user-id/uuid.png',
         analysisAdjustedByUser: false,
+        analysisInstructions: const [],
         excludedFromAggregation: false,
       ),
       updateTransactionExclusion: RecordingUpdateTransactionExclusion(),
@@ -203,6 +206,11 @@ void main() {
       find.text(AppLocalizationsEn().transactionProvenanceAdjusted),
       findsNothing,
     );
+    // 追加指示を出していない明細では指示の履歴を出さない
+    expect(
+      find.text(AppLocalizationsEn().transactionDetailAnalysisInstructions),
+      findsNothing,
+    );
     // 元画像は保存済みのオブジェクトキーで取得して表示する
     expect(fetchedImageObjectKeys, ['users/user-id/uuid.png']);
     expect(find.byType(Image), findsOneWidget);
@@ -217,6 +225,7 @@ void main() {
         source: TransactionSource.screenshot,
         sourceImageObjectKey: 'users/user-id/uuid.png',
         analysisAdjustedByUser: true,
+        analysisInstructions: const [],
         excludedFromAggregation: false,
       ),
       updateTransactionExclusion: RecordingUpdateTransactionExclusion(),
@@ -240,6 +249,33 @@ void main() {
     );
   });
 
+  testWidgets('撮影フローで AI へ追加指示を出した明細は、指示の履歴を出所の下に表示する', (tester) async {
+    useTallViewport(tester);
+
+    await openTransactionDetailPage(
+      tester: tester,
+      transaction: buildTransaction(
+        source: TransactionSource.screenshot,
+        sourceImageObjectKey: 'users/user-id/uuid.png',
+        analysisAdjustedByUser: false,
+        analysisInstructions: const ['一番下の明細が読めていない', '2件目の金額は税込で'],
+        excludedFromAggregation: false,
+      ),
+      updateTransactionExclusion: RecordingUpdateTransactionExclusion(),
+      removeTransactionSourceImage: RecordingRemoveTransactionSourceImage(),
+      deleteTransaction: RecordingDeleteTransaction(),
+      fetchedImageObjectKeys: <String>[],
+      closedPages: <void>[],
+    );
+
+    expect(
+      find.text(AppLocalizationsEn().transactionDetailAnalysisInstructions),
+      findsOneWidget,
+    );
+    expect(find.text('一番下の明細が読めていない'), findsOneWidget);
+    expect(find.text('2件目の金額は税込で'), findsOneWidget);
+  });
+
   testWidgets('手動入力の明細: 出所チップは手動のみで、元画像なしの案内を表示する', (tester) async {
     useTallViewport(tester);
     final fetchedImageObjectKeys = <String>[];
@@ -250,6 +286,7 @@ void main() {
         source: TransactionSource.manual,
         sourceImageObjectKey: null,
         analysisAdjustedByUser: false,
+        analysisInstructions: const [],
         excludedFromAggregation: false,
       ),
       updateTransactionExclusion: RecordingUpdateTransactionExclusion(),
@@ -294,6 +331,7 @@ void main() {
         source: TransactionSource.receipt,
         sourceImageObjectKey: 'users/user-id/uuid.png',
         analysisAdjustedByUser: false,
+        analysisInstructions: const [],
         excludedFromAggregation: false,
       ),
       updateTransactionExclusion: updateTransactionExclusion,
@@ -320,6 +358,7 @@ void main() {
         source: TransactionSource.receipt,
         sourceImageObjectKey: 'users/user-id/uuid.png',
         analysisAdjustedByUser: false,
+        analysisInstructions: const [],
         excludedFromAggregation: false,
       ),
       updateTransactionExclusion: RecordingUpdateTransactionExclusion(),
@@ -372,6 +411,7 @@ void main() {
         source: TransactionSource.receipt,
         sourceImageObjectKey: 'users/user-id/uuid.png',
         analysisAdjustedByUser: false,
+        analysisInstructions: const [],
         excludedFromAggregation: false,
       ),
       updateTransactionExclusion: RecordingUpdateTransactionExclusion(),
