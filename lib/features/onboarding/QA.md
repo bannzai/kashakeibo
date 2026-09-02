@@ -54,6 +54,10 @@ last_verified_at: 2026-09-01
 
 日本語は画面上の進捗表示が1/7から7/7まで増えることをSimulatorとMaestroで確認した。レビュー修正後の `32510008940beb817397056cb98421c57bb82dab` ではwidget testを再実行し、英語の1/10と価値説明を含む2/10への遷移、日本語・韓国語・中国語の1/7表示、遷移中に進む・戻るを連打しても1画面だけ移動することを確認した。英語Maestroフローの主要14文言は `app_en.arb` と一致することを確認したが、iOS 26.5でMaestroドライバーが起動タイムアウトしたため英語10画面のシミュレータE2Eは未検証。韓国語・中国語のSimulator上の見た目も、Xcodeビルドサービスが15分以上応答待ちになったため未検証。
 
+**確認日: 2026-09-02** (translate-app-arb による再翻訳)
+
+`onboardingValueDescription` / `onboardingResultDescription` の ja / zh / zh_Hans / zh_Hant / ko の訳文を、用語集 (原文の「Kashakeibo」の固定訳) を満たすよう translate-app-arb で訳し直した。translate-app-arb の check が exit 0 (未翻訳・プレースホルダー不一致・用語集違反すべて 0 件)、`flutter analyze` が No issues、`flutter test` が182件成功・1件スキップ、`flutter build ios --no-codesign` と `flutter build apk` がいずれも exit 0 であることを確認した。訳文変更後の結果画面の見た目 (ja / zh / zh_Hans / zh_Hant / ko でのレイアウト崩れ・文字の折り返し) はシミュレータでは未検証。
+
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260901/565dabe3-469b-4ecb-a896-31a4573baee2.png" width="320">
 
 </details>
