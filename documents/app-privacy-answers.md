@@ -16,7 +16,7 @@ App Store Connect の App Privacy と Google Play のデータセーフティに
 | 購入履歴 | RevenueCat SDK (`purchases_flutter`)。全ユーザーを uid で `logIn` するため購入前でも顧客レコードができる | RevenueCat。Worker が RevenueCat API v2 で entitlement を照会する (`workers/image/src/entitlement.ts`) | アプリの機能 (プレミアム判定)、分析 (RevenueCat 公式が両方の申告を最低要件としている) | 紐づく | しない |
 | アプリの操作 (画面遷移・タップ等のイベント) | Firebase Analytics (`lib/utils/analytics/analytics.dart`。`.claude/rules/analytics.md` に従い各操作で記録) | Google Analytics for Firebase。パラメータに transactionID 等の自社 ID を含むため、自社データと結合すれば本人に再連結できる | 分析 | 紐づく | しない |
 | おおよその位置情報 | Firebase Analytics が端末の IP アドレス (マスク済み) から導出する (SDK の既定動作) | Google Analytics for Firebase | 分析 | 紐づく | しない |
-| IP アドレス | Worker がアップロード・解析のリクエストで `CF-Connecting-IP` を読む (`workers/image/src/handler.ts`)。Firebase Auth もサインアップ時の不正防止に収集する | Worker の日次カウンター (Durable Object) に `ip:{IP アドレス}` をキーとして保存し、2 日後にアラームで削除する (`workers/image/src/usage_counter.ts`)。uid のカウンターとは別キーで、本人の記録には紐付けない | 不正行為の防止 (IP 単位の日次回数制限) | 紐づかない | しない |
+| IP アドレス | Worker がアップロード・解析・操作履歴取得のリクエストで `CF-Connecting-IP` を読む (`workers/image/src/handler.ts`)。Firebase Auth もサインアップ時の不正防止に収集する | Worker の日次カウンター (Durable Object) に `ip:{IP アドレス}` をキーとして保存し、2 日後にアラームで削除する (`workers/image/src/usage_counter.ts`)。uid のカウンターとは別キーで、本人の記録には紐付けない | 不正行為の防止 (IP 単位の日次回数制限) | 紐づかない | しない |
 | デバイス ID または他の ID | Firebase Analytics の app-instance ID。Android では Analytics SDK が広告 ID (`AD_ID` 権限) も既定で収集する。Firebase App Check の端末証明トークン (App Attest / Play Integrity、`lib/utils/firebase_app_check/`) | Google Analytics for Firebase、Firebase App Check | 分析 (Analytics)、不正行為の防止 (App Check は Worker が正規のアプリからのリクエストか判定するために必須) | 紐づく | しない |
 
 回答の項目に入れていないもの:
@@ -40,6 +40,8 @@ App Store Connect の App Privacy と Google Play のデータセーフティに
 - Worker の回数カウンター (`scan:uid:{uid}` / `uid:{uid}`)。削除経路は無く、月次カウンターは初回加算から 40 日後、日次カウンターは 2 日後にアラームで自動削除される (`workers/image/src/usage_counter.ts`)
 
 `docs/AccountDeletion.md` は「購入履歴以外に提供者が保持するデータはない」と案内しており、上記の残存データとずれている。案内の改訂か、アカウント削除時に RevenueCat の顧客削除・カウンター削除を実装するかは別途判断する。
+
+あわせて、公開プライバシーポリシー (`docs/PrivacyPolicy.md` / `docs/PrivacyPolicy-en.md`) の外部サービス一覧には、訂正削除履歴の保存先である BigQuery (Google Cloud) の記載が無い。追記の要否も上記と同じく別途判断する。
 
 ## App Store (App Privacy)
 
