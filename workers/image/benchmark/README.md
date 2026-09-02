@@ -22,7 +22,7 @@ FIXTURES_DIR=benchmark node --experimental-strip-types scripts/measure-analysis-
 
 判定は店名・摘要 (titleAliases 許容)・金額・取引日・収支・カテゴリ (categoryAliases 許容)・件数の全一致 (`scripts/measure-analysis-cost.mjs`)。「合計 vs お釣り・お預り」(maxvalu: 合計¥246 に対しお釣り¥254、mcdonalds: お預り¥1,000、okinawa_family: お預り¥10,000)、支払方法行「交通系 ¥357」(cascade)、伝票形式 (ohsho)、交通系領収証 (monorail / jreast)、金券ショップで飲食店の商品券を買うケース (igami: 品目に「吉野家」が出るが店は切手社 → other)、手持ち斜め撮影・高額 (okinawa_bbq: ¥16,126)、2007年の古い印字 (viedefrance)、店名と日付が読めないピンぼけ・20品目超の長尺レシート (blurred_long_supermarket)、Amazon.co.jp 注文支出ダッシュボードの実画面スクリーンショット (サンプル注文データ、amazon_jp_order_dashboard) を含む。
 
-2026-09-03 のプロンプト更新 (issue #82: 背景の映り込みの無視・1 画像内の複数レシート・分割紙片の扱いを追記) 後の再実測でも、採用構成 (gemini-3.5-flash-lite) は全項目一致 15/15・約 ¥0.098/スキャン (プロンプト追記ぶん入力トークンが約 150 増) で劣化なし。issue #82 のケース自体は合成フィクスチャ (`scripts/generate-analysis-fixtures.py` の `receipt_two_receipts.jpg` / `receipt_split_long.jpg`) で検証する。
+2026-09-03 のプロンプト更新 (issue #82: 背景の映り込みの無視・1 画像内の複数レシート・分割紙片の扱い・EC 購入履歴の title を商品名にする規則を追記) 後の再実測では、採用構成 (gemini-3.5-flash-lite) は全項目一致 13〜15/15・約 ¥0.098〜0.102/スキャン (プロンプト追記ぶん入力トークンが約 200 増。複数回実行)。不一致はいずれも難例の店名表記の揺れ (ohsho のロゴ誤読・maxvalu のかすれ印字) のみで、金額・取引日・収支・カテゴリ・件数は全実行で全画像一致。issue #82 のケース自体は合成フィクスチャ (`scripts/generate-analysis-fixtures.py` の `receipt_two_receipts.jpg` / `receipt_same_store_two_receipts.jpg` / `receipt_split_long.jpg`) で検証する (7 枚 7/7)。
 
 3.1はピンぼけ画像の読めない店名を「スーパーマーケット」と推測して14/15、3.5と3.7は空文字で返して15/15だった。3.5と3.7の合格数に差がなく、3.7は3.5の約3.2倍の原価で2027-01-01に単価がさらに倍増するため、プレミアム向け上位モデルは採用しない (issue #58)。3.1は最短2027-05-07の廃止予定に備えて、精度が維持された3.5へ切り替える (issue #61)。
 

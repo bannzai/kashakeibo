@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # 解析原価の実測 (issue #50) に使う合成テスト画像と正解データを生成する。
 # 実レシートをリポジトリに含めると店舗・購買履歴等の実情報が混入するため、
-# 実物のレイアウトを模した合成画像 (紙レシート単体2枚・複数レシート/分割レシートの写真2枚・アプリ明細スクショ2枚) を使う。
+# 実物のレイアウトを模した合成画像 (紙レシート単体2枚・複数レシート/分割レシートの写真3枚・アプリ明細スクショ2枚) を使う。
 # 出力先: workers/image/tmp/analysis-fixtures/ (git 管理外)。
 # 実行: python3 scripts/generate-analysis-fixtures.py
 # 冪等: 同じ内容のファイルを毎回上書き生成する。
@@ -202,6 +202,43 @@ def generate_two_receipts_photo(output_path: str) -> list[dict]:
     ]
 
 
+def generate_same_store_two_receipts_photo(output_path: str) -> list[dict]:
+    """同じ店・同じ日付の完結したレシート 2 枚 (それぞれに合計あり) が写った写真を生成し、正解明細を返す。
+
+    店名・日付が同じでも、各紙片が合計を持つ完結したレシートなら分割紙片として統合せず
+    2 明細に分けられるか (issue #82。PR #83 のレビュー指摘) を検査する。
+    """
+    first_visit_lines = [
+        ("<center>まちのパン屋 こむぎ", "", 40),
+        ("2026年8月25日(火) 08:12", "", 24),
+        ("", "", 14),
+        ("クロワッサン", "¥205", 26),
+        ("食パン 1斤", "¥246", 26),
+        ("", "", 14),
+        ("合計(税込)", "¥451", 34),
+        ("現金", "¥451", 26),
+    ]
+    second_visit_lines = [
+        ("<center>まちのパン屋 こむぎ", "", 40),
+        ("2026年8月25日(火) 12:47", "", 24),
+        ("", "", 14),
+        ("サンドイッチ", "¥378", 26),
+        ("カフェオレ", "¥180", 26),
+        ("メロンパン", "¥224", 26),
+        ("", "", 14),
+        ("合計(税込)", "¥782", 34),
+        ("現金", "¥782", 26),
+    ]
+    compose_multi_paper_photo(
+        [draw_receipt_paper(first_visit_lines, 640), draw_receipt_paper(second_visit_lines, 640)], output_path
+    )
+    # ベーカリーはイートイン併設か否かで食費/外食のどちらにも読めるため、実物ベンチマーク (cascade) と同じく両方を正解にする
+    return [
+        {"title": "まちのパン屋 こむぎ", "amount": 451, "transactionDate": "2026-08-25", "type": "expense", "category": "food", "categoryAliases": ["eatingOut"]},
+        {"title": "まちのパン屋 こむぎ", "amount": 782, "transactionDate": "2026-08-25", "type": "expense", "category": "food", "categoryAliases": ["eatingOut"]},
+    ]
+
+
 def generate_split_long_receipt_photo(output_path: str) -> list[dict]:
     """長いレシート 1 枚が 2 つの紙片に分かれて写った写真 (全体で 1 明細。issue #82) を生成し、正解明細を返す。
 
@@ -336,12 +373,13 @@ def write_variant_sets(ground_truth: dict) -> None:
 
 
 def main() -> None:
-    """6枚のテスト画像と正解データ (ground-truth.json)、劣化版・縮小版の派生セットを生成する。"""
+    """7枚のテスト画像と正解データ (ground-truth.json)、劣化版・縮小版の派生セットを生成する。"""
     os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
     ground_truth = {
         "receipt_convenience.jpg": generate_convenience_store_receipt(os.path.join(OUTPUT_DIRECTORY, "receipt_convenience.jpg")),
         "receipt_supermarket.jpg": generate_supermarket_receipt(os.path.join(OUTPUT_DIRECTORY, "receipt_supermarket.jpg")),
         "receipt_two_receipts.jpg": generate_two_receipts_photo(os.path.join(OUTPUT_DIRECTORY, "receipt_two_receipts.jpg")),
+        "receipt_same_store_two_receipts.jpg": generate_same_store_two_receipts_photo(os.path.join(OUTPUT_DIRECTORY, "receipt_same_store_two_receipts.jpg")),
         "receipt_split_long.jpg": generate_split_long_receipt_photo(os.path.join(OUTPUT_DIRECTORY, "receipt_split_long.jpg")),
         "screenshot_card_statement.jpg": generate_card_statement_screenshot(os.path.join(OUTPUT_DIRECTORY, "screenshot_card_statement.jpg")),
         "screenshot_ec_history.jpg": generate_ec_history_screenshot(os.path.join(OUTPUT_DIRECTORY, "screenshot_ec_history.jpg")),
