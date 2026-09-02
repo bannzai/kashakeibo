@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # 解析原価の実測 (issue #50) に使う合成テスト画像と正解データを生成する。
 # 実レシートをリポジトリに含めると店舗・購買履歴等の実情報が混入するため、
-# 実物のレイアウトを模した合成画像 (紙レシート2枚・アプリ明細スクショ2枚) を使う。
+# 実物のレイアウトを模した合成画像 (紙レシート単体2枚・複数レシート/分割レシートの写真2枚・アプリ明細スクショ2枚) を使う。
 # 出力先: workers/image/tmp/analysis-fixtures/ (git 管理外)。
 # 実行: python3 scripts/generate-analysis-fixtures.py
 # 冪等: 同じ内容のファイルを毎回上書き生成する。
@@ -61,6 +61,35 @@ def compose_receipt_photo(paper: Image.Image, output_path: str) -> None:
     rotated_paper = paper.rotate(1.5, expand=True, fillcolor=(168, 136, 105), resample=Image.BICUBIC)
     canvas.paste(rotated_paper, ((canvas_width - rotated_paper.width) // 2, (canvas_height - rotated_paper.height) // 2))
     # 実写に近づけるための弱いブラー (印字の滲み)
+    canvas = canvas.filter(ImageFilter.GaussianBlur(0.6))
+    save_as_captured_jpeg(canvas, output_path)
+
+
+def compose_multi_paper_photo(papers: list[Image.Image], output_path: str) -> None:
+    """複数のレシート紙片を 1 枚の撮影写真風に並べて合成し JPEG 保存する (issue #82)。
+
+    実際の撮影 (机の上にレシートを並べて撮る) を再現するため、背景の小物 (スマホ・ペン) も描き込み、
+    背景の映り込みを無視して紙面だけを抽出できるかを検査する。
+    """
+    random.seed(52)
+    paper_gap = 60
+    canvas_width = sum(paper.width for paper in papers) + paper_gap * (len(papers) + 1)
+    canvas_height = max(paper.height for paper in papers) + 320
+    canvas = Image.new("RGB", (canvas_width, canvas_height), (168, 136, 105))
+    canvas_draw = ImageDraw.Draw(canvas)
+    # 背景の映り込み: スマホ (左下の暗い角丸矩形) とペン (上部の細長い矩形)
+    canvas_draw.rounded_rectangle(
+        [40, canvas_height - 240, 360, canvas_height - 60], radius=30, fill=(28, 30, 34), outline=(70, 72, 78), width=4
+    )
+    canvas_draw.rounded_rectangle([canvas_width - 520, 40, canvas_width - 80, 78], radius=18, fill=(40, 60, 130))
+    x = paper_gap
+    for paper_index, paper in enumerate(papers):
+        # 手置きのばらつきを再現するため紙片ごとに逆向きへ少し回転させる
+        rotated_paper = paper.rotate(
+            1.5 if paper_index % 2 == 0 else -1.8, expand=True, fillcolor=(168, 136, 105), resample=Image.BICUBIC
+        )
+        canvas.paste(rotated_paper, (x, (canvas_height - rotated_paper.height) // 2))
+        x += paper.width + paper_gap
     canvas = canvas.filter(ImageFilter.GaussianBlur(0.6))
     save_as_captured_jpeg(canvas, output_path)
 
@@ -133,6 +162,83 @@ def generate_supermarket_receipt(output_path: str) -> list[dict]:
     compose_receipt_photo(draw_receipt_paper(lines, 820), output_path)
     return [
         {"title": "スーパーライフ", "amount": 3268, "transactionDate": "2026-08-02", "type": "expense", "category": "food"},
+    ]
+
+
+def generate_two_receipts_photo(output_path: str) -> list[dict]:
+    """別々の支払いのレシート 2 枚が 1 枚の画像に写った写真 (レシートごとに 1 明細 = 2 明細。issue #82) を生成し、正解明細を返す。"""
+    drugstore_lines = [
+        ("<center>サニードラッグ", "", 40),
+        ("<center>五反田駅前店", "", 28),
+        ("2026年8月11日(火) 20:15", "", 24),
+        ("", "", 14),
+        ("衣料用洗剤 詰替", "¥328", 26),
+        ("シャンプー 450ml", "¥548", 26),
+        ("ボックスティッシュ 5箱", "¥98", 26),
+        ("", "", 14),
+        ("小計", "¥974", 26),
+        ("消費税等(10%)", "¥78", 24),
+        ("合計", "¥1,052", 34),
+        ("現金", "¥1,052", 26),
+    ]
+    cafe_lines = [
+        ("<center>喫茶こもれび", "", 40),
+        ("2026年8月12日(水) 14:30", "", 24),
+        ("", "", 14),
+        ("ブレンドコーヒー", "¥480", 26),
+        ("チーズケーキ", "¥520", 26),
+        ("", "", 14),
+        ("合計(税込)", "¥1,100", 34),
+        ("現金", "¥1,100", 26),
+        ("", "", 14),
+        ("<center>またのご来店をお待ちしております", "", 22),
+    ]
+    compose_multi_paper_photo(
+        [draw_receipt_paper(drugstore_lines, 640), draw_receipt_paper(cafe_lines, 640)], output_path
+    )
+    return [
+        {"title": "サニードラッグ", "amount": 1052, "transactionDate": "2026-08-11", "type": "expense", "category": "dailyGoods"},
+        {"title": "喫茶こもれび", "amount": 1100, "transactionDate": "2026-08-12", "type": "expense", "category": "eatingOut"},
+    ]
+
+
+def generate_split_long_receipt_photo(output_path: str) -> list[dict]:
+    """長いレシート 1 枚が 2 つの紙片に分かれて写った写真 (全体で 1 明細。issue #82) を生成し、正解明細を返す。
+
+    紙片 1 に店名・日付と品目の前半、紙片 2 に品目の後半と合計を置き、
+    行の連続性から同一支払いと判断してまとめられるかを検査する。
+    """
+    first_piece_lines = [
+        ("<center>フレッシュマート", "", 40),
+        ("<center>青葉台店", "", 28),
+        ("2026年8月20日(木) 18:05", "", 24),
+        ("", "", 14),
+        ("牛乳 1000ml", "¥238", 26),
+        ("たまご 10個", "¥278", 26),
+        ("食パン 6枚切", "¥158", 26),
+        ("豚ロース 400g", "¥698", 26),
+        ("カットサラダ", "¥398", 26),
+        ("りんご 3個", "¥348", 26),
+        ("豆腐 2丁", "¥88", 26),
+    ]
+    second_piece_lines = [
+        ("ほうれん草", "¥178", 26),
+        ("鶏もも肉 2枚", "¥512", 26),
+        ("スライスチーズ", "¥428", 26),
+        ("お米 5kg", "¥2,180", 26),
+        ("", "", 14),
+        ("小計(税抜)", "¥5,504", 26),
+        ("消費税等(8%)", "¥440", 24),
+        ("合計", "¥5,944", 34),
+        ("クレジット", "¥5,944", 26),
+        ("", "", 14),
+        ("<center>お買い上げありがとうございます", "", 22),
+    ]
+    compose_multi_paper_photo(
+        [draw_receipt_paper(first_piece_lines, 640), draw_receipt_paper(second_piece_lines, 640)], output_path
+    )
+    return [
+        {"title": "フレッシュマート", "amount": 5944, "transactionDate": "2026-08-20", "type": "expense", "category": "food"},
     ]
 
 
@@ -230,11 +336,13 @@ def write_variant_sets(ground_truth: dict) -> None:
 
 
 def main() -> None:
-    """4枚のテスト画像と正解データ (ground-truth.json)、劣化版・縮小版の派生セットを生成する。"""
+    """6枚のテスト画像と正解データ (ground-truth.json)、劣化版・縮小版の派生セットを生成する。"""
     os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
     ground_truth = {
         "receipt_convenience.jpg": generate_convenience_store_receipt(os.path.join(OUTPUT_DIRECTORY, "receipt_convenience.jpg")),
         "receipt_supermarket.jpg": generate_supermarket_receipt(os.path.join(OUTPUT_DIRECTORY, "receipt_supermarket.jpg")),
+        "receipt_two_receipts.jpg": generate_two_receipts_photo(os.path.join(OUTPUT_DIRECTORY, "receipt_two_receipts.jpg")),
+        "receipt_split_long.jpg": generate_split_long_receipt_photo(os.path.join(OUTPUT_DIRECTORY, "receipt_split_long.jpg")),
         "screenshot_card_statement.jpg": generate_card_statement_screenshot(os.path.join(OUTPUT_DIRECTORY, "screenshot_card_statement.jpg")),
         "screenshot_ec_history.jpg": generate_ec_history_screenshot(os.path.join(OUTPUT_DIRECTORY, "screenshot_ec_history.jpg")),
     }
