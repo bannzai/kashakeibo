@@ -42,6 +42,24 @@ abstract class AnalyzedTransaction with _$AnalyzedTransaction {
       _$AnalyzedTransactionFromJson(json);
 }
 
+/// ユーザーの追加指示による再解析の 1 往復 (POST /analyses のリクエスト `instructionTurns[]` の要素。issue #40)。
+///
+/// 解析はステートレスのため Gemini 側に対話は残らず、クライアントが往復の履歴を毎回送る
+/// (Worker 側の契約: workers/image/src/analysis.ts の AnalysisInstructionTurn)。
+@freezed
+abstract class AnalysisInstructionTurn with _$AnalysisInstructionTurn {
+  const factory AnalysisInstructionTurn({
+    /// この指示を出した時点でユーザーに見えていた解析結果。
+    required List<AnalyzedTransaction> previousTransactions,
+
+    /// ユーザーの追加指示 (自由文)。
+    required String instruction,
+  }) = _AnalysisInstructionTurn;
+
+  factory AnalysisInstructionTurn.fromJson(Map<String, dynamic> json) =>
+      _$AnalysisInstructionTurnFromJson(json);
+}
+
 /// POST /analyses のレスポンス本体。
 @freezed
 abstract class ImageAnalysisResult with _$ImageAnalysisResult {
@@ -93,10 +111,12 @@ class ScanQuotaExceededException implements Exception {
 
 /// アップロード済み画像を Worker 経由で Gemini 解析し、抽出した明細を返す。
 /// [imageObjectKey] は uploadImage が返した本人の uid 配下のキー。
+/// [instructionTurns] はユーザーの追加指示による再解析の履歴 (古い順)。空なら初回解析。
 /// 無料枠を使い切っていてプレミアムでもない場合 (402) は [ScanQuotaExceededException]。
-/// 冪等 (Worker 側の副作用は日次・月次の解析回数の加算のみ)。
+/// 冪等 (Worker 側の副作用は日次・月次の解析回数の加算のみ。再解析も同じく消費する)。
 Future<ImageAnalysisResult> analyzeImage({
   required String imageObjectKey,
+  required List<AnalysisInstructionTurn> instructionTurns,
   required String firebaseIdToken,
   required String firebaseAppCheckToken,
   required http.Client httpClient,
@@ -109,7 +129,15 @@ Future<ImageAnalysisResult> analyzeImage({
       firebaseAppCheckHeaderName: firebaseAppCheckToken,
       'Content-Type': 'application/json',
     },
-    body: jsonEncode({'imageObjectKey': imageObjectKey}),
+    body: jsonEncode({
+      'imageObjectKey': imageObjectKey,
+      // 初回解析は指示なし (Worker は未指定を初回として扱う)
+      if (instructionTurns.isNotEmpty)
+        'instructionTurns': [
+          for (final instructionTurn in instructionTurns)
+            instructionTurn.toJson(),
+        ],
+    }),
   );
   if (analysisResponse.statusCode == 402) {
     final quotaExceededBody =

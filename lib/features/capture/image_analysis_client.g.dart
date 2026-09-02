@@ -48,6 +48,22 @@ const _$TransactionCategoryEnumMap = {
   TransactionCategory.other: 'other',
 };
 
+_AnalysisInstructionTurn _$AnalysisInstructionTurnFromJson(
+  Map<String, dynamic> json,
+) => _AnalysisInstructionTurn(
+  previousTransactions: (json['previousTransactions'] as List<dynamic>)
+      .map((e) => AnalyzedTransaction.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  instruction: json['instruction'] as String,
+);
+
+Map<String, dynamic> _$AnalysisInstructionTurnToJson(
+  _AnalysisInstructionTurn instance,
+) => <String, dynamic>{
+  'previousTransactions': instance.previousTransactions,
+  'instruction': instance.instruction,
+};
+
 _ImageAnalysisResult _$ImageAnalysisResultFromJson(Map<String, dynamic> json) =>
     _ImageAnalysisResult(
       transactions: (json['transactions'] as List<dynamic>)
