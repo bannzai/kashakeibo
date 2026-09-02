@@ -1082,6 +1082,9 @@ class _RecordingAddTransaction extends AddTransaction {
   /// 登録された AI 解析結果の修正有無。
   bool? analysisAdjustedByUser;
 
+  /// 登録された AI への追加指示の履歴。
+  List<String>? analysisInstructions;
+
   /// Firestore へ書き込まず、手動入力画面から渡された値を記録する。
   @override
   Future<void> call({
@@ -1094,6 +1097,7 @@ class _RecordingAddTransaction extends AddTransaction {
     required bool excludedFromAggregation,
     required String? sourceImageObjectKey,
     required bool analysisAdjustedByUser,
+    required List<String> analysisInstructions,
   }) async {
     this.type = type;
     this.source = source;
@@ -1104,6 +1108,7 @@ class _RecordingAddTransaction extends AddTransaction {
     this.excludedFromAggregation = excludedFromAggregation;
     this.sourceImageObjectKey = sourceImageObjectKey;
     this.analysisAdjustedByUser = analysisAdjustedByUser;
+    this.analysisInstructions = analysisInstructions;
   }
 }
 
@@ -1125,6 +1130,7 @@ class _PendingAddTransaction extends _RecordingAddTransaction {
     required bool excludedFromAggregation,
     required String? sourceImageObjectKey,
     required bool analysisAdjustedByUser,
+    required List<String> analysisInstructions,
   }) {
     this.type = type;
     this.source = source;
@@ -1135,6 +1141,7 @@ class _PendingAddTransaction extends _RecordingAddTransaction {
     this.excludedFromAggregation = excludedFromAggregation;
     this.sourceImageObjectKey = sourceImageObjectKey;
     this.analysisAdjustedByUser = analysisAdjustedByUser;
+    this.analysisInstructions = analysisInstructions;
     return _completer.future;
   }
 }

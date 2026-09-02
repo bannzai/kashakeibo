@@ -33,6 +33,11 @@ _Transaction _$TransactionFromJson(Map<String, dynamic> json) => _Transaction(
   excludedFromAggregation: json['excludedFromAggregation'] as bool,
   sourceImageObjectKey: json['sourceImageObjectKey'] as String?,
   analysisAdjustedByUser: json['analysisAdjustedByUser'] as bool? ?? false,
+  analysisInstructions:
+      (json['analysisInstructions'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
   confirmedDistinctTransactionIDs:
       (json['confirmedDistinctTransactionIDs'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -65,6 +70,7 @@ Map<String, dynamic> _$TransactionToJson(
   'excludedFromAggregation': instance.excludedFromAggregation,
   'sourceImageObjectKey': instance.sourceImageObjectKey,
   'analysisAdjustedByUser': instance.analysisAdjustedByUser,
+  'analysisInstructions': instance.analysisInstructions,
   'confirmedDistinctTransactionIDs': instance.confirmedDistinctTransactionIDs,
   'serverCreatedDateTime': const ServerCreatedTimestamp().toJson(
     instance.serverCreatedDateTime,

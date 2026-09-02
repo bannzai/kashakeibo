@@ -15,6 +15,7 @@
     下に注記「元画像はいつでも確認できます」と「画像だけを削除」
   - 画像が無い明細はプレースホルダー (手動入力なら「手動入力のため元画像なし」、それ以外は「元画像なし」)
   - 情報カード: 出所チップ (`transactionSourceLabel` + `transactionProvenanceLabel`)、
+    撮影フローで AI へ出した追加指示の履歴 (「AI への指示」。指示を出した明細だけに表示。issue #40)、
     「計算対象から除外」スイッチ (ON = sage-500)
   - フッター: 「明細を削除」(アウトライン・accent-800)
 - 削除系は確認ダイアログを挟む。操作の失敗はエラー文をそのまま SnackBar に表示する
@@ -33,6 +34,7 @@
 - 明細: `/users/{userID}/transactions/{id}` の `Transaction`
 - 元画像: `Transaction.sourceImageObjectKey` (R2 のオブジェクトキー。`lib/features/image_upload/README.md`)
 - 出所記録: `Transaction.source` (経路) と `Transaction.analysisAdjustedByUser` (AI 解析結果の修正有無)
+- 追加指示の履歴: `Transaction.analysisInstructions` (撮影フローの確認画面で AI に出した指示文。出した順。`features/capture`)
 
 ## 有効期限・制約
 

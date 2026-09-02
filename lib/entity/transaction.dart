@@ -134,6 +134,12 @@ abstract class Transaction with _$Transaction {
     /// 「修正していない」側 (false) に倒して読む。
     @Default(false) bool analysisAdjustedByUser,
 
+    /// AI 解析に対してユーザーがチャットで出した追加指示の履歴 (出した順。issue #40)。
+    /// 「一番下の明細が読めていない」のような読み直しの指示を、登録後も明細から見返せるように残す。
+    /// 指示による読み直しは AI の再解析であり、[analysisAdjustedByUser] (フォームの手修正) とは別に記録する。
+    /// 追加指示を出していない明細・手動入力・フィールド追加前の旧データは空。
+    @Default(<String>[]) List<String> analysisInstructions,
+
     /// 重複候補として提示済みで、ユーザーが「別物として残す」と判断した明細 ID。
     /// 相手側にも自身の ID を保存し、どちらを先に読み込んでも同じ候補を再提示しない。
     /// フィールドが無い旧データは未判断として扱う。

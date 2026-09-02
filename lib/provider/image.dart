@@ -24,9 +24,11 @@ typedef UploadCapturedImage =
     });
 
 /// アップロード済み画像を Worker 経由で Gemini 解析し、抽出した明細を返す操作。
+/// [instructionTurns] はユーザーの追加指示による再解析の履歴 (初回解析は空)。
 typedef AnalyzeUploadedImage =
     Future<image_analysis.ImageAnalysisResult> Function({
       required String imageObjectKey,
+      required List<image_analysis.AnalysisInstructionTurn> instructionTurns,
     });
 
 /// アップロード済み画像のバイト列を Worker 経由で取得する操作。
@@ -168,6 +170,7 @@ Future<String> uploadCapturedImage({
 /// 冪等 (副作用は Worker 側の日次解析回数の加算のみ)。
 Future<image_analysis.ImageAnalysisResult> analyzeUploadedImage({
   required String imageObjectKey,
+  required List<image_analysis.AnalysisInstructionTurn> instructionTurns,
 }) => callWorkerApi(
   workerApiCall:
       ({
@@ -176,6 +179,7 @@ Future<image_analysis.ImageAnalysisResult> analyzeUploadedImage({
         required httpClient,
       }) => image_analysis.analyzeImage(
         imageObjectKey: imageObjectKey,
+        instructionTurns: instructionTurns,
         firebaseIdToken: firebaseIdToken,
         firebaseAppCheckToken: firebaseAppCheckToken,
         httpClient: httpClient,

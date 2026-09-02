@@ -39,6 +39,57 @@ export interface ImageAnalysisResult {
   transactions: AnalyzedTransaction[];
 }
 
+/**
+ * ユーザーの追加指示による再解析の 1 往復 (POST /analyses のリクエスト `instructionTurns[]` の要素。issue #40)。
+ * 解析はステートレスな呼び出しのため、Gemini 側に対話は残らない。クライアントが往復の履歴を毎回送り、
+ * Worker が generateContent の複数ターン (model 応答 → user 指示) として組み立て直す。
+ */
+export interface AnalysisInstructionTurn {
+  /** この指示を出した時点でユーザーに見えていた解析結果 (直前の model 応答として渡す)。 */
+  previousTransactions: AnalyzedTransaction[];
+  /** ユーザーの追加指示 (自由文。例: 「一番下の明細が読めていない」)。 */
+  instruction: string;
+}
+
+/**
+ * 1 回の解析で受け付ける追加指示の往復数の上限。
+ * 往復ごとに直前の結果と指示をプロンプトへ積むため入力トークンが増える。無料枠 (月50スキャン) の
+ * 原価見積 (README「スキャン原価」) を大きく崩さない範囲として、1 画像あたりの指示は 10 往復で打ち切る。
+ */
+export const maxAnalysisInstructionTurnCount = 10;
+
+/**
+ * 追加指示 1 件の最大文字数 (書記素クラスタ単位。クライアントの TextField.maxLength と同じ数え方)。
+ * 読み取りの訂正指示は 1〜2 文で足りる想定で、長文のプロンプト注入・トークン消費の膨張を抑えるために 500 文字で打ち切る。
+ */
+export const maxAnalysisInstructionLength = 500;
+
+/**
+ * 追加指示 1 往復に添える直前の解析結果 (previousTransactions) の最大件数。
+ * 直前の結果は Worker 自身の出力の再送で、実物ベンチマーク (benchmark/) の明細スクショでも 1 枚 15 件未満のため、
+ * 改変クライアントが巨大な履歴でプロンプト (トークン・原価) を膨らませるのを 50 件で打ち切る。
+ */
+export const maxAnalysisPreviousTransactionCount = 50;
+
+/**
+ * 直前の解析結果の店名 (title) 1 件の最大文字数。店名・サービス名は数十文字で収まるため、
+ * 長大な文字列をプロンプトへ積むのを 200 文字で打ち切る。
+ */
+export const maxAnalysisTransactionTitleLength = 200;
+
+// 追加指示の文字数はユーザー知覚文字 (書記素クラスタ) で数え、絵文字・結合文字を含む指示を
+// クライアントの入力欄 (Flutter の TextField.maxLength も書記素単位) と同じ判定にする
+const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/** 文字列の長さをユーザー知覚文字 (書記素クラスタ) の数で返す。 */
+export function countGraphemes(text: string): number {
+  let graphemeCount = 0;
+  for (const _ of graphemeSegmenter.segment(text)) {
+    graphemeCount++;
+  }
+  return graphemeCount;
+}
+
 // Gemini に強制する出力スキーマ (generationConfig.responseSchema。OpenAPI 3.0 のサブセット)。
 // AnalyzedTransaction と 1 対 1 に対応させ、enum はクライアント Entity の enum 名と一致させる
 const analysisResponseSchema = {
@@ -79,6 +130,14 @@ const analysisPrompt = [
   "- 家計簿の明細が写っていない画像の場合は transactions を空配列にします",
 ].join("\n");
 
+// 追加指示のターンに前置する文言。指示に触れていない明細も落とさず、常に全件を返させる
+const instructionTurnPromptPrefix = [
+  "ユーザーから読み取り結果への追加指示です。同じ画像を見直し、指示を反映した明細の全件を最初と同じスキーマの JSON で返してください。",
+  "- 指示で触れていない明細もそのまま含めます (指示された箇所だけを直し、全件を返します)",
+  "- 指示が画像の内容と矛盾する場合は画像を優先し、読み取れる範囲で指示に従います",
+  "指示:",
+].join("\n");
+
 // 取引日として受け付ける形式。YYYY-MM-DD 以外 (時刻付き・和暦・全角) は null に落とす
 const transactionDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -104,6 +163,8 @@ export interface GeminiAnalysisOptions {
   geminiApiBaseUrl?: string;
   /** 原価チューニング設定。未指定は本番採用値 (adoptedCostTuningConfig)。 */
   costTuningConfig?: GeminiCostTuningConfig;
+  /** ユーザーの追加指示の履歴 (古い順)。未指定・空配列は初回解析。 */
+  instructionTurns?: AnalysisInstructionTurn[];
 }
 
 /**
@@ -119,10 +180,13 @@ export function buildGeminiAnalysisRequestBody({
   imageBytes,
   imageContentType,
   costTuningConfig,
+  // 原価実測スクリプトは初回解析だけを測るため、省略時は指示なし
+  instructionTurns = [],
 }: {
   imageBytes: ArrayBuffer;
   imageContentType: string;
   costTuningConfig: GeminiCostTuningConfig;
+  instructionTurns?: AnalysisInstructionTurn[];
 }): object {
   return {
     contents: [
@@ -133,6 +197,11 @@ export function buildGeminiAnalysisRequestBody({
           { text: analysisPrompt },
         ],
       },
+      // 追加指示は「直前の結果 (model) → 指示 (user)」の往復として積み、画像は先頭の 1 回だけ渡す
+      ...instructionTurns.flatMap((instructionTurn) => [
+        { role: "model", parts: [{ text: JSON.stringify({ transactions: instructionTurn.previousTransactions }) }] },
+        { role: "user", parts: [{ text: `${instructionTurnPromptPrefix}\n${instructionTurn.instruction}` }] },
+      ]),
     ],
     generationConfig: {
       responseMimeType: "application/json",
@@ -183,6 +252,7 @@ export async function analyzeImageWithGemini({
   geminiModel,
   geminiApiBaseUrl = "https://generativelanguage.googleapis.com",
   costTuningConfig = adoptedCostTuningConfig,
+  instructionTurns = [],
 }: GeminiAnalysisOptions): Promise<ImageAnalysisResult> {
   const geminiResponse = await fetch(`${geminiApiBaseUrl}/v1beta/models/${geminiModel}:generateContent`, {
     method: "POST",
@@ -191,7 +261,7 @@ export async function analyzeImageWithGemini({
       // API キーは URL クエリではなくヘッダーで渡し、アクセスログ等に残さない
       "x-goog-api-key": geminiApiKey,
     },
-    body: JSON.stringify(buildGeminiAnalysisRequestBody({ imageBytes, imageContentType, costTuningConfig })),
+    body: JSON.stringify(buildGeminiAnalysisRequestBody({ imageBytes, imageContentType, costTuningConfig, instructionTurns })),
   });
 
   if (!geminiResponse.ok) {
@@ -263,6 +333,52 @@ export function toImageAnalysisResult(geminiOutput: unknown): ImageAnalysisResul
     });
   }
   return { transactions };
+}
+
+/**
+ * リクエストの `instructionTurns` を検証し、正規化した往復の配列を返す。
+ * 未指定 (undefined) は初回解析として空配列。配列でない・上限超過・指示が空または長すぎる場合は
+ * クライアントへ返すエラー文を返す。直前の結果は Worker 自身の出力の再送のため [toImageAnalysisResult] で
+ * 不正な明細を取り除いてから Gemini へ渡し (クライアント申告の値をそのままプロンプトに載せない)、
+ * 件数・店名の長さも上限 (maxAnalysisPreviousTransactionCount / maxAnalysisTransactionTitleLength) で拒否する。
+ */
+export function parseAnalysisInstructionTurns(
+  rawInstructionTurns: unknown,
+): { instructionTurns: AnalysisInstructionTurn[] } | { error: string } {
+  if (rawInstructionTurns === undefined) {
+    return { instructionTurns: [] };
+  }
+  if (!Array.isArray(rawInstructionTurns)) {
+    return { error: "instructionTurns は配列で指定してください" };
+  }
+  if (rawInstructionTurns.length > maxAnalysisInstructionTurnCount) {
+    return { error: `追加指示は 1 枚の画像につき ${maxAnalysisInstructionTurnCount} 回までです` };
+  }
+  const instructionTurns: AnalysisInstructionTurn[] = [];
+  for (const rawInstructionTurn of rawInstructionTurns) {
+    if (typeof rawInstructionTurn !== "object" || rawInstructionTurn === null) {
+      return { error: "instructionTurns の要素はオブジェクトで指定してください" };
+    }
+    const { instruction, previousTransactions } = rawInstructionTurn as Record<string, unknown>;
+    if (typeof instruction !== "string" || instruction.trim() === "") {
+      return { error: "追加指示 (instruction) を入力してください" };
+    }
+    if (countGraphemes(instruction) > maxAnalysisInstructionLength) {
+      return { error: `追加指示は ${maxAnalysisInstructionLength} 文字以内で入力してください` };
+    }
+    const normalizedPreviousTransactions = toImageAnalysisResult({ transactions: previousTransactions }).transactions;
+    if (normalizedPreviousTransactions.length > maxAnalysisPreviousTransactionCount) {
+      return { error: `直前の解析結果は ${maxAnalysisPreviousTransactionCount} 件までです` };
+    }
+    if (normalizedPreviousTransactions.some((previousTransaction) => previousTransaction.title.length > maxAnalysisTransactionTitleLength)) {
+      return { error: `直前の解析結果の店名は ${maxAnalysisTransactionTitleLength} 文字以内にしてください` };
+    }
+    instructionTurns.push({
+      instruction: instruction.trim(),
+      previousTransactions: normalizedPreviousTransactions,
+    });
+  }
+  return { instructionTurns };
 }
 
 // type ごとに許されるカテゴリの組み合わせをクライアントの選択体系

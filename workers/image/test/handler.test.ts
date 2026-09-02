@@ -15,9 +15,16 @@ import {
   maxDailyUploadCountPerIpAddress,
   maxDailyUploadCountPerUser,
   maxDailyUploadCountTotal,
+  maxAnalysisRequestBodyBytes,
   monthlyFreeScanLimit,
   monthlyPremiumScanLimit,
 } from "../src/handler";
+import {
+  maxAnalysisInstructionLength,
+  maxAnalysisInstructionTurnCount,
+  maxAnalysisPreviousTransactionCount,
+  maxAnalysisTransactionTitleLength,
+} from "../src/analysis";
 import { dailyCounterPurgeDelayMilliseconds } from "../src/usage_counter";
 import { buildPngHeaderBytes } from "./image_fixtures";
 
@@ -866,6 +873,185 @@ describe("画像解析", () => {
       data: btoa(String.fromCharCode(...pngBytes)),
     });
     expect(geminiRequestBody.generationConfig.responseMimeType).toBe("application/json");
+  });
+
+  it("追加指示 (instructionTurns) は直前の結果を model 応答、指示を user ターンとして画像の後ろに積み、再解析の結果を返す", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000011");
+    let capturedGeminiRequestBody: string | undefined;
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(200, (request) => {
+        capturedGeminiRequestBody = String(request.body);
+        return buildGeminiResponseBody({
+          transactions: [
+            { title: "セブンイレブン 三軒茶屋店", amount: 1234, transactionDate: "2026-08-16", type: "expense", category: "food" },
+            { title: "駐車場", amount: 300, transactionDate: "2026-08-16", type: "expense", category: "transportation" },
+          ],
+        });
+      });
+
+    const previousTransactions = [
+      { title: "セブンイレブン 三軒茶屋店", amount: 1234, transactionDate: "2026-08-16", type: "expense", category: "food" },
+    ];
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({
+          imageObjectKey,
+          instructionTurns: [{ previousTransactions, instruction: "  一番下の駐車場の明細が読めていない  " }],
+        }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { transactions: unknown[] }).transactions).toHaveLength(2);
+
+    const geminiContents = (JSON.parse(capturedGeminiRequestBody!) as {
+      contents: { role: string; parts: { text?: string; inline_data?: unknown }[] }[];
+    }).contents;
+    expect(geminiContents.map((content) => content.role)).toEqual(["user", "model", "user"]);
+    // 画像は先頭の user ターンだけに含める
+    expect(geminiContents[0].parts[0].inline_data).toBeDefined();
+    expect(geminiContents[1].parts[0].inline_data).toBeUndefined();
+    expect(geminiContents[2].parts[0].inline_data).toBeUndefined();
+    expect(JSON.parse(geminiContents[1].parts[0].text!)).toEqual({ transactions: previousTransactions });
+    // 指示は前後の空白を落として載せる
+    expect(geminiContents[2].parts[0].text).toContain("一番下の駐車場の明細が読めていない");
+    expect(geminiContents[2].parts[0].text).not.toContain("  一番下");
+  });
+
+  it("追加指示の直前の結果に含まれる不正な明細 (enum 外・金額 0) はプロンプトへ載せる前に取り除く", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000012");
+    let capturedGeminiRequestBody: string | undefined;
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(200, (request) => {
+        capturedGeminiRequestBody = String(request.body);
+        return buildGeminiResponseBody({ transactions: [] });
+      });
+
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({
+          imageObjectKey,
+          instructionTurns: [
+            {
+              previousTransactions: [
+                { title: "正常", amount: 100, transactionDate: "2026-08-16", type: "expense", category: "food" },
+                { title: "金額 0", amount: 0, transactionDate: "2026-08-16", type: "expense", category: "food" },
+                { title: "enum 外", amount: 100, transactionDate: "2026-08-16", type: "expense", category: "travel" },
+              ],
+              instruction: "金額を見直して",
+            },
+          ],
+        }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+    const geminiContents = (JSON.parse(capturedGeminiRequestBody!) as { contents: { parts: { text?: string }[] }[] }).contents;
+    expect(JSON.parse(geminiContents[1].parts[0].text!)).toEqual({
+      transactions: [{ title: "正常", amount: 100, transactionDate: "2026-08-16", type: "expense", category: "food" }],
+    });
+  });
+
+  it("追加指示が空・上限超過・配列でない場合は 400 を返し、Gemini を呼ばず回数も消費しない", async () => {
+    const uid = "uid-analysis-instruction-invalid";
+    const imageObjectKey = await uploadImageWithUploadId(uid, "dddddddd-0000-4000-8000-000000000013");
+    const quotaRequest = new Request(`${workerBaseUrl}/analyses/quota`, {
+      method: "GET",
+      headers: { Authorization: `Bearer valid-token-${uid}`, [firebaseAppCheckHeaderName]: validAppCheckToken },
+    });
+    // 無料枠を消費していない状態から始めることを明示する (最後の検証が「消費しなかった」ことを意味するため)
+    expect(await (await handleImageRequest(quotaRequest.clone(), env, stubTokenVerifiers)).json()).toEqual({
+      monthlyScanCount: 0,
+      monthlyFreeScanLimit,
+    });
+    const validTransaction = { title: "スーパー", amount: 100, transactionDate: "2026-08-16", type: "expense", category: "food" };
+    const invalidBodies = [
+      { imageObjectKey, instructionTurns: [{ previousTransactions: [], instruction: "   " }] },
+      { imageObjectKey, instructionTurns: [{ previousTransactions: [], instruction: "あ".repeat(maxAnalysisInstructionLength + 1) }] },
+      // 文字数はユーザー知覚文字 (書記素) で数えるため、非 BMP の絵文字 501 個 (UTF-16 では 1002) は超過
+      { imageObjectKey, instructionTurns: [{ previousTransactions: [], instruction: "😀".repeat(maxAnalysisInstructionLength + 1) }] },
+      {
+        imageObjectKey,
+        instructionTurns: [
+          {
+            previousTransactions: Array.from({ length: maxAnalysisPreviousTransactionCount + 1 }, () => validTransaction),
+            instruction: "見直して",
+          },
+        ],
+      },
+      {
+        imageObjectKey,
+        instructionTurns: [
+          {
+            previousTransactions: [{ ...validTransaction, title: "あ".repeat(maxAnalysisTransactionTitleLength + 1) }],
+            instruction: "見直して",
+          },
+        ],
+      },
+      {
+        imageObjectKey,
+        instructionTurns: Array.from({ length: maxAnalysisInstructionTurnCount + 1 }, () => ({
+          previousTransactions: [],
+          instruction: "見直して",
+        })),
+      },
+      { imageObjectKey, instructionTurns: "見直して" },
+      { imageObjectKey, instructionTurns: ["見直して"] },
+    ];
+    for (const invalidBody of invalidBodies) {
+      const response = await handleImageRequest(
+        buildAnalysisRequest({ authorizationHeader: `Bearer valid-token-${uid}`, body: JSON.stringify(invalidBody) }),
+        env,
+        stubTokenVerifiers,
+      );
+      expect(response.status).toBe(400);
+    }
+    expect(await (await handleImageRequest(quotaRequest, env, stubTokenVerifiers)).json()).toEqual({
+      monthlyScanCount: 0,
+      monthlyFreeScanLimit,
+    });
+  });
+
+  it("追加指示の文字数は書記素で数え、UTF-16 で上限を超える絵文字だけの指示も上限以内なら受け付ける", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000014");
+    fetchMock
+      .get(geminiApiOrigin)
+      .intercept({ path: geminiGenerateContentPath, method: "POST" })
+      .reply(200, buildGeminiResponseBody({ transactions: [] }));
+
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({
+          imageObjectKey,
+          instructionTurns: [{ previousTransactions: [], instruction: "😀".repeat(maxAnalysisInstructionLength) }],
+        }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it("リクエスト本体が上限バイト数を超える場合は parse せず 413 を返し、Gemini を呼ばない", async () => {
+    const imageObjectKey = await uploadImageWithUploadId("uid-analysis-a", "dddddddd-0000-4000-8000-000000000015");
+    const response = await handleImageRequest(
+      buildAnalysisRequest({
+        authorizationHeader: "Bearer valid-token-uid-analysis-a",
+        body: JSON.stringify({ imageObjectKey, padding: "a".repeat(maxAnalysisRequestBodyBytes) }),
+      }),
+      env,
+      stubTokenVerifiers,
+    );
+    expect(response.status).toBe(413);
   });
 
   it("Gemini の出力のうち不正な明細 (金額が正の整数でない・enum 外) を取り除き、不正な日付は null にする", async () => {

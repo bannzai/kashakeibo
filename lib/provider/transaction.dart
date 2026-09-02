@@ -134,6 +134,7 @@ class AddTransaction {
   ///
   /// [sourceImageObjectKey] は撮影・取込フローでアップロード済みの元画像のキー
   /// (手動入力は null)。[analysisAdjustedByUser] は AI 解析結果をユーザーが修正したか。
+  /// [analysisInstructions] は解析中にユーザーが AI へ出した追加指示の履歴 (出していなければ空)。
   Future<void> call({
     required TransactionType type,
     required TransactionSource source,
@@ -144,6 +145,7 @@ class AddTransaction {
     required bool excludedFromAggregation,
     required String? sourceImageObjectKey,
     required bool analysisAdjustedByUser,
+    required List<String> analysisInstructions,
   }) async {
     final documentReference = transactionsReference(
       userID: userID,
@@ -168,6 +170,7 @@ class AddTransaction {
       excludedFromAggregation: excludedFromAggregation,
       sourceImageObjectKey: sourceImageObjectKey,
       analysisAdjustedByUser: analysisAdjustedByUser,
+      analysisInstructions: analysisInstructions,
     );
     final serverWrite = documentReference.set(createdTransaction);
     final localWrite = documentReference

@@ -280,6 +280,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get captureRegistered => 'カシャッと記録!';
 
   @override
+  String get captureInstructionSectionTitle => 'AI への追加指示';
+
+  @override
+  String get captureInstructionOpen => 'AI に指示して読み直す';
+
+  @override
+  String get captureInstructionHint => '例: 一番下の明細が読めていない / 2件目の金額が違う';
+
+  @override
+  String get captureInstructionScanNote => '読み直しにはスキャン1回分を使います';
+
+  @override
+  String get captureInstructionSend => '送信して読み直す';
+
+  @override
+  String captureInstructionResult(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '読み直して$count件になりました',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailTitle => '明細';
 
   @override
@@ -328,6 +353,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get transactionDetailProvenance => '出所';
+
+  @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '追加指示は1枚の画像につき$count回までです',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get transactionDetailAnalysisInstructions => 'AI への指示';
 
   @override
   String get transactionDetailExcludeFromAggregation => '計算対象から除外';

@@ -59,6 +59,8 @@ void main() {
       // 元画像・出所記録のフィールドが無い旧データは、画像なし・未修正として読む
       expect(transaction.sourceImageObjectKey, isNull);
       expect(transaction.analysisAdjustedByUser, false);
+      // 追加指示の履歴フィールドが無い旧データは「指示なし」として読む
+      expect(transaction.analysisInstructions, isEmpty);
     });
 
     test('元画像のオブジェクトキーと AI 解析結果の修正有無を復元できる', () {
@@ -75,14 +77,20 @@ void main() {
         'excludedFromAggregation': false,
         'sourceImageObjectKey': 'users/user-id/image-id.jpg',
         'analysisAdjustedByUser': true,
+        'analysisInstructions': ['一番下の明細が読めていない', '金額は税込で'],
       });
       expect(transaction.sourceImageObjectKey, 'users/user-id/image-id.jpg');
       expect(transaction.analysisAdjustedByUser, true);
+      expect(transaction.analysisInstructions, ['一番下の明細が読めていない', '金額は税込で']);
       expect(
         transaction.toJson()['sourceImageObjectKey'],
         'users/user-id/image-id.jpg',
       );
       expect(transaction.toJson()['analysisAdjustedByUser'], true);
+      expect(transaction.toJson()['analysisInstructions'], [
+        '一番下の明細が読めていない',
+        '金額は税込で',
+      ]);
     });
 
     test('未知のカテゴリは other として読む (旧クライアントの後方互換)', () {

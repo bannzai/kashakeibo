@@ -293,6 +293,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get captureRegistered => '已记录 ✓';
 
   @override
+  String get captureInstructionSectionTitle => '给 AI 的补充指示';
+
+  @override
+  String get captureInstructionOpen => '让 AI 重新识别';
+
+  @override
+  String get captureInstructionHint => '例如：最后一条明细没有识别 / 第二条金额不对';
+
+  @override
+  String get captureInstructionScanNote => '重新识别会使用 1 次扫描';
+
+  @override
+  String get captureInstructionSend => '发送并重新识别';
+
+  @override
+  String captureInstructionResult(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '重新识别后共 $count 条',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailTitle => '明细';
 
   @override
@@ -341,6 +366,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transactionDetailProvenance => '来源';
+
+  @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '每张图片最多可补充指示 $count 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get transactionDetailAnalysisInstructions => '给 AI 的指示';
 
   @override
   String get transactionDetailExcludeFromAggregation => '不计入总额';
@@ -980,6 +1018,31 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get captureRegistered => '已记录 ✓';
 
   @override
+  String get captureInstructionSectionTitle => '给 AI 的补充指示';
+
+  @override
+  String get captureInstructionOpen => '让 AI 重新识别';
+
+  @override
+  String get captureInstructionHint => '例如：最后一条明细没有识别 / 第二条金额不对';
+
+  @override
+  String get captureInstructionScanNote => '重新识别会使用 1 次扫描';
+
+  @override
+  String get captureInstructionSend => '发送并重新识别';
+
+  @override
+  String captureInstructionResult(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '重新识别后共 $count 条',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailTitle => '明细';
 
   @override
@@ -1028,6 +1091,19 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get transactionDetailProvenance => '来源';
+
+  @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '每张图片最多可补充指示 $count 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get transactionDetailAnalysisInstructions => '给 AI 的指示';
 
   @override
   String get transactionDetailExcludeFromAggregation => '不计入总额';
@@ -1666,6 +1742,31 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get captureRegistered => '已記錄 ✓';
 
   @override
+  String get captureInstructionSectionTitle => '給 AI 的補充指示';
+
+  @override
+  String get captureInstructionOpen => '請 AI 重新辨識';
+
+  @override
+  String get captureInstructionHint => '例如：最後一筆明細沒有辨識 / 第二筆金額不對';
+
+  @override
+  String get captureInstructionScanNote => '重新辨識會使用 1 次掃描';
+
+  @override
+  String get captureInstructionSend => '送出並重新辨識';
+
+  @override
+  String captureInstructionResult(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '重新辨識後共 $count 筆',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailTitle => '明細';
 
   @override
@@ -1714,6 +1815,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get transactionDetailProvenance => '來源';
+
+  @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '每張圖片最多可補充指示 $count 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get transactionDetailAnalysisInstructions => '給 AI 的指示';
 
   @override
   String get transactionDetailExcludeFromAggregation => '不計入總額';

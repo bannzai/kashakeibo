@@ -530,6 +530,51 @@ class _TransactionInfoCard extends StatelessWidget {
               ],
             ),
           ),
+          // 撮影フローで AI へ出した追加指示の履歴 (issue #40)。出していない明細では出さない。
+          if (transaction.analysisInstructions.isNotEmpty) ...[
+            const Divider(height: 1, color: AppColors.divider),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.transactionDetailAnalysisInstructions,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  for (final analysisInstruction
+                      in transaction.analysisInstructions)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.chat_bubble_outline,
+                            size: 14,
+                            color: AppColors.neutral600,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              analysisInstruction,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.neutral700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
           const Divider(height: 1, color: AppColors.divider),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,

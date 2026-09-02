@@ -305,6 +305,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureRegistered => 'Logged ✓';
 
   @override
+  String get captureInstructionSectionTitle => 'Instructions to the AI';
+
+  @override
+  String get captureInstructionOpen => 'Ask the AI to re-read';
+
+  @override
+  String get captureInstructionHint =>
+      'e.g. The last line is missing / The second amount is wrong';
+
+  @override
+  String get captureInstructionScanNote => 'Re-reading uses one scan';
+
+  @override
+  String get captureInstructionSend => 'Send and re-read';
+
+  @override
+  String captureInstructionResult(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Re-read as $count entries',
+      one: 'Re-read as 1 entry',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get transactionDetailTitle => 'Transaction';
 
   @override
@@ -356,6 +383,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionDetailProvenance => 'Source';
+
+  @override
+  String captureInstructionLimitReached(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'You can give up to $count instructions per image',
+      one: 'You can give 1 instruction per image',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get transactionDetailAnalysisInstructions => 'Instructions to the AI';
 
   @override
   String get transactionDetailExcludeFromAggregation => 'Exclude from totals';

@@ -298,6 +298,283 @@ as TransactionCategory,
 
 
 /// @nodoc
+mixin _$AnalysisInstructionTurn {
+
+/// この指示を出した時点でユーザーに見えていた解析結果。
+ List<AnalyzedTransaction> get previousTransactions;/// ユーザーの追加指示 (自由文)。
+ String get instruction;
+/// Create a copy of AnalysisInstructionTurn
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AnalysisInstructionTurnCopyWith<AnalysisInstructionTurn> get copyWith => _$AnalysisInstructionTurnCopyWithImpl<AnalysisInstructionTurn>(this as AnalysisInstructionTurn, _$identity);
+
+  /// Serializes this AnalysisInstructionTurn to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AnalysisInstructionTurn&&const DeepCollectionEquality().equals(other.previousTransactions, previousTransactions)&&(identical(other.instruction, instruction) || other.instruction == instruction));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(previousTransactions),instruction);
+
+@override
+String toString() {
+  return 'AnalysisInstructionTurn(previousTransactions: $previousTransactions, instruction: $instruction)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AnalysisInstructionTurnCopyWith<$Res>  {
+  factory $AnalysisInstructionTurnCopyWith(AnalysisInstructionTurn value, $Res Function(AnalysisInstructionTurn) _then) = _$AnalysisInstructionTurnCopyWithImpl;
+@useResult
+$Res call({
+ List<AnalyzedTransaction> previousTransactions, String instruction
+});
+
+
+
+
+}
+/// @nodoc
+class _$AnalysisInstructionTurnCopyWithImpl<$Res>
+    implements $AnalysisInstructionTurnCopyWith<$Res> {
+  _$AnalysisInstructionTurnCopyWithImpl(this._self, this._then);
+
+  final AnalysisInstructionTurn _self;
+  final $Res Function(AnalysisInstructionTurn) _then;
+
+/// Create a copy of AnalysisInstructionTurn
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? previousTransactions = null,Object? instruction = null,}) {
+  return _then(_self.copyWith(
+previousTransactions: null == previousTransactions ? _self.previousTransactions : previousTransactions // ignore: cast_nullable_to_non_nullable
+as List<AnalyzedTransaction>,instruction: null == instruction ? _self.instruction : instruction // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [AnalysisInstructionTurn].
+extension AnalysisInstructionTurnPatterns on AnalysisInstructionTurn {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _AnalysisInstructionTurn value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _AnalysisInstructionTurn() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _AnalysisInstructionTurn value)  $default,){
+final _that = this;
+switch (_that) {
+case _AnalysisInstructionTurn():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _AnalysisInstructionTurn value)?  $default,){
+final _that = this;
+switch (_that) {
+case _AnalysisInstructionTurn() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<AnalyzedTransaction> previousTransactions,  String instruction)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _AnalysisInstructionTurn() when $default != null:
+return $default(_that.previousTransactions,_that.instruction);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<AnalyzedTransaction> previousTransactions,  String instruction)  $default,) {final _that = this;
+switch (_that) {
+case _AnalysisInstructionTurn():
+return $default(_that.previousTransactions,_that.instruction);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<AnalyzedTransaction> previousTransactions,  String instruction)?  $default,) {final _that = this;
+switch (_that) {
+case _AnalysisInstructionTurn() when $default != null:
+return $default(_that.previousTransactions,_that.instruction);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _AnalysisInstructionTurn implements AnalysisInstructionTurn {
+  const _AnalysisInstructionTurn({required final  List<AnalyzedTransaction> previousTransactions, required this.instruction}): _previousTransactions = previousTransactions;
+  factory _AnalysisInstructionTurn.fromJson(Map<String, dynamic> json) => _$AnalysisInstructionTurnFromJson(json);
+
+/// この指示を出した時点でユーザーに見えていた解析結果。
+ final  List<AnalyzedTransaction> _previousTransactions;
+/// この指示を出した時点でユーザーに見えていた解析結果。
+@override List<AnalyzedTransaction> get previousTransactions {
+  if (_previousTransactions is EqualUnmodifiableListView) return _previousTransactions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_previousTransactions);
+}
+
+/// ユーザーの追加指示 (自由文)。
+@override final  String instruction;
+
+/// Create a copy of AnalysisInstructionTurn
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$AnalysisInstructionTurnCopyWith<_AnalysisInstructionTurn> get copyWith => __$AnalysisInstructionTurnCopyWithImpl<_AnalysisInstructionTurn>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$AnalysisInstructionTurnToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AnalysisInstructionTurn&&const DeepCollectionEquality().equals(other._previousTransactions, _previousTransactions)&&(identical(other.instruction, instruction) || other.instruction == instruction));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_previousTransactions),instruction);
+
+@override
+String toString() {
+  return 'AnalysisInstructionTurn(previousTransactions: $previousTransactions, instruction: $instruction)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$AnalysisInstructionTurnCopyWith<$Res> implements $AnalysisInstructionTurnCopyWith<$Res> {
+  factory _$AnalysisInstructionTurnCopyWith(_AnalysisInstructionTurn value, $Res Function(_AnalysisInstructionTurn) _then) = __$AnalysisInstructionTurnCopyWithImpl;
+@override @useResult
+$Res call({
+ List<AnalyzedTransaction> previousTransactions, String instruction
+});
+
+
+
+
+}
+/// @nodoc
+class __$AnalysisInstructionTurnCopyWithImpl<$Res>
+    implements _$AnalysisInstructionTurnCopyWith<$Res> {
+  __$AnalysisInstructionTurnCopyWithImpl(this._self, this._then);
+
+  final _AnalysisInstructionTurn _self;
+  final $Res Function(_AnalysisInstructionTurn) _then;
+
+/// Create a copy of AnalysisInstructionTurn
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? previousTransactions = null,Object? instruction = null,}) {
+  return _then(_AnalysisInstructionTurn(
+previousTransactions: null == previousTransactions ? _self._previousTransactions : previousTransactions // ignore: cast_nullable_to_non_nullable
+as List<AnalyzedTransaction>,instruction: null == instruction ? _self.instruction : instruction // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ImageAnalysisResult {
 
 /// 抽出した明細。レシートは 1 枚 1 件。明細が写っていない画像では空。
