@@ -204,6 +204,8 @@ enum _CapturePhase {
 /// 場合は候補リストを表示し、採用・破棄・修正を選んでまとめて登録する (issue #8)。
 /// 無料枠を使い切っていて解析が 402 で拒否された場合はペイウォールを開き、
 /// プレミアムになれば同じ画像で解析を再実行する (issue #12)。
+/// 確認画面からは AI にチャット形式で追加指示 (「一番下の明細が読めていない」等) を出して
+/// 同じ画像を読み直せ、指示の履歴は画面に残し登録する明細にも保存する (issue #40)。
 class CapturePage extends HookConsumerWidget {
   /// 撮影・選択した画像のバイト列。
   final Uint8List imageBytes;
@@ -242,6 +244,9 @@ class CapturePage extends HookConsumerWidget {
     final analysisError = useState<Object?>(null);
     // 再試行のたびに増やし、解析の再実行と確認フォームの初期値のリセットに使う。
     final analysisAttempt = useState(0);
+    // ユーザーが AI へ出した追加指示の履歴 (古い順)。解析はステートレスのため、
+    // 読み直しのたびに全件を Worker へ送る。登録時は指示文だけを明細に残す。
+    final instructionTurns = useState<List<AnalysisInstructionTurn>>(const []);
     // 登録 (Firestore 書き込み) の実行中。閉じる・取り直すを無効にし、登録と画像削除が
     // 並行しないようにする。
     final isSubmitting = useState(false);
@@ -284,6 +289,7 @@ class CapturePage extends HookConsumerWidget {
         uploadedImageObjectKey.value = imageObjectKey;
         final imageAnalysisResult = await analyzeUploadedImage(
           imageObjectKey: imageObjectKey,
+          instructionTurns: instructionTurns.value,
         );
         if (!context.mounted) {
           return;
@@ -355,6 +361,34 @@ class CapturePage extends HookConsumerWidget {
       }
     }
 
+    /// 追加指示シートを開き、入力された指示を履歴に積んで同じ画像を読み直す。
+    /// 直前の解析結果 (ユーザーの手修正前の AI 出力) を、指示の文脈として一緒に送る。
+    Future<void> instructAndReanalyze() async {
+      unawaited(logAnalyticsEvent(name: 'capture_instruction_open'));
+      final instruction = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (context) => const _AnalysisInstructionSheet(),
+      );
+      if (!context.mounted) {
+        return;
+      }
+      if (instruction == null) {
+        unawaited(logAnalyticsEvent(name: 'capture_instruction_cancel'));
+        return;
+      }
+      unawaited(logAnalyticsEvent(name: 'capture_instruction_send'));
+      instructionTurns.value = [
+        ...instructionTurns.value,
+        AnalysisInstructionTurn(
+          previousTransactions: analyzedTransactions.value,
+          instruction: instruction,
+        ),
+      ];
+      analysisAttempt.value++;
+    }
+
     // システムの戻る操作 (Android の戻る等) でも閉じるボタンと同じ破棄処理を通す。
     // 登録中は pop 自体を受け付けない。
     return PopScope(
@@ -415,8 +449,10 @@ class CapturePage extends HookConsumerWidget {
                       analyzedTransactions: analyzedTransactions.value,
                       sourceImageObjectKey: uploadedImageObjectKey.value,
                       transactionSource: transactionSource,
+                      instructionTurns: instructionTurns.value,
                       addTransaction: addTransaction,
                       logAnalyticsEvent: logAnalyticsEvent,
+                      onInstruct: instructAndReanalyze,
                       onSubmittingChanged: (submitting) {
                         isSubmitting.value = submitting;
                       },
@@ -440,8 +476,10 @@ class CapturePage extends HookConsumerWidget {
                           : analyzedTransactions.value.first,
                       sourceImageObjectKey: uploadedImageObjectKey.value,
                       transactionSource: transactionSource,
+                      instructionTurns: instructionTurns.value,
                       addTransaction: addTransaction,
                       logAnalyticsEvent: logAnalyticsEvent,
+                      onInstruct: instructAndReanalyze,
                       onSubmittingChanged: (submitting) {
                         isSubmitting.value = submitting;
                       },
@@ -685,11 +723,17 @@ class _CaptureConfirmForm extends HookWidget {
   /// 登録する明細の出所。
   final TransactionSource transactionSource;
 
+  /// AI へ出した追加指示の履歴 (古い順)。履歴の表示と、登録する明細への保存に使う。
+  final List<AnalysisInstructionTurn> instructionTurns;
+
   /// 明細の登録機能。
   final AddTransaction addTransaction;
 
   /// Analytics イベントを記録する処理。
   final LogAnalyticsEvent logAnalyticsEvent;
+
+  /// 「AI に指示して読み直す」の処理。
+  final VoidCallback onInstruct;
 
   /// 登録処理の開始・終了を親へ通知する処理 (登録中は閉じる操作を無効にするため)。
   final ValueChanged<bool> onSubmittingChanged;
@@ -705,8 +749,10 @@ class _CaptureConfirmForm extends HookWidget {
     required this.analyzedTransaction,
     required this.sourceImageObjectKey,
     required this.transactionSource,
+    required this.instructionTurns,
     required this.addTransaction,
     required this.logAnalyticsEvent,
+    required this.onInstruct,
     required this.onSubmittingChanged,
     required this.onRegistered,
     required this.onRetake,
@@ -752,6 +798,12 @@ class _CaptureConfirmForm extends HookWidget {
           _SourceImageHeader(
             imageBytes: imageBytes,
             note: l10n.captureSourceImageNote,
+          ),
+          const SizedBox(height: 14),
+          _AnalysisInstructionSection(
+            instructionTurns: instructionTurns,
+            currentTransactionCount: analyzedTransaction == null ? 0 : 1,
+            onInstruct: submitting.value ? null : onInstruct,
           ),
           const SizedBox(height: 18),
           _TransactionFields(
@@ -812,6 +864,10 @@ class _CaptureConfirmForm extends HookWidget {
                         excludedFromAggregation: false,
                         sourceImageObjectKey: sourceImageObjectKey,
                         analysisAdjustedByUser: analysisAdjustedByUser,
+                        analysisInstructions: [
+                          for (final instructionTurn in instructionTurns)
+                            instructionTurn.instruction,
+                        ],
                       );
                       if (context.mounted) {
                         onRegistered();
@@ -874,11 +930,17 @@ class _CaptureCandidateListView extends HookWidget {
   /// 登録する明細の出所。
   final TransactionSource transactionSource;
 
+  /// AI へ出した追加指示の履歴 (古い順)。履歴の表示と、登録する明細への保存に使う。
+  final List<AnalysisInstructionTurn> instructionTurns;
+
   /// 明細の登録機能。
   final AddTransaction addTransaction;
 
   /// Analytics イベントを記録する処理。
   final LogAnalyticsEvent logAnalyticsEvent;
+
+  /// 「AI に指示して読み直す」の処理。
+  final VoidCallback onInstruct;
 
   /// 登録処理の開始・終了を親へ通知する処理 (登録中は閉じる操作を無効にするため)。
   final ValueChanged<bool> onSubmittingChanged;
@@ -898,8 +960,10 @@ class _CaptureCandidateListView extends HookWidget {
     required this.analyzedTransactions,
     required this.sourceImageObjectKey,
     required this.transactionSource,
+    required this.instructionTurns,
     required this.addTransaction,
     required this.logAnalyticsEvent,
+    required this.onInstruct,
     required this.onSubmittingChanged,
     required this.onCandidateRegistered,
     required this.onRegistered,
@@ -958,6 +1022,10 @@ class _CaptureCandidateListView extends HookWidget {
             excludedFromAggregation: false,
             sourceImageObjectKey: sourceImageObjectKey,
             analysisAdjustedByUser: candidate != analyzedTransactions[index],
+            analysisInstructions: [
+              for (final instructionTurn in instructionTurns)
+                instructionTurn.instruction,
+            ],
           );
         } catch (error) {
           if (!context.mounted) {
@@ -987,6 +1055,16 @@ class _CaptureCandidateListView extends HookWidget {
           note: l10n.captureCandidatesNote(
             editedTransactions.value.length - registeredIndexes.value.length,
           ),
+        ),
+        const SizedBox(height: 14),
+        _AnalysisInstructionSection(
+          instructionTurns: instructionTurns,
+          currentTransactionCount: analyzedTransactions.length,
+          // 一部の候補が登録済みの状態で読み直すと、登録済みの明細が再び候補に含まれて
+          // 重複登録になるため、「取り直す」と同じく登録が始まった後は無効にする。
+          onInstruct: submitting.value || registeredIndexes.value.isNotEmpty
+              ? null
+              : onInstruct,
         ),
         const SizedBox(height: 18),
         for (var index = 0; index < editedTransactions.value.length; index++)
@@ -1094,6 +1172,207 @@ class _CaptureCandidateListView extends HookWidget {
           child: Text(l10n.captureRetake),
         ),
       ],
+    );
+  }
+}
+
+/// AI への追加指示の履歴 (チャット形式) と「AI に指示して読み直す」ボタン (issue #40)。
+///
+/// 指示 1 件につき、ユーザーの吹き出し (指示文) と AI の吹き出し (読み直し後の件数) を並べる。
+/// AI の件数は次の指示に添えた「直前の結果」から、最後の指示は現在の解析結果から求める。
+class _AnalysisInstructionSection extends StatelessWidget {
+  /// 追加指示の履歴 (古い順)。
+  final List<AnalysisInstructionTurn> instructionTurns;
+
+  /// 現在表示中の解析結果の件数 (最後の指示に対する AI の応答として表示する)。
+  final int currentTransactionCount;
+
+  /// 「AI に指示して読み直す」の処理。操作できない時 (登録中など) は null。
+  final VoidCallback? onInstruct;
+
+  const _AnalysisInstructionSection({
+    required this.instructionTurns,
+    required this.currentTransactionCount,
+    required this.onInstruct,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (instructionTurns.isNotEmpty) ...[
+          Text(
+            l10n.captureInstructionSectionTitle,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          for (
+            var turnIndex = 0;
+            turnIndex < instructionTurns.length;
+            turnIndex++
+          ) ...[
+            _InstructionChatBubble(
+              text: instructionTurns[turnIndex].instruction,
+              isUser: true,
+            ),
+            const SizedBox(height: 6),
+            _InstructionChatBubble(
+              text: l10n.captureInstructionResult(
+                turnIndex + 1 < instructionTurns.length
+                    ? instructionTurns[turnIndex + 1]
+                          .previousTransactions
+                          .length
+                    : currentTransactionCount,
+              ),
+              isUser: false,
+            ),
+            const SizedBox(height: 6),
+          ],
+          const SizedBox(height: 4),
+        ],
+        OutlinedButton.icon(
+          onPressed: onInstruct,
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(44),
+            foregroundColor: AppColors.onSurface,
+            side: const BorderSide(color: AppColors.divider),
+          ),
+          icon: const Icon(Icons.chat_bubble_outline, size: 18),
+          label: Text(l10n.captureInstructionOpen),
+        ),
+      ],
+    );
+  }
+}
+
+/// 追加指示の吹き出し。ユーザーは右寄せの accent-200、AI は左寄せの sage-100 にスパークル。
+class _InstructionChatBubble extends StatelessWidget {
+  /// 吹き出しの文言。
+  final String text;
+
+  /// ユーザーの発言か (false は AI の応答)。
+  final bool isUser;
+
+  const _InstructionChatBubble({required this.text, required this.isUser});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        // 吹き出しが画面幅いっぱいに伸びず、発言者の左右が見分けられる幅に収める。
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isUser ? AppColors.accent200 : AppColors.sage100,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(14),
+              topRight: const Radius.circular(14),
+              bottomLeft: Radius.circular(isUser ? 14 : 4),
+              bottomRight: Radius.circular(isUser ? 4 : 14),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!isUser) ...[
+                const Icon(
+                  Icons.auto_awesome,
+                  size: 14,
+                  color: AppColors.sage800,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: isUser ? AppColors.onSurface : AppColors.sage800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 追加指示 1 件の最大文字数。Worker 側の受け付け上限 (workers/image/src/analysis.ts の
+// maxAnalysisInstructionLength) と同じ値にし、送信前に入力側で打ち切る。
+const _maxAnalysisInstructionLength = 500;
+
+/// 追加指示の入力シート。指示文を入力し「送信して読み直す」で文字列を pop で返す (閉じた場合は null)。
+class _AnalysisInstructionSheet extends HookWidget {
+  const _AnalysisInstructionSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final instructionController = useTextEditingController();
+    // 送信ボタンの活性 (空文字では送れない) を入力に追従させるための状態。
+    final instructionText = useState('');
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        18,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.captureInstructionOpen,
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: instructionController,
+            autofocus: true,
+            minLines: 2,
+            maxLines: 5,
+            maxLength: _maxAnalysisInstructionLength,
+            textInputAction: TextInputAction.newline,
+            decoration: InputDecoration(
+              hintText: l10n.captureInstructionHint,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: (text) {
+              instructionText.value = text;
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.captureInstructionScanNote,
+            style: const TextStyle(fontSize: 11, color: AppColors.neutral600),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: instructionText.value.trim().isEmpty
+                ? null
+                : () => Navigator.of(
+                    context,
+                  ).pop(instructionController.text.trim()),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+            ),
+            child: Text(l10n.captureInstructionSend),
+          ),
+        ],
+      ),
     );
   }
 }
