@@ -37,9 +37,13 @@ on:
       - 'l10n.yaml'
       - '.github/workflows/flutter-deploy.yml'
 
-# 連続マージ時は古いビルドをキャンセルして最新だけ配布する
+# 連続マージ時は古いビルドをキャンセルして最新だけ配布する。
+# group を platform 単位にするのは、workflow_dispatch で platform=android だけを起動した時に
+# 実行中の push 起動 (両方) をキャンセルすると、新しい実行では build-ios が skip され
+# そのコミットの TestFlight 配布が行われなくなるため。同じ範囲の実行だけをキャンセルする
+# (push 起動は inputs が空なので both 扱い)
 concurrency:
-  group: flutter-deploy
+  group: flutter-deploy-${{ inputs.platform || 'both' }}
   cancel-in-progress: true
 
 env:
@@ -131,7 +135,7 @@ jobs:
         id: version
         run: |
           APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *\([^+]*\).*/\1/')
-          APP_BUILD_NUMBER=$((${GITHUB_RUN_NUMBER} + ${BUILD_NUMBER_OFFSET}))
+          APP_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + BUILD_NUMBER_OFFSET))
           echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
           echo "app_build_number=${APP_BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
 
@@ -400,7 +404,7 @@ jobs:
         id: version
         run: |
           APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *\([^+]*\).*/\1/')
-          APP_BUILD_NUMBER=$((${GITHUB_RUN_NUMBER} + ${BUILD_NUMBER_OFFSET}))
+          APP_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + BUILD_NUMBER_OFFSET))
           echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
           echo "app_build_number=${APP_BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
 

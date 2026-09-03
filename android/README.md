@@ -32,7 +32,8 @@ bash scripts/android/setup-release-signing.sh
 - keystore と key.properties を `~/.config/kashakeibo/android/` (環境変数 `KASHAKEIBO_ANDROID_SECRET_DIR` で変更可) に生成する。2 回目以降は既存の keystore を再利用する (冪等)
 - SHA-1 を kashakeibo-prod の Firebase Android アプリ (`com.bannzai.kashakeibo`) に登録し、google-services.json を取得し直して `android/app/google-services.json` と secret `GOOGLE_SERVICES_JSON_PROD_BASE64` を更新する
 - `ANDROID_KEYSTORE_JKS_BASE64` / `ANDROID_KEY_PROPERTIES_BASE64` を登録する
-- `--gcp-backup` を付けると kashakeibo-prod の GCP Secret Manager にも keystore と key.properties をバックアップする (secret 名 `googleplay-upload-keystore` / `googleplay-upload-keyproperties`)
+- `--gcp-backup` を付けると kashakeibo-prod の GCP Secret Manager にも keystore と key.properties をバックアップする (secret 名 `googleplay-upload-keystore` / `googleplay-upload-keyproperties`)。ローカルに keystore が無い時は、このバックアップからの復元を新規生成より優先する
+- ローカルに keystore が無く、かつ secret `ANDROID_KEYSTORE_JKS_BASE64` が登録済みの時は、Play に登録済みの upload key を上書きしないようスクリプトが中断する。`--gcp-backup` で復元するか、意図的に鍵を作り直す時だけ `--force-new-key` を付ける
 - 一部だけ実行したい時は `--skip-firebase` / `--skip-github`
 
 ### 2. Google Play Console でアプリを作成する (Web UI のみ)
@@ -50,6 +51,12 @@ bash scripts/android/setup-release-signing.sh
 
    検証後は `android/key.properties` と `android/app/upload-keystore.jks` を消す (gitignore 済みだが、作業ツリーに置いたままにしない)
 
+4. **アプリ署名鍵の SHA-1 を Firebase に登録する**。Play App Signing では配布 APK が Google 管理のアプリ署名鍵で再署名されるため、upload key の SHA-1 だけでは Play からインストールしたアプリの Google サインインが署名不一致で失敗する。初回 AAB アップロード後に「リリース > 設定 > アプリの署名」の「アプリの署名鍵の証明書」から SHA-1 を取得して登録し、google-services.json と secret を更新する:
+
+   ```sh
+   bash scripts/android/setup-release-signing.sh --extra-sha1 <アプリ署名鍵の SHA-1>
+   ```
+
 ### 3. Play Developer API 用サービスアカウント
 
 ```sh
@@ -57,11 +64,21 @@ bash scripts/android/create-play-service-account.sh
 ```
 
 - kashakeibo-prod にサービスアカウント `googleplay-publisher` を作り、鍵 JSON を `~/.config/kashakeibo/android/googleplay-service-account.json` に保存して secret `PLAY_SA_JSON_BASE64` を登録する (冪等)
-- その後、Play Console の「ユーザーと権限」からサービスアカウントのメールアドレスを招待し、kashakeibo のリリース権限 (製品版・テストトラックのリリース管理) を付与する。スクリプトが最後に手順を表示する
+- その後、Play Console の「ユーザーと権限」からサービスアカウントのメールアドレスを招待し、kashakeibo の「テストトラックへのリリースの管理」と「アプリ情報の閲覧」を付与する。workflow のアップロード先は internal トラック固定のため、漏洩時の影響を CI に必要な範囲に限定する目的で「製品版リリースの管理」は付与しない (製品版への昇格は Play Console で人間が行う)。スクリプトが最後に手順を表示する
 
 ### 4. RevenueCat の Play Store app
 
-RevenueCat の prod プロジェクトに Play Store app (`com.bannzai.kashakeibo`) を作り、手順 3 のサービスアカウント JSON を登録する (revenuecat-product-setup skill)。得られる public API key (`goog_...`) を secret `REVENUECAT_PUBLIC_API_KEY_ANDROID_PROD` に登録する:
+RevenueCat 用のサービスアカウントは、必要な権限が CI 用と異なる (購入検証・entitlement 同期のための閲覧と注文管理) ため分けて作る:
+
+```sh
+bash scripts/android/create-play-service-account.sh --revenuecat
+```
+
+- kashakeibo-prod にサービスアカウント `googleplay-revenuecat` を作り、鍵 JSON を `~/.config/kashakeibo/android/googleplay-revenuecat-service-account.json` に保存する (冪等)。渡し先が Web UI のため GitHub secret には登録しない
+- Play Console の「ユーザーと権限」でこのアカウントを招待し、「アプリ情報の閲覧」「財務データ、注文、解約アンケートの閲覧」「注文と定期購入の管理」を付与する
+- RevenueCat の prod プロジェクトに Play Store app (`com.bannzai.kashakeibo`) を作り、この鍵 JSON を RevenueCat Dashboard の Play Store app 設定にアップロードする (アップロードは Web UI のみ。app・商品の作成は revenuecat-product-setup skill)
+
+得られる public API key (`goog_...`) を secret `REVENUECAT_PUBLIC_API_KEY_ANDROID_PROD` に登録する:
 
 ```sh
 printf '%s' "$KEY" | gh secret set REVENUECAT_PUBLIC_API_KEY_ANDROID_PROD -R bannzai/kashakeibo
