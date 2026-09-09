@@ -13,9 +13,3 @@ paths:
 
 - フォーマット: `{EntityName}_{parentCollectionName}_{parentDocID}[_{additionalCollectionName}_{additionalDocID}]`（EntityName は PascalCase。例: `UserPrivate_users_{userID}` — `/users/{userID}/privates/` 内のシングルトン）
 - ID 生成ロジックはエンティティクラスの static メソッドに集約する
-
-```dart
-class UserPrivate {
-  static String documentID({required String userID}) => 'UserPrivate_users_$userID';
-}
-```

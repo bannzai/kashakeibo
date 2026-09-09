@@ -19,10 +19,3 @@ paths:
 # 変数名に親の型名をコンテキストとして含める
 
 親の型名をコンテキストとして含めた命名にする。構造体名のコンテキストを落とさない。
-
-```typescript
-// NG: 構造体名のコンテキストが失われている
-const userId = appUser.id;
-// OK: 構造体名をそのまま含めた命名
-const appUserId = appUser.id;
-```

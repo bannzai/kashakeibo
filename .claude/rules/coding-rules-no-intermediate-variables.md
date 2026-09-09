@@ -20,11 +20,3 @@ paths:
 
 - 値を一度しか参照しない中間変数を定義しない
 - 式をそのまま引数や返り値として使う
-
-```typescript
-// NG
-const body = response.body;
-return body;
-// OK
-return response.body;
-```
