@@ -32,19 +32,6 @@ paths:
 - 正しく理解すべきは SSOT のデータ構造であり、加工して個別最適化した構造は余計な知識・コードリーディング・二重定義を増やす。SSOT にフィールドの追加・削除があると中間表現側も追随した更新が必要になる
 - 中間表現があることで変更量が減るシチュエーションも存在するが限定的。あるかないかわからない将来の変更に備えて作らない
 
-## 例
-
-```dart
-// NG: Firestore の User ドキュメントを表示用に詰め替えた中間表現
-class UserViewData {
-  final String name;
-  final String iconUrl;
-}
-
-// OK: Firestore のドキュメント (entity) をそのまま使う
-Text(user.name)
-```
-
 ## 関連ルール
 
 - 中間「変数」は `coding-rules-no-intermediate-variables.md`（同ディレクトリ）が対象（値を一度しか参照しない変数を作らない）。本ルールは構造（型・class）の二重定義が対象

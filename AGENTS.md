@@ -1,6 +1,6 @@
 # カシャケイボ (Kashakeibo)
 
-スクショ・写真を撮ったら記録される家計簿アプリを開発しています。Web ページ上のクレカ・EC の明細、レシートから、AI (Gemini vision) が明細を作り出して家計簿として登録します。
+スクショ・写真から明細を作成する家計簿アプリです。
 
 企画・要件・MVP スコープは @documents/PROJECT.md、技術スタックの決定と理由は @documents/adr/0001-tech-stack.md を参照してください。
 
@@ -22,7 +22,7 @@
 
 ## Plan 時に考慮すること
 
-プランファイルには変更対象ファイルごとの具体的な実装コード (コードブロック) を含め、末尾に `.claude/rules/plan-checklist.md` のチェックリストを追記し、上記の検証方法で検証完了までを行う。
+プランファイルの末尾に `.claude/rules/plan-checklist.md` の該当項目を追記し、その完了基準を満たす。
 
 <!-- ai-review-config begin -->
 <!--
