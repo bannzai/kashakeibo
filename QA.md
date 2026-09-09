@@ -9,6 +9,7 @@ last_verified_at: 2026-09-01
 
 ## 対象環境
 
+- App Attest 導入時の確認 (2026-09-09): release / profile の実機トークン取得・Firebase メトリクス・署名付き配布は未検証。App ID の capability、Firebase の App Attest 登録、配布用 profile と CI Secret の更新はクライアント設定のみの依頼範囲外。今回の変更に対するシミュレータでの通信確認も未実施。
 - debug ビルド = Firebase project `kashakeibo-dev` (release / profile = `kashakeibo-prod`。接続先は GoogleService-Info.plist / google-services.json の配置で切り替わる。lib/main.dart 参照)
 - QA は debug ビルド (kashakeibo-dev) に対して行う
 - シミュレータは simtunnel によるリモート Simulator を第一候補にする (/ios-simulator skill Phase 1。導入は https://github.com/bannzai/kashakeibo/issues/35 )
