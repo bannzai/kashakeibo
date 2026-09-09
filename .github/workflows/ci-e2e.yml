@@ -1,0 +1,75 @@
+# setup-ci のテンプレートを基に、Firebase 設定と既存フローの実行順を調整。
+name: CI E2E (flutter iOS)
+
+on:
+  schedule:
+    - cron: '23 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      # QA.md で確認済みの iOS 18 系を使う。
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: 開発用 Firebase 設定を復元する
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64 }}
+        run: |
+          [ -n "$GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64" ] || { echo "::error::開発用 Firebase 設定が空です"; exit 1; }
+          mkdir -p ios/Firebase/dev
+          printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64" | base64 --decode > ios/Firebase/dev/GoogleService-Info.plist
+          plutil -lint ios/Firebase/dev/GoogleService-Info.plist
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
+        with:
+          flutter-version: "3.41.9"
+          channel: stable
+          cache: true
+      - name: 依存関係を取得する
+        run: flutter pub get
+      - name: シミュレータ向けにビルドする
+        run: |
+          flutter build ios --simulator --debug
+      - name: シミュレータを起動する
+        id: simulator
+        run: |
+          # 初回起動を検証するため、実行ごとに新しい端末を作る。
+          udid=$(xcrun simctl create "kashakeibo-e2e" com.apple.CoreSimulator.SimDeviceType.iPhone-16 com.apple.CoreSimulator.SimRuntime.iOS-18-5)
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+      - name: アプリをインストールする
+        env:
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
+        run: xcrun simctl install "$SIMULATOR_UDID" "build/ios/iphonesimulator/Runner.app"
+      # インストーラーの取得元スクリプトは常に最新版を入れるため、リリース成果物をバージョン固定して取得し、
+      # ダウンロード内容が想定と一致することを sha256 で検証してから使う
+      - name: maestro をインストールする
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o maestro.zip "https://github.com/mobile-dev-inc/maestro/releases/download/cli-2.10.0/maestro.zip"
+          echo "29b675e10cc12080e445e9bfb2e2b4e4dfb9c0f2e30d5884120d258b5e1cd991  maestro.zip" | shasum -a 256 -c -
+          unzip -q maestro.zip -d maestro-cli
+          echo "$RUNNER_TEMP/maestro-cli/maestro/bin" >> "$GITHUB_PATH"
+      - name: E2E フローを実行する
+        env:
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
+        # 後続フローはホーム画面を前提にするため、オンボーディングを先に完了する。
+        # 撮影フローは CI 用 App Check debug token が未登録のため実行対象外。
+        run: |
+          maestro --device "$SIMULATOR_UDID" test maestro/flows/onboarding.yaml
+          maestro --device "$SIMULATOR_UDID" test maestro/flows/manual_entry.yaml
+          maestro --device "$SIMULATOR_UDID" test maestro/flows/transaction_exclusion.yaml
+          maestro --device "$SIMULATOR_UDID" test maestro/flows/paywall.yaml
