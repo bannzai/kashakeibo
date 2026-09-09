@@ -6,14 +6,7 @@ import 'package:kashakeibo/utils/firebase_emulator/firebase_emulator.dart';
 /// App Check を有効化する。バックエンド (Firestore / Firebase AI Logic 等) への
 /// リクエストに正規アプリ由来であることの証明トークンを添付する。
 ///
-/// プロバイダはビルド種別で分離する:
-/// - debug ビルド: debug プロバイダ (Firebase Console に登録したデバッグトークンで検証)
-/// - release ビルド: iOS は DeviceCheck、Android は Play Integrity
-///
-/// iOS で App Attest を使うには App ID に App Attest capability を有効化して
-/// provisioning profile を再生成する必要があり、この操作は Apple Developer Portal
-/// でしか行えない。1.0 は DeviceCheck で出し、profile を整備してから
-/// App Attest へ切り替える (shoppinglist と同判断)。
+/// Firebase 初期化後、他の Firebase サービスを使用する前に呼び出す。
 Future<void> activateAppCheck() async {
   // Emulator ビルドは App Check バックエンドに到達できずローカル完結が崩れるため
   // 有効化しない (Emulator 側も App Check を検証しない)。
@@ -24,10 +17,17 @@ Future<void> activateAppCheck() async {
     providerAndroid: kDebugMode
         ? const AndroidDebugProvider()
         : const AndroidPlayIntegrityProvider(),
-    providerApple: kDebugMode
-        ? const AppleDebugProvider()
-        : const AppleDeviceCheckProvider(),
+    providerApple: appCheckAppleProvider(isDebugBuild: kDebugMode),
   );
+}
+
+/// ビルド種別に対応する Apple の検証プロバイダ。
+AppleAppCheckProvider appCheckAppleProvider({required bool isDebugBuild}) {
+  // Simulator では実機の証明ができないため、debug ビルドだけを分離する。
+  // 本番は App Attest 非対応の端末でも利用できるよう DeviceCheck へフォールバックする。
+  return isDebugBuild
+      ? const AppleDebugProvider()
+      : const AppleAppAttestWithDeviceCheckFallbackProvider();
 }
 
 /// Firebase 以外のバックエンド (画像アップロード Worker `workers/image`) へ
