@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -82,6 +83,53 @@ Widget buildSettingsApp({
 
 /// 設定画面の Widget テスト。
 void main() {
+  testWidgets('ライセンス一覧から本文を確認して設定画面へ戻れる', (tester) async {
+    final firebaseUser = MockSettingsUser();
+    final analyticsEvents = <String>[];
+    when(() => firebaseUser.isAnonymous).thenReturn(true);
+    when(() => firebaseUser.providerData).thenReturn(const []);
+    LicenseRegistry.reset();
+    addTearDown(LicenseRegistry.reset);
+    LicenseRegistry.addLicense(
+      () => Stream.value(
+        const LicenseEntryWithLineBreaks(['oss_test_package'], 'テスト用ライセンス本文'),
+      ),
+    );
+
+    await tester.pumpWidget(
+      buildSettingsApp(
+        firebaseUser: firebaseUser,
+        linkOrSignInWithApple: () async => AccountActionResult.linked,
+        linkOrSignInWithGoogle: () async => AccountActionResult.linked,
+        deleteAccount: FakeDeleteAccount(),
+        logAnalyticsEvent: ({required name, parameters}) async {
+          analyticsEvents.add(name);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Licenses'), 200);
+    await tester.tap(find.text('Licenses'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LicensePage), findsOneWidget);
+    expect(find.text(AppLocalizationsEn().appName), findsOneWidget);
+    await tester.tap(find.text('oss_test_package'));
+    await tester.pumpAndSettle();
+    expect(find.text('テスト用ライセンス本文'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
+    expect(find.byType(LicensePage), findsNothing);
+    expect(analyticsEvents, [
+      'settings_licenses_open',
+      'settings_licenses_close',
+    ]);
+  });
+
   testWidgets('匿名ユーザーにバックアップ未設定とApple・Googleリンク導線を表示する', (tester) async {
     final firebaseUser = MockSettingsUser();
     var appleLinkCount = 0;

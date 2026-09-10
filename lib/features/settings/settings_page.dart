@@ -296,6 +296,38 @@ class SettingsPage extends HookConsumerWidget {
                           openExternalUri: openExternalUri,
                           logAnalyticsEvent: logAnalyticsEvent,
                         ),
+                        const Divider(height: 1),
+                        ListTile(
+                          minTileHeight: 50,
+                          title: Text(
+                            MaterialLocalizations.of(context).licensesPageTitle,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: appColors.neutral500,
+                          ),
+                          onTap: () async {
+                            unawaited(
+                              logAnalyticsEvent(name: 'settings_licenses_open'),
+                            );
+                            // 画面遷移はタップごとの副作用なので冪等にはしない。
+                            await Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (context) =>
+                                    LicensePage(applicationName: l10n.appName),
+                              ),
+                            );
+                            unawaited(
+                              logAnalyticsEvent(
+                                name: 'settings_licenses_close',
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
