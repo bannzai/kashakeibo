@@ -35,7 +35,7 @@ jobs:
       contents: read # checkout のみ。OIDC token (id-token) は session job だけに与える
     steps:
       # simtunnel 経路の workflow は uses を commit SHA で固定する（simtunnel PROJECT.md「リポジトリ公開に耐える安全性」）
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # debug ビルドの Copy GoogleService-Info.plist ビルドフェーズが参照する dev の plist を
@@ -48,13 +48,13 @@ jobs:
           printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64" | base64 -d > ios/Firebase/dev/GoogleService-Info.plist
           # secret が空のまま進むと Xcode のコピーフェーズで分かりにくく失敗するため、ここで検査して止める
           [ -s ios/Firebase/dev/GoogleService-Info.plist ] || { echo "Error: GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64 が空" >&2; exit 1; }
-      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
           flutter-version: '3.41.9'
       - run: flutter pub get
       - run: flutter build ios --simulator --debug
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: simulator-app
           path: build/ios/iphonesimulator # .app の親ディレクトリ（.app 直指定は中身が flatten される）
