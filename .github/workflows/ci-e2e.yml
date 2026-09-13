@@ -21,7 +21,7 @@ jobs:
       # QA.md で確認済みの iOS 18 系を使う。
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: 開発用 Firebase 設定を復元する
@@ -32,7 +32,7 @@ jobs:
           mkdir -p ios/Firebase/dev
           printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_DEV_BASE64" | base64 --decode > ios/Firebase/dev/GoogleService-Info.plist
           plutil -lint ios/Firebase/dev/GoogleService-Info.plist
-      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: "3.41.9"
           channel: stable
