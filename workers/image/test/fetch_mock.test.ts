@@ -1,12 +1,17 @@
 // test/fetch_mock.ts のテスト。
 // 他のテストが頼っている 2 つの保証 (意図しない外部通信が無いこと・未消費の差し替えが残らないこと) を検証する。
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { fetchMock } from "./fetch_mock";
 
 const mockedApiOrigin = "https://mocked-api.test";
 
 beforeAll(() => {
   fetchMock.activate();
+});
+
+// 検証の途中で失敗したテストの登録を、後続のテストへ持ち越さない
+afterEach(() => {
+  fetchMock.assertNoPendingInterceptors();
 });
 
 describe("fetch の差し替え", () => {
@@ -29,7 +34,6 @@ describe("fetch の差し替え", () => {
     expect(await response.json()).toEqual({ created: true });
     expect(capturedRequest?.headers["x-api-key"]).toBe("test-api-key");
     expect(capturedRequest?.body).toBe(JSON.stringify({ name: "item" }));
-    fetchMock.assertNoPendingInterceptors();
   });
 
   it("登録は 1 回の fetch で消費され、2 回目の同じ fetch は失敗する", async () => {
