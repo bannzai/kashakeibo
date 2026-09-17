@@ -1,10 +1,10 @@
 // handler.ts の認可ロジックのテスト。
 // Firebase ID token / App Check token の検証はスタブ検証器 (トークン文字列の固定対応) で置き換え、
-// R2 / KV は vitest-pool-workers (miniflare) の実 binding を使う。Gemini API は fetchMock で応答を差し替える。
+// R2 / KV は vitest-pool-workers (miniflare) の実 binding を使う。Gemini API は fetchMock (test/fetch_mock.ts) で応答を差し替える。
 // 実際の Google JWK 検証 (firebase-auth-cloudflare-workers) はライブラリ側の責務のためここでは検証しない。
 // App Check token の実際の JWT 検証は test/app_check.test.ts で検証する。
-import { env, fetchMock } from "cloudflare:test";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { env, reset } from "cloudflare:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { VerifyFirebaseAppCheckToken } from "../src/app_check";
 import type { ImageWorkerEnv, TokenVerifiers, VerifyFirebaseIdToken } from "../src/handler";
 import {
@@ -26,11 +26,20 @@ import {
   maxAnalysisTransactionTitleLength,
 } from "../src/analysis";
 import { dailyCounterPurgeDelayMilliseconds } from "../src/usage_counter";
+import { fetchMock } from "./fetch_mock";
 import { buildPngHeaderBytes } from "./image_fixtures";
 
-declare module "cloudflare:test" {
-  interface ProvidedEnv extends ImageWorkerEnv {}
+declare global {
+  namespace Cloudflare {
+    interface Env extends ImageWorkerEnv {}
+  }
 }
+
+// vitest-pool-workers の storage 分離はテストファイル単位のため、
+// R2 のオブジェクトと日次・月次カウンター (Durable Object) をテストごとに空へ戻す
+beforeEach(async () => {
+  await reset();
+});
 
 // スタブ検証器: "valid-token-<uid>" 形式のトークンだけを受理し uid を返す
 const stubVerifyFirebaseIdToken: VerifyFirebaseIdToken = async (firebaseIdToken) => {
@@ -785,9 +794,8 @@ describe("画像解析", () => {
   const geminiGenerateContentPath = `/v1beta/models/${env.GEMINI_MODEL}:generateContent`;
 
   beforeAll(() => {
+    // Gemini 以外への実通信を伴わないことを保証する (差し替えを登録していない fetch は失敗する)
     fetchMock.activate();
-    // Gemini 以外への実通信を伴わないことを保証する
-    fetchMock.disableNetConnect();
   });
 
   afterEach(() => {
@@ -1220,7 +1228,6 @@ describe("スキャン無料枠 (月次) とプレミアム判定", () => {
 
   beforeAll(() => {
     fetchMock.activate();
-    fetchMock.disableNetConnect();
   });
 
   afterEach(() => {

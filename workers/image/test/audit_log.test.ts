@@ -1,10 +1,10 @@
 // 監査ログ (GET /audit-logs・DELETE /audit-logs・画像削除の記録・毎時の scheduled パージ) のテスト。
 // Firebase ID token / App Check token の検証は handler.test.ts と同じスタブ検証器で置き換え、
 // KV と Durable Object は vitest-pool-workers (miniflare) の実 binding を使う。
-// BigQuery・Identity Toolkit と Google の token エンドポイントは fetchMock で応答を差し替え、
+// BigQuery・Identity Toolkit と Google の token エンドポイントは fetchMock (test/fetch_mock.ts) で応答を差し替え、
 // JWT の署名はテスト内で生成した RSA 鍵を持つサービスアカウントキーで実際に通す。
-import { env, fetchMock } from "cloudflare:test";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { env, reset } from "cloudflare:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VerifyFirebaseAppCheckToken } from "../src/app_check";
 import {
   auditLogPurgeAbandonedRequestExpiryMilliseconds,
@@ -21,9 +21,12 @@ import {
 } from "../src/handler";
 import workerEntrypoint from "../src/index";
 import { dailyCounterPurgeDelayMilliseconds } from "../src/usage_counter";
+import { fetchMock } from "./fetch_mock";
 
-declare module "cloudflare:test" {
-  interface ProvidedEnv extends ImageWorkerEnv {}
+declare global {
+  namespace Cloudflare {
+    interface Env extends ImageWorkerEnv {}
+  }
 }
 
 // スタブ検証器: handler.test.ts と同じ "valid-token-<uid>" / "valid-app-check-token" だけを受理する
@@ -69,9 +72,14 @@ beforeAll(async () => {
   const pkcs8Bytes = new Uint8Array(await crypto.subtle.exportKey("pkcs8", testKeyPair.privateKey));
   testServiceAccountPrivateKeyPem = `-----BEGIN PRIVATE KEY-----\n${btoa(String.fromCharCode(...pkcs8Bytes)).replace(/(.{64})/g, "$1\n")}\n-----END PRIVATE KEY-----\n`;
 
+  // BigQuery / Google token / RevenueCat 以外への実通信を伴わないことを保証する (差し替えを登録していない fetch は失敗する)
   fetchMock.activate();
-  // BigQuery / Google token / RevenueCat 以外への実通信を伴わないことを保証する
-  fetchMock.disableNetConnect();
+});
+
+// vitest-pool-workers の storage 分離はテストファイル単位のため、
+// KV のパージ予約 (scheduled は全予約を処理する) と日次カウンター (Durable Object) をテストごとに空へ戻す
+beforeEach(async () => {
+  await reset();
 });
 
 afterEach(() => {
