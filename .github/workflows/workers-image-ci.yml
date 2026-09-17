@@ -1,0 +1,34 @@
+name: workers-image-ci
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# paths フィルタは置かない。flutter-ci と同じ起動条件に揃え、
+# workers/image の外の変更 (dependabot の設定・workflow 自体の変更等) でも依存の破綻を検出する
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # [Skip CI] は信頼できる actor (owner/member/collaborator) の PR に限る。public repo では外部の PR 作者もタイトルを自由に変えられるため
+    if: ${{ !(contains(github.event.pull_request.title, '[Skip CI]') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)) }}
+    defaults:
+      run:
+        working-directory: workers/image
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        # wrangler 4.127 の engines (node >= 22.0.0) を満たす最小のメジャーで、ローカルの検証 (v22.14.0) とも揃う
+        node-version: '22'
+        cache: npm
+        cache-dependency-path: workers/image/package-lock.json
+    # --legacy-peer-deps を付けない。peer 不整合 (ERESOLVE) をここで fail させるのが目的
+    - run: npm ci
+    - run: npm run typecheck
+    - run: npm test
