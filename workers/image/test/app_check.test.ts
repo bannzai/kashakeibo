@@ -2,13 +2,15 @@
 // テスト内で生成した RSA 鍵で署名した JWT と、その公開鍵を返すスタブ JWKS 配信で、
 // Firebase Admin SDK と同じ検証手順 (alg / iss / aud / sub / exp / iat / 署名) と KV キャッシュの挙動を検証する。
 // KV は vitest-pool-workers (miniflare) の実 binding を使う。
-import { env } from "cloudflare:test";
-import { beforeAll, describe, expect, it } from "vitest";
+import { env, reset } from "cloudflare:test";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createFirebaseAppCheckTokenVerifier } from "../src/app_check";
 import type { ImageWorkerEnv } from "../src/handler";
 
-declare module "cloudflare:test" {
-  interface ProvidedEnv extends ImageWorkerEnv {}
+declare global {
+  namespace Cloudflare {
+    interface Env extends ImageWorkerEnv {}
+  }
 }
 
 const testFirebaseProjectId = "kashakeibo-test";
@@ -27,6 +29,11 @@ beforeAll(async () => {
   otherKeyPair = await generateRsaKeyPair();
   const signingPublicJwk = await crypto.subtle.exportKey("jwk", signingKeyPair.publicKey);
   publicJwks = [{ ...signingPublicJwk, kid: testKid, use: "sig", alg: "RS256" }];
+});
+
+// vitest-pool-workers の storage 分離はテストファイル単位のため、KV の JWKS キャッシュをテストごとに空へ戻す
+beforeEach(async () => {
+  await reset();
 });
 
 async function generateRsaKeyPair(): Promise<CryptoKeyPair> {
@@ -184,7 +191,7 @@ describe("App Check token の検証", () => {
   });
 
   it("JWKS を KV にキャッシュし、2回目以降の検証では取得しない", async () => {
-    // vitest-pool-workers の isolatedStorage により KV は各テストの開始時点で空 (前のテストの書き込みは巻き戻される)
+    // beforeEach の reset() により KV は各テストの開始時点で空 (前のテストの書き込みは消える)
     expect(await env.PUBLIC_JWK_CACHE_KV.get(env.APP_CHECK_JWKS_CACHE_KEY)).toBeNull();
     const jwksFetcher = createJwksFetcher();
     const verifyFirebaseAppCheckToken = createVerifier(jwksFetcher);
@@ -230,7 +237,7 @@ describe("App Check token の検証", () => {
   });
 
   it("JWKS の取得に失敗した場合は token を拒否する", async () => {
-    // KV は各テストで空なので (isolatedStorage)、キャッシュ済みの鍵で通ってしまうことはなく必ず取得に進む
+    // KV は各テストで空なので (beforeEach の reset())、キャッシュ済みの鍵で通ってしまうことはなく必ず取得に進む
     expect(await env.PUBLIC_JWK_CACHE_KV.get(env.APP_CHECK_JWKS_CACHE_KEY)).toBeNull();
     const failingFetcher = {
       fetchJwks: async () => new Response("unavailable", { status: 503 }),

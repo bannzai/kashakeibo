@@ -135,7 +135,7 @@ FIXTURES_DIR=tmp/analysis-fixtures-degraded node --experimental-strip-types scri
 ```sh
 cd workers/image
 npm install
-npm test        # vitest (@cloudflare/vitest-pool-workers)。R2/KV は miniflare、token 検証はスタブ、Gemini API は fetchMock
+npm test        # vitest (@cloudflare/vitest-pool-workers)。R2/KV は miniflare、token 検証はスタブ、外部 API は globalThis.fetch の差し替え (test/fetch_mock.ts)
 npm run typecheck
 ```
 
