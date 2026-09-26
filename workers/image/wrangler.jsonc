@@ -10,6 +10,9 @@
   "name": "kashakeibo-image-worker",
   "main": "src/index.ts",
   "compatibility_date": "2025-09-06",
+  // Workers Observability のアラート (毎時 cron の失敗・エラー率) を付ける前提としてログ保存を有効にする (bannzai/castle#1222)。
+  // observability は環境に継承されるキーなので、dev / prod の両方に効く (binding ではないためトップレベルに置いてよい)
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
   "env": {
     "dev": {
       "name": "kashakeibo-image-worker-dev",
