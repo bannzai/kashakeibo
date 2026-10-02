@@ -10,6 +10,10 @@ on:
       - main
   pull_request:
 
+# job が GITHUB_TOKEN を使うのは checkout だけのため、読み取り専用に絞る
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
