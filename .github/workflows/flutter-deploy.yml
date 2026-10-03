@@ -37,6 +37,11 @@ on:
       - 'l10n.yaml'
       - '.github/workflows/flutter-deploy.yml'
 
+# job が GITHUB_TOKEN を使うのは checkout だけのため、読み取り専用に絞る
+# (ストアへのアップロードと Slack 通知は secret の認証情報を使い、artifact のアップロードは GITHUB_TOKEN の権限に依らない)
+permissions:
+  contents: read
+
 # 連続マージ時は古いビルドをキャンセルして最新だけ配布する。
 # group を platform 単位にするのは、workflow_dispatch で platform=android だけを起動した時に
 # 実行中の push 起動 (両方) をキャンセルすると、新しい実行では build-ios が skip され
