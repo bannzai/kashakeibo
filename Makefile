@@ -34,3 +34,14 @@ run-ios:
 
 clean:
 	rm -rf $(DERIVED_DATA)
+
+# 引数なしの make で動作確認 (verify) を実行する
+.DEFAULT_GOAL := verify
+
+.PHONY: verify
+verify:
+	flutter pub get
+	flutter analyze --no-pub --no-fatal-infos --fatal-warnings
+	dart format --set-exit-if-changed ./
+	flutter test
+	cd workers/image && npm ci && npm run typecheck && npm test
