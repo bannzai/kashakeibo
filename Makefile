@@ -3,6 +3,8 @@ SCHEME := Runner
 CONFIGURATION := Debug
 DERIVED_DATA := tmp/DerivedData
 IOS_APP := $(DERIVED_DATA)/Build/Products/$(CONFIGURATION)-iphoneos/Runner.app
+# ios target が flutter run する simulator。sim-boot でプロジェクト固有 simulator を起動して解決する (?= なので ios 以外の target では起動しない)
+SIMULATOR_UDID ?= $(shell SCRIPT_QUIET=1 sim-boot | sed -n 's/^DEVICE_UDID=//p' | tail -n 1)
 
 .PHONY: ios-device install-ios run-ios clean
 
@@ -35,8 +37,8 @@ run-ios:
 clean:
 	rm -rf $(DERIVED_DATA)
 
-# 引数なしの make で動作確認 (verify) を実行する
-.DEFAULT_GOAL := verify
+# 引数なしの make で ios を実行する (人が手で動作確認するための入口。検査・テストは CI が行う)
+.DEFAULT_GOAL := ios
 
 .PHONY: verify
 verify:
@@ -45,3 +47,11 @@ verify:
 	dart format --set-exit-if-changed ./
 	flutter test
 	cd workers/image && npm ci && npm run typecheck && npm test
+
+# プロジェクト固有の simulator (sim-boot で起動) へ flutter run する。SIMULATOR_UDID=<UDID> で対象を指定できる
+.PHONY: ios
+ios:
+	@set -e; \
+	simulator_udid="$(SIMULATOR_UDID)"; \
+	[ -n "$$simulator_udid" ] || { echo "Error: sim-boot で Simulator を解決できません (sim-boot が PATH にあるか確認するか、SIMULATOR_UDID=<UDID> を指定してください)" >&2; exit 1; }; \
+	flutter run --debug -d "$$simulator_udid"
