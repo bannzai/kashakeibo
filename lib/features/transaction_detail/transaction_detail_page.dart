@@ -495,108 +495,115 @@ class _TransactionInfoCard extends StatelessWidget {
       transaction: transaction,
       l10n: l10n,
     );
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppColors.neutral100,
+    // SwitchListTile は最も近い Material に背景と ink を描くため、背景色付きの
+    // DecoratedBox ではなく Material でカードを描く (Flutter 3.44 の ListTile の assertion)。
+    return Material(
+      color: AppColors.neutral100,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider),
+        side: const BorderSide(color: AppColors.divider),
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.transactionDetailProvenance,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                _ProvenanceChip(
-                  label: transactionSourceLabel(
-                    source: transaction.source,
-                    l10n: l10n,
-                  ),
-                ),
-                if (provenanceLabel != null) ...[
-                  const SizedBox(width: 6),
-                  _ProvenanceChip(label: provenanceLabel),
-                ],
-              ],
-            ),
-          ),
-          // 撮影フローで AI へ出した追加指示の履歴 (issue #40)。出していない明細では出さない。
-          if (transaction.analysisInstructions.isNotEmpty) ...[
-            const Divider(height: 1, color: AppColors.divider),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
+        child: Column(
+          children: [
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    l10n.transactionDetailAnalysisInstructions,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  for (final analysisInstruction
-                      in transaction.analysisInstructions)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.chat_bubble_outline,
-                            size: 14,
-                            color: AppColors.neutral600,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              analysisInstruction,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.neutral700,
-                              ),
-                            ),
-                          ),
-                        ],
+                  Expanded(
+                    child: Text(
+                      l10n.transactionDetailProvenance,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                  ),
+                  _ProvenanceChip(
+                    label: transactionSourceLabel(
+                      source: transaction.source,
+                      l10n: l10n,
+                    ),
+                  ),
+                  if (provenanceLabel != null) ...[
+                    const SizedBox(width: 6),
+                    _ProvenanceChip(label: provenanceLabel),
+                  ],
                 ],
               ),
             ),
-          ],
-          const Divider(height: 1, color: AppColors.divider),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              l10n.transactionDetailExcludeFromAggregation,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(
-              l10n.transactionDetailExcludeFromAggregationDescription,
-              style: const TextStyle(
-                fontSize: 10.5,
-                color: AppColors.neutral600,
+            // 撮影フローで AI へ出した追加指示の履歴 (issue #40)。出していない明細では出さない。
+            if (transaction.analysisInstructions.isNotEmpty) ...[
+              const Divider(height: 1, color: AppColors.divider),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.transactionDetailAnalysisInstructions,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    for (final analysisInstruction
+                        in transaction.analysisInstructions)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.chat_bubble_outline,
+                              size: 14,
+                              color: AppColors.neutral600,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                analysisInstruction,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.neutral700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
+            ],
+            const Divider(height: 1, color: AppColors.divider),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                l10n.transactionDetailExcludeFromAggregation,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                l10n.transactionDetailExcludeFromAggregationDescription,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  color: AppColors.neutral600,
+                ),
+              ),
+              activeThumbColor: AppColors.neutral100,
+              activeTrackColor: AppColors.sage500,
+              value: transaction.excludedFromAggregation,
+              onChanged: operationInProgress
+                  ? null
+                  : onExcludedFromAggregationChanged,
             ),
-            activeThumbColor: AppColors.neutral100,
-            activeTrackColor: AppColors.sage500,
-            value: transaction.excludedFromAggregation,
-            onChanged: operationInProgress
-                ? null
-                : onExcludedFromAggregationChanged,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
