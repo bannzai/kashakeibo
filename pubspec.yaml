@@ -87,6 +87,10 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   generate: true
+  # Flutter 3.44 で既定が有効になった Swift Package Manager 連携を無効にし、iOS の依存解決を CocoaPods のまま保つ。
+  # 有効のままだと Xcode 27.1 で SwiftPM 連携の追加 (xcodebuild -list) が失敗し、build/ios/SourcePackages の複製を analyzer が拾う。
+  config:
+    enable-swift-package-manager: false
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
