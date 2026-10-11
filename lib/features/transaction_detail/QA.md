@@ -1,8 +1,8 @@
 ---
 feature: transaction_detail
 verification: mobile-mcp
-last_verified_commit: f492e1566dfd2fae08cfc3a15b79e1cc469e1e1e
-last_verified_at: 2026-08-22
+last_verified_commit: 3473a745eba78949eb81b7dde7ffbe73e01033df
+last_verified_at: 2026-10-11
 ---
 
 # transaction_detail QA
@@ -128,6 +128,15 @@ last_verified_at: 2026-08-22
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/89fee755-23a8-4f98-9149-419a8dfd5661.png" width="320">
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/74d69113-5fea-4872-af39-d6707bf10cdd.png" width="320">
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/1cb62767-e0ff-4d87-ad54-f235ddfe5afc.png" width="320">
+
+**確認日: 2026-10-11** (issue #129: Flutter 3.44.9 への更新で情報カードを `Container` から `Material` に置き換えた後の再確認)
+
+simtunnel の Simulator (iPhone 17 / iOS 26.5、英語ロケール) の debug ビルド (Flutter 3.44.9)。手動入力の明細 (QA Store / Food ¥1,200) で確認した。
+
+1 枚目: スイッチ OFF の詳細画面。情報カード (Source の「Manual」チップと「Exclude from totals」のスイッチ) が従来と同じ背景色・角丸・枠線で描画され、`SwitchListTile` の背景がカードからはみ出していない。2 枚目: スイッチを ON にした直後。日付・カテゴリの行が「Sun, Oct 11, 2026 · Food · Excluded」になり、即時保存されている。月次一覧の集計への反映は今回は確認していない (集計のロジックは変更していない)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/11/ff75b84b-0c3f-4cd2-960f-e561df011b58-qa-detail-01.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/11/8250a500-d4d5-44a4-9a01-9e5d942c6236-qa-detail-02.png" width="320">
 
 </details>
 
