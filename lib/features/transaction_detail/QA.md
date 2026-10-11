@@ -135,8 +135,8 @@ simtunnel の Simulator (iPhone 17 / iOS 26.5、英語ロケール) の debug �
 
 1 枚目: スイッチ OFF の詳細画面。情報カード (Source の「Manual」チップと「Exclude from totals」のスイッチ) が従来と同じ背景色・角丸・枠線で描画され、`SwitchListTile` の背景がカードからはみ出していない。2 枚目: スイッチを ON にした直後。日付・カテゴリの行が「Sun, Oct 11, 2026 · Food · Excluded」になり、即時保存されている。月次一覧の集計への反映は今回は確認していない (集計のロジックは変更していない)。
 
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/11/ff75b84b-0c3f-4cd2-960f-e561df011b58-qa-detail-01.png" width="320">
-<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/11/8250a500-d4d5-44a4-9a01-9e5d942c6236-qa-detail-02.png" width="320">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/11/ff75b84b-0c3f-4cd2-960f-e561df011b58-qa-detail-01.png" width="320" alt="計算対象外スイッチが OFF の明細詳細">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/11/8250a500-d4d5-44a4-9a01-9e5d942c6236-qa-detail-02.png" width="320" alt="計算対象外スイッチが ON の明細詳細">
 
 </details>
 
