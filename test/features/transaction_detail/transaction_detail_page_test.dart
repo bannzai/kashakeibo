@@ -445,4 +445,91 @@ void main() {
       findsNothing,
     );
   });
+
+  group('元画像のプレビューの高さ', () {
+    /// 論理幅 [width] の画面で元画像付きの明細詳細を開き、プレビューの大きさを返す。
+    Future<Size> openSourceImagePreview({
+      required WidgetTester tester,
+      required double width,
+    }) async {
+      tester.view.physicalSize = Size(width, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await openTransactionDetailPage(
+        tester: tester,
+        transaction: buildTransaction(
+          source: TransactionSource.receipt,
+          sourceImageObjectKey: 'users/user-id/uuid.png',
+          analysisAdjustedByUser: false,
+          analysisInstructions: const [],
+          excludedFromAggregation: false,
+        ),
+        updateTransactionExclusion: RecordingUpdateTransactionExclusion(),
+        removeTransactionSourceImage: RecordingRemoveTransactionSourceImage(),
+        deleteTransaction: RecordingDeleteTransaction(),
+        fetchedImageObjectKeys: <String>[],
+        closedPages: <void>[],
+      );
+      return tester.getSize(find.byType(Image));
+    }
+
+    testWidgets('compact 幅 (iPhone・iPhone Duo の外側ディスプレイ) では従来の 170 のまま', (
+      tester,
+    ) async {
+      // iPhone Duo の外側ディスプレイの論理幅 382 (左右の余白 20 を除くと 342)
+      final previewSize = await openSourceImagePreview(
+        tester: tester,
+        width: 382,
+      );
+
+      expect(previewSize, const Size(342, 170));
+    });
+
+    testWidgets('広い幅 (iPhone Duo の内側ディスプレイ) では高さを 250 に広げる', (tester) async {
+      // 内側ディスプレイの論理幅 951 から右の時計・Wi-Fi の列 84 を除いた幅
+      final previewSize = await openSourceImagePreview(
+        tester: tester,
+        width: 867,
+      );
+
+      expect(previewSize, const Size(827, 250));
+    });
+  });
+
+  testWidgets(
+    '元画像の拡大表示は右の safe area inset (iPhone Duo の時計・Wi-Fi の列) を避けて中央に置く',
+    (tester) async {
+      // iPhone Duo の外側ディスプレイ: 論理幅 466 のうち右 84 が時計・Wi-Fi の列
+      tester.view.physicalSize = const Size(466, 678);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(right: 84);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPadding);
+      await openTransactionDetailPage(
+        tester: tester,
+        transaction: buildTransaction(
+          source: TransactionSource.receipt,
+          sourceImageObjectKey: 'users/user-id/uuid.png',
+          analysisAdjustedByUser: false,
+          analysisInstructions: const [],
+          excludedFromAggregation: false,
+        ),
+        updateTransactionExclusion: RecordingUpdateTransactionExclusion(),
+        removeTransactionSourceImage: RecordingRemoveTransactionSourceImage(),
+        deleteTransaction: RecordingDeleteTransaction(),
+        fetchedImageObjectKeys: <String>[],
+        closedPages: <void>[],
+      );
+
+      await tester.tap(find.text(AppLocalizationsEn().transactionDetailZoom));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getCenter(find.byType(InteractiveViewer)).dx,
+        (466 - 84) / 2,
+      );
+    },
+  );
 }

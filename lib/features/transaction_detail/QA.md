@@ -1,8 +1,8 @@
 ---
 feature: transaction_detail
 verification: mobile-mcp
-last_verified_commit: 3473a745eba78949eb81b7dde7ffbe73e01033df
-last_verified_at: 2026-10-11
+last_verified_commit: f032ab3ece02beca8fa9647070dbf9c293b0c628
+last_verified_at: 2026-10-12
 ---
 
 # transaction_detail QA
@@ -76,6 +76,18 @@ last_verified_at: 2026-10-11
 
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/d3b44b1c-65eb-4ae4-9c72-92790dbad165.png" width="320">
 <img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/bannzai/kashakeibo/20260822/a623a523-ebc8-4ef5-a87a-d3880b1e25b5.png" width="320">
+
+**確認日: 2026-10-12** (issue #132: iPhone Duo 対応で元画像のプレビューの高さと拡大表示の safe area を変えた後の再確認)
+
+ローカル Simulator (iPhone Duo / iOS 27.1 と iPhone 17 Pro / iOS 27.0、日本語ロケール) の debug ビルド (Xcode 27.1・Flutter 3.44.9)。デバッグメニュー「サンプル明細スクショで取込フローを試す」で取り込んだ明細 (鳥貴族 三軒茶屋店 / ¥4,230) で確認した。
+
+1 枚目: iPhone Duo の明細詳細 (左から閉じた姿勢・開いた姿勢・閉じ直した姿勢)。外側ディスプレイのプレビューは従来どおり高さ 170、内側ディスプレイでは高さ 250 に広がり、下の出所・除外のカードもスクロールせずに見える。2 枚目: iPhone Duo の拡大表示 (同じ 3 姿勢)。外側ディスプレイで画像が右端の時計・Wi-Fi の列の下に入らなくなった。3 枚目: iPhone 17 Pro の修正前後 (左 2 枚が明細詳細の修正前・修正後、右 2 枚が拡大表示の修正前・修正後)。時計を除いた画素の比較で差は 0 だった。
+
+ピンチ操作は従来どおり未実行 (mobilecli にマルチタッチのジェスチャコマンドが無い)。
+
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/12/e7b4e34f-e870-4446-a1b7-f5ca7b62b285-a-detail-image.png" width="640" alt="iPhone Duo の 3 姿勢での明細詳細 (修正後)">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/12/3e464acd-c001-49a8-af17-f3e9a60ca34d-a-zoom.png" width="640" alt="iPhone Duo の 3 姿勢での元画像の拡大表示 (修正後)">
+<img src="https://pub-7f3469dd3e2e445b9b8ec2d1381b5ea8.r2.dev/2026/10/12/3ba1db3d-4a31-4f28-aecc-ff73a193215a-p-compare.png" width="640" alt="iPhone 17 Pro での明細詳細と拡大表示の修正前後">
 
 </details>
 
