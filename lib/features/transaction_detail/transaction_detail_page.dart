@@ -354,60 +354,67 @@ class _SourceImageSection extends ConsumerWidget {
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(28),
-          child: Container(
-            height: 170,
-            color: AppColors.neutral200,
-            child: storedImageAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              // エラーメッセージは加工せずそのまま表示する (.claude/rules/coding-conventions.md)。
-              error: (error, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    error.toString(),
-                    style: const TextStyle(fontSize: 11),
+          child: LayoutBuilder(
+            builder: (context, constraints) => Container(
+              // 600 は Material の compact 幅の上限で、iPhone と iPhone Duo の外側ディスプレイは
+              // この下に収まり従来の 170 のまま。広い幅 (iPhone Duo の内側ディスプレイ) で高さを
+              // 170 に固定すると BoxFit.cover の切り出しが細い帯になり元画像がほぼ写らないため
+              // 高さを広げる。250 は、内側ディスプレイ (高さ 669) で下の出所・除外のカードが
+              // スクロールせずに見える高さ。
+              height: constraints.maxWidth < 600 ? 170 : 250,
+              color: AppColors.neutral200,
+              child: storedImageAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                // エラーメッセージは加工せずそのまま表示する (.claude/rules/coding-conventions.md)。
+                error: (error, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      error.toString(),
+                      style: const TextStyle(fontSize: 11),
+                    ),
                   ),
                 ),
-              ),
-              data: (imageBytes) => Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.memory(imageBytes, fit: BoxFit.cover),
-                  Positioned(
-                    right: 12,
-                    bottom: 12,
-                    child: FilledButton.tonalIcon(
-                      onPressed: () {
-                        unawaited(
-                          logAnalyticsEvent(
-                            name: 'transaction_image_zoom',
-                            parameters: {'transactionID': transaction.id},
+                data: (imageBytes) => Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.memory(imageBytes, fit: BoxFit.cover),
+                    Positioned(
+                      right: 12,
+                      bottom: 12,
+                      child: FilledButton.tonalIcon(
+                        onPressed: () {
+                          unawaited(
+                            logAnalyticsEvent(
+                              name: 'transaction_image_zoom',
+                              parameters: {'transactionID': transaction.id},
+                            ),
+                          );
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              fullscreenDialog: true,
+                              builder: (context) =>
+                                  _SourceImageZoomPage(imageBytes: imageBytes),
+                            ),
+                          );
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.background,
+                          foregroundColor: AppColors.onSurface,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        icon: const Icon(Icons.zoom_in, size: 16),
+                        label: Text(
+                          l10n.transactionDetailZoom,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
                           ),
-                        );
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            fullscreenDialog: true,
-                            builder: (context) =>
-                                _SourceImageZoomPage(imageBytes: imageBytes),
-                          ),
-                        );
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.background,
-                        foregroundColor: AppColors.onSurface,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      icon: const Icon(Icons.zoom_in, size: 16),
-                      label: Text(
-                        l10n.transactionDetailZoom,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -461,10 +468,17 @@ class _SourceImageZoomPage extends StatelessWidget {
         backgroundColor: AppColors.neutral900,
         foregroundColor: AppColors.neutral100,
       ),
-      body: Center(
-        child: InteractiveViewer(
-          maxScale: 6,
-          child: Image.memory(imageBytes, fit: BoxFit.contain),
+      // 左右: iPhone Duo では時計・Wi-Fi が右端の列に置かれ、その列が右の safe area inset に
+      // なるため、画像が列の下に入らないようにする。上下: 上は AppBar が inset を扱い、下まで
+      // 含めると既存の iPhone で home indicator の分だけ画像が上にずれるため対象にしない。
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Center(
+          child: InteractiveViewer(
+            maxScale: 6,
+            child: Image.memory(imageBytes, fit: BoxFit.contain),
+          ),
         ),
       ),
     );
