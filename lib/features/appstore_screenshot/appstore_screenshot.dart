@@ -35,6 +35,7 @@ enum AppStoreScreenshotDevice {
     pixelRatio: 3,
     expectedPixelWidth: 1290,
     expectedPixelHeight: 2796,
+    isUploadedByFastlaneDeliver: true,
   ),
   ipad13(
     fileNameLabel: 'ipad_13',
@@ -42,6 +43,27 @@ enum AppStoreScreenshotDevice {
     pixelRatio: 2,
     expectedPixelWidth: 2048,
     expectedPixelHeight: 2732,
+    isUploadedByFastlaneDeliver: true,
+  ),
+  // iPhone Duo の寸法は Apple の Screenshot specifications
+  // ( https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications )
+  // の iPhone Duo の節。論理サイズは要求 px を 3 で割った値で、4 辺とも割り切れる。
+  // 内側は仕様が縦横どちらも受け付けるうち横を採用する (理由は README)。
+  iphoneDuoOuter(
+    fileNameLabel: 'iphone_duo_outer',
+    logicalSize: Size(466, 678),
+    pixelRatio: 3,
+    expectedPixelWidth: 1398,
+    expectedPixelHeight: 2034,
+    isUploadedByFastlaneDeliver: false,
+  ),
+  iphoneDuoInner(
+    fileNameLabel: 'iphone_duo_inner',
+    logicalSize: Size(951, 669),
+    pixelRatio: 3,
+    expectedPixelWidth: 2853,
+    expectedPixelHeight: 2007,
+    isUploadedByFastlaneDeliver: false,
   );
 
   /// Apple が受理する端末別の出力寸法から描画条件を作る。
@@ -51,6 +73,7 @@ enum AppStoreScreenshotDevice {
     required this.pixelRatio,
     required this.expectedPixelWidth,
     required this.expectedPixelHeight,
+    required this.isUploadedByFastlaneDeliver,
   });
 
   /// fastlane 配置時に端末クラスを識別するファイル名ラベル。
@@ -67,6 +90,12 @@ enum AppStoreScreenshotDevice {
 
   /// Apple が受理する画像高さ。
   final int expectedPixelHeight;
+
+  /// fastlane deliver が受理する寸法で、`fastlane/screenshots/{lang}/` に配置して
+  /// 一括アップロードできるかどうか。false の端末 (iPhone Duo) は deliver の
+  /// 寸法表に無く、同じディレクトリに置くとアップロード全体が検証で止まるため、
+  /// 別の出力先に生成して App Store Connect へ手で上げる。
+  final bool isUploadedByFastlaneDeliver;
 }
 
 /// 1言語分のストア用キャッチコピー。
@@ -178,7 +207,7 @@ AppStoreScreenshotCopy appStoreScreenshotCopy({
   return copy;
 }
 
-/// iPhone・iPad の規定寸法で撮影する App Store スクリーンショット画面。
+/// iPhone・iPad・iPhone Duo の規定寸法で撮影する App Store スクリーンショット画面。
 ///
 /// 端末別の論理サイズと倍率は [AppStoreScreenshotDevice] を単一ソースにする。
 /// 本番の永続化層や Firebase に接続せず、固定データだけで再現可能にする。
@@ -230,9 +259,20 @@ class AppStoreScreenshotPage extends StatelessWidget {
                 left: -140,
                 child: _BackgroundOrb(diameter: 300, color: palette.orbColor),
               ),
-              device == AppStoreScreenshotDevice.iphone69
-                  ? _buildIPhoneContent(copy: copy, palette: palette)
-                  : _buildIPadContent(copy: copy, palette: palette),
+              switch (device) {
+                AppStoreScreenshotDevice.iphone69 => _buildIPhoneContent(
+                  copy: copy,
+                  palette: palette,
+                ),
+                AppStoreScreenshotDevice.ipad13 => _buildIPadContent(
+                  copy: copy,
+                  palette: palette,
+                ),
+                AppStoreScreenshotDevice.iphoneDuoOuter =>
+                  _buildIPhoneDuoOuterContent(copy: copy, palette: palette),
+                AppStoreScreenshotDevice.iphoneDuoInner =>
+                  _buildIPhoneDuoInnerContent(copy: copy, palette: palette),
+              },
             ],
           ),
         ),
@@ -378,6 +418,152 @@ class AppStoreScreenshotPage extends StatelessWidget {
                       height: 1.45,
                       fontWeight: FontWeight.w600,
                     ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// iPhone Duo の外側ディスプレイ (466×678 pt) へ訴求と端末モックを配置する。
+  ///
+  /// 6.9インチ iPhone (430×932 pt) より縦が 254 pt 短いので、同じ縦組みのまま
+  /// 端末モックを 5/6 に縮めて下端からブリードさせ、見出しの行送りを詰める。
+  /// モックの見える範囲は 6.9インチの約 8 割に対し約 7 割で、各ページの
+  /// 一覧・金額が画面上部に収まる固定データのため判読性は変わらない。
+  Widget _buildIPhoneDuoOuterContent({
+    required AppStoreScreenshotCopy copy,
+    required _ScreenshotPalette palette,
+  }) {
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Positioned(
+            top: 236,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                width: 310,
+                height: 650,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: _DeviceFrame(
+                    width: 372,
+                    height: 780,
+                    outlineColor: palette.deviceOutlineColor,
+                    child: _mockAppScreen(
+                      pageNumber: pageNumber,
+                      locale: locale,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 44, 30, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _EyebrowChip(text: copy.eyebrow, palette: palette),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: 406,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      copy.headline,
+                      style: TextStyle(
+                        color: palette.headlineColor,
+                        fontSize: 40,
+                        height: 1.04,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1.3,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 406,
+                  child: Text(
+                    copy.supportingText,
+                    style: TextStyle(
+                      color: palette.supportingTextColor,
+                      fontSize: 15,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// iPhone Duo の内側ディスプレイ (951×669 pt、横) へ訴求と端末モックを配置する。
+  ///
+  /// 横長の画面では縦組みが成立しないため、左に訴求文を縦中央で置き、
+  /// 右に 6.9インチと同じ基準サイズの端末モックを画面下端からブリードさせる。
+  /// モックの見える範囲は 6.9インチと同じ約 8 割になる。
+  Widget _buildIPhoneDuoInnerContent({
+    required AppStoreScreenshotCopy copy,
+    required _ScreenshotPalette palette,
+  }) {
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Positioned(
+            top: 72,
+            right: 84,
+            child: _DeviceFrame(
+              width: 372,
+              height: 780,
+              outlineColor: palette.deviceOutlineColor,
+              child: _mockAppScreen(pageNumber: pageNumber, locale: locale),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: 64,
+            width: 400,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _EyebrowChip(text: copy.eyebrow, palette: palette),
+                const SizedBox(height: 22),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    copy.headline,
+                    style: TextStyle(
+                      color: palette.headlineColor,
+                      fontSize: 50,
+                      height: 1.06,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  copy.supportingText,
+                  style: TextStyle(
+                    color: palette.supportingTextColor,
+                    fontSize: 18,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
