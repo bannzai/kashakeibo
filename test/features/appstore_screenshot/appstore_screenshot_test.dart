@@ -79,6 +79,33 @@ void main() {
     );
   });
 
+  test('全端末クラスの論理サイズと倍率が Apple の要求ピクセル寸法に一致する', () {
+    for (final device in AppStoreScreenshotDevice.values) {
+      expect(
+        device.logicalSize.width * device.pixelRatio,
+        device.expectedPixelWidth,
+        reason: '${device.fileNameLabel} の幅',
+      );
+      expect(
+        device.logicalSize.height * device.pixelRatio,
+        device.expectedPixelHeight,
+        reason: '${device.fileNameLabel} の高さ',
+      );
+    }
+  });
+
+  test('iPhone Duo だけが fastlane deliver のアップロード対象から外れる', () {
+    expect(
+      AppStoreScreenshotDevice.values.where(
+        (device) => !device.isUploadedByFastlaneDeliver,
+      ),
+      [
+        AppStoreScreenshotDevice.iphoneDuoOuter,
+        AppStoreScreenshotDevice.iphoneDuoInner,
+      ],
+    );
+  });
+
   for (final locale in AppStoreScreenshotLocale.values) {
     for (final device in AppStoreScreenshotDevice.values) {
       for (final pageNumber in appStoreScreenshotPageNumbers) {
@@ -115,12 +142,28 @@ void main() {
 
   testWidgets('App Store assets を生成する', (tester) async {
     final locales = _selectedLocales();
-    if (_generationKind == 'screenshots') {
+    if (_generationKind == 'screenshots' ||
+        _generationKind == 'iphone_duo_screenshots') {
       final pageNumbers = _generationPageNumber == 0
           ? appStoreScreenshotPageNumbers
           : [_generationPageNumber];
+      // screenshots は fastlane/screenshots へ配置される端末だけ、
+      // iphone_duo_screenshots は deliver が受理しない iPhone Duo だけを出力し、
+      // 同じ出力先に両方が混ざらないようにする。
+      final devices = AppStoreScreenshotDevice.values.where(
+        (device) =>
+            device.isUploadedByFastlaneDeliver ==
+            (_generationKind == 'screenshots'),
+      );
       for (final locale in locales) {
-        for (final device in AppStoreScreenshotDevice.values) {
+        for (final device in devices) {
+          // iPhone Duo は外側・内側を App Store Connect の同じ枠へ順に上げるため、
+          // 表示側ごとのディレクトリに分けてアップロード順を揃えられるようにする。
+          // fastlane 配置用の端末はファイル名だけで区別し、言語ディレクトリ直下に置く。
+          final outputDirectory = device.isUploadedByFastlaneDeliver
+              ? '$_screenshotOutputRoot/${locale.fastlaneDirectoryName}'
+              : '$_screenshotOutputRoot/${locale.fastlaneDirectoryName}/'
+                    '${device.fileNameLabel}';
           for (final pageNumber in pageNumbers) {
             await _writeRenderedAsset(
               tester: tester,
@@ -132,7 +175,7 @@ void main() {
                 device: device,
               ),
               outputPath:
-                  '$_screenshotOutputRoot/${locale.fastlaneDirectoryName}/'
+                  '$outputDirectory/'
                   '${appStoreScreenshotFileName(pageNumber: pageNumber, device: device)}',
               expectedPixelWidth: device.expectedPixelWidth,
               expectedPixelHeight: device.expectedPixelHeight,
@@ -159,7 +202,7 @@ void main() {
     throw ArgumentError.value(
       _generationKind,
       'APPSTORE_ASSET_KIND',
-      'screenshots または header を指定してください',
+      'screenshots、iphone_duo_screenshots、header のいずれかを指定してください',
     );
   }, skip: !_generateAppStoreAssets);
 }
