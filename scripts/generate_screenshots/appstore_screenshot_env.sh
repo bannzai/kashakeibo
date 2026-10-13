@@ -8,6 +8,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ARTIFACTS_ROOT="$SCRIPT_DIR/artifacts"
+# iPhone Duo は fastlane deliver が受理しない寸法のため、organize_screenshots.sh が
+# fastlane/screenshots へ配置する artifacts とは別の出力先に置く。
+IPHONE_DUO_ARTIFACTS_ROOT="$SCRIPT_DIR/artifacts_iphone_duo"
 FASTLANE_SCREENSHOTS_ROOT="$PROJECT_ROOT/fastlane/screenshots"
 HEADER_OUTPUT_ROOT="$PROJECT_ROOT/fastlane/creative_assets/product_page_header"
 HEADER_ARTIFACTS_ROOT="$PROJECT_ROOT/tmp/appstore_header_artifacts"
