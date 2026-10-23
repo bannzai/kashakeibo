@@ -117,7 +117,7 @@ jobs:
 
       # P12 証明書インポート (apple-actions で自動キーチェーン管理)
       - name: Import code signing certificate
-        uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7.0.0
+        uses: apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9 # v7.1.0
         with:
           p12-file-base64: ${{ secrets.IOS_P12_CERTIFICATE_BASE64 }}
           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
@@ -254,7 +254,7 @@ jobs:
             --apiKey "$ASC_API_KEY_ID" \
             --apiIssuer "$ASC_API_KEY_ISSUER_ID"
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-ipa
           path: build/ios/ipa/*.ipa
@@ -343,7 +343,7 @@ jobs:
           channel: stable
           flutter-version: '3.44.9'
 
-      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '17'
@@ -456,7 +456,7 @@ jobs:
           track: internal
           status: completed
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-aab
           path: build/app/outputs/bundle/release/app-release.aab
